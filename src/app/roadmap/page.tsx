@@ -57,7 +57,7 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
               <div className="project-meta">
                 <h3><Link href={`/roadmap/${project.id}`}>{project.name}</Link></h3>
                 <p className="muted">{project.code}</p>
-                <div className="badges"><span className={`badge ${project.trafficLight}`}>{project.trafficLight}</span><span className="badge">{ROADMAP_STATUS_LABELS[project.status]}</span></div>
+                <div className="badges"><span className={`badge ${project.trafficLight}`}>{project.trafficLight}</span><span className="badge">{ROADMAP_STATUS_LABELS[project.status]}</span>{project.packagingRequest ? <span className="badge">Packaging</span> : null}</div>
               </div>
               <div>
                 <div className="timeline" aria-label={`Línea de tiempo de ${project.name}`}>

@@ -8,8 +8,8 @@ El módulo **Roadmap** permite crear, listar y visualizar proyectos con hitos en
 
 ### Funcionalidades incluidas
 
-- Modelos Prisma `RoadmapProject` y `RoadmapMilestone` con enums de prioridad, estado, semáforo y estado de hito.
-- Migración SQL en `prisma/migrations/20260506000000_add_roadmap/migration.sql`.
+- Modelos Prisma `RoadmapProject`, `RoadmapMilestone` y `PackagingRequest`, con relación opcional para que una solicitud de packaging aparezca en el roadmap.
+- Migraciones SQL para roadmap y el vínculo con packaging en `prisma/migrations/`.
 - Seed opcional con 5 proyectos de ejemplo mediante `npm run seed`.
 - APIs básicas:
   - `GET /api/roadmap?year=&status=&owner=&brand=&category=&q=`
@@ -22,6 +22,8 @@ El módulo **Roadmap** permite crear, listar y visualizar proyectos con hitos en
   - `/roadmap`: selector de año, filtros simples y vista anual/trimestral con barras e hitos.
   - `/roadmap/new`: formulario para crear proyectos.
   - `/roadmap/[id]`: detalle, edición de proyecto, listado y creación/actualización de hitos.
+  - `/packaging`: listado de solicitudes de packaging.
+  - `/packaging/[id]`: detalle de solicitud con acciones para crear un proyecto roadmap o vincular uno existente.
 
 ### Configuración local
 

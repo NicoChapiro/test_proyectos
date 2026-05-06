@@ -32,7 +32,7 @@ function buildWhere(filters: RoadmapFilters): Prisma.RoadmapProjectWhereInput {
 export async function listRoadmapProjects(filters: RoadmapFilters) {
   return prisma.roadmapProject.findMany({
     where: buildWhere(filters),
-    include: { milestones: { orderBy: [{ sortOrder: "asc" }, { dueDate: "asc" }] } },
+    include: { milestones: { orderBy: [{ sortOrder: "asc" }, { dueDate: "asc" }] }, packagingRequest: true },
     orderBy: [{ startDate: "asc" }, { targetDate: "asc" }],
   });
 }
@@ -40,14 +40,14 @@ export async function listRoadmapProjects(filters: RoadmapFilters) {
 export async function getRoadmapProject(id: string) {
   return prisma.roadmapProject.findUnique({
     where: { id },
-    include: { milestones: { orderBy: [{ sortOrder: "asc" }, { dueDate: "asc" }] } },
+    include: { milestones: { orderBy: [{ sortOrder: "asc" }, { dueDate: "asc" }] }, packagingRequest: true },
   });
 }
 
 export async function createRoadmapProject(input: RoadmapProjectInput & { code: string }) {
   return prisma.roadmapProject.create({
     data: input,
-    include: { milestones: true },
+    include: { milestones: true, packagingRequest: true },
   });
 }
 
@@ -55,7 +55,7 @@ export async function updateRoadmapProject(id: string, input: RoadmapProjectUpda
   return prisma.roadmapProject.update({
     where: { id },
     data: input,
-    include: { milestones: { orderBy: [{ sortOrder: "asc" }, { dueDate: "asc" }] } },
+    include: { milestones: { orderBy: [{ sortOrder: "asc" }, { dueDate: "asc" }] }, packagingRequest: true },
   });
 }
 

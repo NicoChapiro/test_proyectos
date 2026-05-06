@@ -7,7 +7,7 @@ export default function HomePage() {
         <p className="eyebrow">Gestión de proyectos</p>
         <h1>Test Proyectos</h1>
         <p>Accede al roadmap anual para organizar proyectos e hitos por trimestre.</p>
-        <Link className="button primary" href="/roadmap">Ver roadmap</Link>
+        <div className="actions"><Link className="button primary" href="/roadmap">Ver roadmap</Link><Link className="button" href="/packaging">Ver packaging</Link></div>
       </section>
     </main>
   );

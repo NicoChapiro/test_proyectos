@@ -2,6 +2,11 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+const packagingSamples = [
+  ["PKG-2026-001", "Packaging sustentable línea norte", "Camila Rojas", "Marca Norte", "Sustentabilidad", "2026-06-30"],
+  ["PKG-2026-002", "Ajustes empaque premium", "Diego Silva", "Premium", "Innovación", "2026-09-15"],
+] as const;
+
 const samples = [
   ["RMP-2026-001", "Lanzamiento empaques sustentables", "Sustentabilidad", "Marca Norte", "Camila Rojas", "alta", "en_curso", "2026-01-15", "2026-06-30", "verde"],
   ["RMP-2026-002", "Optimización línea premium", "Innovación", "Premium", "Diego Silva", "media", "no_iniciado", "2026-03-01", "2026-09-15", "gris"],
@@ -11,6 +16,23 @@ const samples = [
 ] as const;
 
 async function main() {
+  for (const [code, title, requesterName, brand, category, desiredLaunchDate] of packagingSamples) {
+    await prisma.packagingRequest.upsert({
+      where: { code },
+      update: {},
+      create: {
+        code,
+        title,
+        description: `Solicitud de ejemplo para ${brand}.`,
+        requesterName,
+        brand,
+        category,
+        status: "recibida",
+        desiredLaunchDate: new Date(`${desiredLaunchDate}T00:00:00.000Z`),
+      },
+    });
+  }
+
   for (const [code, name, category, brand, ownerName, priority, status, startDate, targetDate, trafficLight] of samples) {
     await prisma.roadmapProject.upsert({
       where: { code },

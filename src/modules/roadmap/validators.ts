@@ -104,6 +104,8 @@ export function validateRoadmapProjectUpdateInput(payload: unknown): RoadmapProj
   if (data.targetDate !== undefined) input.targetDate = parseDate(data.targetDate, "targetDate");
   if (data.completedAt !== undefined) input.completedAt = optionalDate(data.completedAt, "completedAt") ?? null;
   if (data.trafficLight !== undefined) input.trafficLight = enumValue(data.trafficLight, ROADMAP_TRAFFIC_LIGHTS, "trafficLight") as RoadmapTrafficLightValue;
+  if (data.sourceType !== undefined) input.sourceType = optionalString(data.sourceType) ?? null;
+  if (data.sourcePackagingId !== undefined) input.sourcePackagingId = optionalString(data.sourcePackagingId) ?? null;
   if (data.sharepointFolderUrl !== undefined) input.sharepointFolderUrl = optionalString(data.sharepointFolderUrl) ?? null;
   if (data.colorLabel !== undefined) input.colorLabel = optionalString(data.colorLabel) ?? null;
   validateRange(input.startDate, input.targetDate);

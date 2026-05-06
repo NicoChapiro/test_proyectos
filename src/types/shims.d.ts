@@ -44,6 +44,21 @@ declare module "@prisma/client" {
   export type RoadmapTrafficLight = "verde" | "amarillo" | "rojo" | "gris";
   export type RoadmapMilestoneStatus = "pendiente" | "en_curso" | "completado" | "atrasado" | "cancelado";
 
+  export type PackagingRequest = {
+    id: string;
+    code: string;
+    title: string;
+    description: string | null;
+    requesterName: string;
+    brand: string | null;
+    category: string | null;
+    status: string;
+    desiredLaunchDate: Date | null;
+    sharepointFolderUrl: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+
   export type RoadmapProject = {
     id: string;
     code: string;
@@ -101,10 +116,17 @@ declare module "@prisma/client" {
     }
   }
 
-  type ProjectWithMilestones = RoadmapProject & { milestones: RoadmapMilestone[] };
+  type ProjectWithMilestones = RoadmapProject & { milestones: RoadmapMilestone[]; packagingRequest?: PackagingRequest | null };
+  type PackagingWithRoadmapProjects = PackagingRequest & { roadmapProjects: ProjectWithMilestones[] };
   type OrderBy = Record<string, "asc" | "desc">;
 
   export class PrismaClient {
+    packagingRequest: {
+      findMany(args?: { include?: unknown; orderBy?: OrderBy[] }): Promise<PackagingWithRoadmapProjects[]>;
+      findUnique(args: { where: { id: string }; include?: unknown }): Promise<PackagingWithRoadmapProjects | null>;
+      create(args: { data: unknown }): Promise<PackagingRequest>;
+      upsert(args: { where: { code: string }; update: unknown; create: unknown }): Promise<PackagingRequest>;
+    };
     roadmapProject: {
       findMany(args?: { where?: Prisma.RoadmapProjectWhereInput; include?: unknown; orderBy?: OrderBy[] }): Promise<ProjectWithMilestones[]>;
       findUnique(args: { where: { id: string }; include?: unknown }): Promise<ProjectWithMilestones | null>;

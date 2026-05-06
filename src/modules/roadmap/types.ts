@@ -1,4 +1,4 @@
-import type { RoadmapMilestone, RoadmapProject } from "@prisma/client";
+import type { PackagingRequest, RoadmapMilestone, RoadmapProject } from "@prisma/client";
 import type { ROADMAP_MILESTONE_STATUSES, ROADMAP_PRIORITIES, ROADMAP_STATUSES, ROADMAP_TRAFFIC_LIGHTS } from "./constants";
 
 export type RoadmapPriorityValue = (typeof ROADMAP_PRIORITIES)[number];
@@ -6,7 +6,7 @@ export type RoadmapStatusValue = (typeof ROADMAP_STATUSES)[number];
 export type RoadmapTrafficLightValue = (typeof ROADMAP_TRAFFIC_LIGHTS)[number];
 export type RoadmapMilestoneStatusValue = (typeof ROADMAP_MILESTONE_STATUSES)[number];
 
-export type RoadmapProjectWithMilestones = RoadmapProject & { milestones: RoadmapMilestone[] };
+export type RoadmapProjectWithMilestones = RoadmapProject & { milestones: RoadmapMilestone[]; packagingRequest?: PackagingRequest | null };
 
 export type RoadmapFilters = {
   year?: number;
