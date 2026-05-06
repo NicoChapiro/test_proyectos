@@ -39,6 +39,7 @@ declare module "@prisma/client" {
   export type RoadmapStatus = "no_iniciado" | "en_curso" | "en_riesgo" | "bloqueado" | "completado" | "cancelado";
   export type RoadmapTrafficLight = "verde" | "amarillo" | "rojo" | "gris";
   export type RoadmapMilestoneStatus = "pendiente" | "en_curso" | "completado" | "atrasado" | "cancelado";
+  export type RoadmapProjectType = "packaging" | "product_launch" | "campaign" | "trade_marketing" | "ecommerce" | "content_design" | "event" | "innovation" | "regulatory_compliance" | "internal_process" | "other";
 
   export type PackagingRequest = {
     id: string;
@@ -60,7 +61,10 @@ declare module "@prisma/client" {
     code: string;
     name: string;
     description: string | null;
+    projectType: RoadmapProjectType;
     category: string | null;
+    area: string | null;
+    channel: string | null;
     brand: string | null;
     ownerName: string;
     priority: RoadmapPriority;
@@ -99,9 +103,12 @@ declare module "@prisma/client" {
       startDate?: DateTimeFilter;
       targetDate?: DateTimeFilter;
       status?: RoadmapStatus;
+      projectType?: RoadmapProjectType;
       ownerName?: StringFilter;
       brand?: StringFilter;
       category?: StringFilter;
+      area?: StringFilter;
+      channel?: StringFilter;
       code?: StringFilter;
       name?: StringFilter;
       description?: StringFilter;

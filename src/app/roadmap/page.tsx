@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { ROADMAP_DEFAULT_COLORS, ROADMAP_STATUSES, ROADMAP_STATUS_LABELS } from "@/modules/roadmap/constants";
+import { ROADMAP_DEFAULT_COLORS, ROADMAP_PROJECT_TYPE_LABELS, ROADMAP_PROJECT_TYPES, ROADMAP_STATUSES, ROADMAP_STATUS_LABELS } from "@/modules/roadmap/constants";
 import { searchRoadmapProjects } from "@/modules/roadmap/service";
 import { clampYearPercent, displayDate } from "@/modules/roadmap/ui/date";
-import type { RoadmapStatusValue } from "@/modules/roadmap/types";
+import type { RoadmapProjectTypeValue, RoadmapStatusValue } from "@/modules/roadmap/types";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -17,12 +17,16 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const year = Number(first(params.year)) || new Date().getUTCFullYear();
   const status = first(params.status) as RoadmapStatusValue | undefined;
+  const projectType = first(params.projectType) as RoadmapProjectTypeValue | undefined;
   const projects = await searchRoadmapProjects({
     year,
     status: status || undefined,
+    projectType: projectType || undefined,
     owner: first(params.owner),
     brand: first(params.brand),
     category: first(params.category),
+    area: first(params.area),
+    channel: first(params.channel),
     q: first(params.q),
   });
 
@@ -30,9 +34,9 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
     <main className="page-shell">
       <div className="topbar">
         <div>
-          <p className="eyebrow">Roadmap</p>
+          <p className="eyebrow">Roadmap de Marketing</p>
           <h1>Roadmap anual {year}</h1>
-          <p className="muted">Vista simple por Q1, Q2, Q3 y Q4 con hitos del proyecto.</p>
+          <p className="muted">Vista transversal para proyectos de Marketing, por Q1, Q2, Q3 y Q4 con hitos clave.</p>
         </div>
         <Link className="button primary" href="/roadmap/new">Nuevo proyecto</Link>
       </div>
@@ -40,8 +44,11 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
       <form className="panel filters">
         <label className="field"><span>Año</span><input name="year" type="number" min="2000" max="2100" defaultValue={year} /></label>
         <label className="field"><span>Estado</span><select name="status" defaultValue={status ?? ""}><option value="">Todos</option>{ROADMAP_STATUSES.map((item) => <option key={item} value={item}>{ROADMAP_STATUS_LABELS[item]}</option>)}</select></label>
-        <label className="field"><span>Owner</span><input name="owner" defaultValue={first(params.owner) ?? ""} /></label>
+        <label className="field"><span>Tipo de proyecto</span><select name="projectType" defaultValue={projectType ?? ""}><option value="">Todos</option>{ROADMAP_PROJECT_TYPES.map((item) => <option key={item} value={item}>{ROADMAP_PROJECT_TYPE_LABELS[item]}</option>)}</select></label>
+        <label className="field"><span>Responsable</span><input name="owner" defaultValue={first(params.owner) ?? ""} /></label>
         <label className="field"><span>Marca</span><input name="brand" defaultValue={first(params.brand) ?? ""} /></label>
+        <label className="field"><span>Área</span><input name="area" defaultValue={first(params.area) ?? ""} /></label>
+        <label className="field"><span>Canal</span><input name="channel" defaultValue={first(params.channel) ?? ""} /></label>
         <label className="field"><span>Categoría</span><input name="category" defaultValue={first(params.category) ?? ""} /></label>
         <label className="field"><span>Buscar</span><input name="q" defaultValue={first(params.q) ?? ""} /></label>
         <div className="actions full"><button className="button" type="submit">Aplicar filtros</button><Link className="button" href="/roadmap">Limpiar</Link></div>
@@ -60,7 +67,7 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
               <div className="project-meta">
                 <h3><Link href={`/roadmap/${project.id}`}>{project.name}</Link></h3>
                 <p className="muted">{project.code}</p>
-                <div className="badges"><span className={`badge ${project.trafficLight}`}>{project.trafficLight}</span><span className="badge">{ROADMAP_STATUS_LABELS[project.status]}</span>{project.packagingRequest ? <span className="badge">Packaging</span> : null}</div>
+                <div className="badges"><span className={`badge ${project.trafficLight}`}>{project.trafficLight}</span><span className="badge">{ROADMAP_STATUS_LABELS[project.status]}</span><span className="badge">{ROADMAP_PROJECT_TYPE_LABELS[project.projectType]}</span>{project.packagingRequest ? <span className="badge">Solicitud Packaging</span> : null}</div>
               </div>
               <div>
                 <div className="timeline" aria-label={`Línea de tiempo de ${project.name}`}>

@@ -14,9 +14,12 @@ function buildWhere(filters: RoadmapFilters): Prisma.RoadmapProjectWhereInput {
   return {
     ...buildDateOverlap(filters.year),
     ...(filters.status ? { status: filters.status } : {}),
+    ...(filters.projectType ? { projectType: filters.projectType } : {}),
     ...(filters.owner ? { ownerName: { contains: filters.owner, mode: "insensitive" } } : {}),
     ...(filters.brand ? { brand: { contains: filters.brand, mode: "insensitive" } } : {}),
     ...(filters.category ? { category: { contains: filters.category, mode: "insensitive" } } : {}),
+    ...(filters.area ? { area: { contains: filters.area, mode: "insensitive" } } : {}),
+    ...(filters.channel ? { channel: { contains: filters.channel, mode: "insensitive" } } : {}),
     ...(filters.q
       ? {
           OR: [

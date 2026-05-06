@@ -28,6 +28,9 @@ function projectInputFromPackaging(packaging: Awaited<ReturnType<typeof getPacka
   return {
     name: packaging.title,
     description: packaging.description ?? `Proyecto roadmap creado desde la solicitud de packaging ${packaging.code}.`,
+    projectType: "packaging",
+    area: "Marketing",
+    channel: null,
     category: packaging.category,
     brand: packaging.brand,
     ownerName: packaging.requesterName,
@@ -70,6 +73,7 @@ export async function linkRoadmapProjectToPackaging(packagingId: string, input: 
     return await editRoadmapProject(input.projectId, {
       sourceType: "packaging_request",
       sourcePackagingId: packagingId,
+      projectType: "packaging",
     });
   } catch (error) {
     mapPrismaNotFound(error);
