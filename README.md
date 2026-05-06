@@ -53,6 +53,46 @@ El módulo **Roadmap** es una herramienta transversal de gestión de proyectos d
 - No hagas que el build ejecute migraciones automáticamente salvo que el proceso de despliegue lo requiera explícitamente; el build solo debe generar Prisma Client y compilar Next.js.
 - Si `/roadmap` falla pero la home funciona, revisa los runtime logs de Vercel para detectar errores de `DATABASE_URL` ausente o migraciones faltantes, por ejemplo columnas/enums nuevos que todavía no existen en la base de datos Preview.
 
+### Health check post-despliegue
+
+Después de cada despliegue en Vercel, abre `https://<tu-dominio-vercel>/api/health` para validar rápidamente que el runtime de Vercel puede leer la configuración mínima y conectarse a Supabase mediante Prisma.
+
+El endpoint `GET /api/health` nunca devuelve el valor de `DATABASE_URL`; solo informa `env.databaseUrlConfigured` como `true` o `false`. Si la conexión a la base de datos funciona, responde HTTP 200 con `status: "ok"`, `database.connected: true` y los conteos actuales de `RoadmapProject`, `RoadmapMilestone` y `PackagingRequest`.
+
+Ejemplo saludable:
+
+```json
+{
+  "status": "ok",
+  "env": {
+    "databaseUrlConfigured": true
+  },
+  "database": {
+    "connected": true,
+    "roadmapProjects": 0,
+    "roadmapMilestones": 0,
+    "packagingRequests": 0
+  }
+}
+```
+
+Si Vercel no puede conectarse a Supabase/PostgreSQL o `DATABASE_URL` falta/no es válida, responde HTTP 500 con un mensaje seguro y sin exponer URL, usuario ni contraseña:
+
+```json
+{
+  "status": "error",
+  "env": {
+    "databaseUrlConfigured": true
+  },
+  "database": {
+    "connected": false
+  },
+  "message": "Database connection failed"
+}
+```
+
+Usa esta ruta como primera verificación cuando `/roadmap` falle en Preview o Production: si `/api/health` devuelve 500, revisa que `DATABASE_URL` esté configurada en el entorno correcto de Vercel, que Supabase acepte conexiones desde Vercel y que las migraciones se hayan aplicado con `npm run prisma:deploy`.
+
 ### Validaciones principales
 
 - `name`, `ownerName`, `startDate` y `targetDate` son requeridos para proyectos.
