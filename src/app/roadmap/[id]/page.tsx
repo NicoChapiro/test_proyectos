@@ -40,6 +40,7 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
             <div className="badges"><span className={`badge ${project.trafficLight}`}>{project.trafficLight}</span><span className="badge">{ROADMAP_STATUS_LABELS[project.status]}</span><span className="badge">{project.priority}</span></div>
             <p>{project.description || "Sin comentarios."}</p>
             <p className="muted">Owner: {project.ownerName} · Marca: {project.brand || "—"} · Categoría: {project.category || "—"}</p>
+            {project.packagingRequest ? <p><Link className="button" href={`/packaging/${project.packagingRequest.id}`}>Ver solicitud packaging {project.packagingRequest.code}</Link></p> : null}
             {project.sharepointFolderUrl ? <p><a className="button" href={project.sharepointFolderUrl} target="_blank" rel="noreferrer">Abrir SharePoint</a></p> : null}
           </article>
 
