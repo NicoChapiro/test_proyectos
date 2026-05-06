@@ -7,6 +7,9 @@ import { searchRoadmapProjects } from "@/modules/roadmap/service";
 import { displayDate } from "@/modules/roadmap/ui/date";
 import { createPackagingRoadmapProjectAction, linkPackagingRoadmapProjectAction } from "../actions";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type PageProps = { params: Promise<{ id: string }> };
 
 export default async function PackagingRequestDetailPage({ params }: PageProps) {

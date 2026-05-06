@@ -18,10 +18,6 @@ declare module "next" {
   export type NextConfig = Record<string, unknown>;
 }
 
-declare module "next/link" {
-  export default function Link(props: { href: string; className?: string; children?: React.ReactNode; target?: string; rel?: string }): unknown;
-}
-
 declare module "next/navigation" {
   export function redirect(url: string): never;
   export function notFound(): never;
