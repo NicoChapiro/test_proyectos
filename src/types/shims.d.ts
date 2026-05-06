@@ -129,6 +129,7 @@ declare module "@prisma/client" {
       findUnique(args: { where: { id: string }; include?: unknown }): Promise<PackagingWithRoadmapProjects | null>;
       create(args: { data: unknown }): Promise<PackagingRequest>;
       upsert(args: { where: { code: string }; update: unknown; create: unknown }): Promise<PackagingRequest>;
+      count(args?: { where?: unknown }): Promise<number>;
     };
     roadmapProject: {
       findMany(args?: { where?: Prisma.RoadmapProjectWhereInput; include?: unknown; orderBy?: OrderBy[] }): Promise<ProjectWithMilestones[]>;
@@ -136,11 +137,14 @@ declare module "@prisma/client" {
       create(args: { data: unknown; include?: unknown }): Promise<ProjectWithMilestones>;
       update(args: { where: { id: string }; data: unknown; include?: unknown }): Promise<ProjectWithMilestones>;
       upsert(args: { where: { code: string }; update: unknown; create: unknown }): Promise<RoadmapProject>;
+      count(args?: { where?: Prisma.RoadmapProjectWhereInput }): Promise<number>;
     };
     roadmapMilestone: {
       create(args: { data: unknown }): Promise<RoadmapMilestone>;
       update(args: { where: { id: string }; data: unknown }): Promise<RoadmapMilestone>;
+      count(args?: { where?: unknown }): Promise<number>;
     };
+    $queryRaw(query: TemplateStringsArray, ...values: unknown[]): Promise<unknown>;
     $disconnect(): Promise<void>;
   }
 }
