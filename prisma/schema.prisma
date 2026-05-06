@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoadmapPriority {
+  baja
+  media
+  alta
+  urgente
+}
+
+enum RoadmapStatus {
+  no_iniciado
+  en_curso
+  en_riesgo
+  bloqueado
+  completado
+  cancelado
+}
+
+enum RoadmapTrafficLight {
+  verde
+  amarillo
+  rojo
+  gris
+}
+
+enum RoadmapMilestoneStatus {
+  pendiente
+  en_curso
+  completado
+  atrasado
+  cancelado
+}
+
+model RoadmapProject {
+  id                  String              @id @default(cuid())
+  code                String              @unique
+  name                String
+  description         String?
+  category            String?
+  brand               String?
+  ownerName           String
+  priority            RoadmapPriority
+  status              RoadmapStatus
+  startDate           DateTime
+  targetDate          DateTime
+  completedAt         DateTime?
+  trafficLight        RoadmapTrafficLight
+  sourceType          String?
+  sourcePackagingId   String?
+  sharepointFolderUrl String?
+  colorLabel          String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  milestones          RoadmapMilestone[]
+
+  @@index([startDate, targetDate])
+  @@index([status])
+  @@index([ownerName])
+  @@index([brand])
+  @@index([category])
+}
+
+model RoadmapMilestone {
+  id          String                 @id @default(cuid())
+  projectId   String
+  name        String
+  description String?
+  ownerName   String?
+  status      RoadmapMilestoneStatus
+  dueDate     DateTime
+  completedAt DateTime?
+  isCritical  Boolean                @default(false)
+  sortOrder   Int                    @default(0)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  project     RoadmapProject         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([dueDate])
+  @@index([status])
+}
