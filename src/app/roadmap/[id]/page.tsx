@@ -7,6 +7,9 @@ import { displayDate, inputDate } from "@/modules/roadmap/ui/date";
 import { ProjectForm } from "@/modules/roadmap/ui/ProjectForm";
 import { createMilestoneAction, updateMilestoneStatusAction, updateRoadmapProjectAction } from "../actions";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type PageProps = { params: Promise<{ id: string }> };
 
 export default async function RoadmapProjectDetailPage({ params }: PageProps) {

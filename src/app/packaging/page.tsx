@@ -2,6 +2,9 @@ import Link from "next/link";
 import { searchPackagingRequests } from "@/modules/packaging/service";
 import { displayDate } from "@/modules/roadmap/ui/date";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function PackagingPage() {
   const requests = await searchPackagingRequests();
 

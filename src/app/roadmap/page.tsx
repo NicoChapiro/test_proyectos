@@ -4,6 +4,9 @@ import { searchRoadmapProjects } from "@/modules/roadmap/service";
 import { clampYearPercent, displayDate } from "@/modules/roadmap/ui/date";
 import type { RoadmapStatusValue } from "@/modules/roadmap/types";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 function first(value: string | string[] | undefined): string | undefined {

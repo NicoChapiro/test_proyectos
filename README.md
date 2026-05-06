@@ -34,6 +34,12 @@ El módulo **Roadmap** permite crear, listar y visualizar proyectos con hitos en
 5. Opcionalmente carga ejemplos con `npm run seed`.
 6. Inicia Next.js con `npm run dev` y abre `/roadmap`.
 
+### Variables de entorno y despliegue
+
+- `DATABASE_URL` es obligatoria tanto en desarrollo local como en Vercel para que Prisma pueda conectarse a PostgreSQL en runtime. En local debe estar definida en `.env`; en Vercel debe configurarse como variable de entorno del proyecto.
+- Las páginas server-side que leen datos con Prisma están marcadas como dinámicas para evitar que Next.js intente prerenderizarlas durante `next build`. Si falta `DATABASE_URL`, el error debe corregirse configurando la variable de entorno, no ocultándolo en código.
+- En Vercel no uses `prisma migrate dev`; ese comando es solo para desarrollo local. Para despliegues, genera el cliente con `npm run prisma:generate` o usa el script `npm run build`, que ejecuta `prisma generate && next build`.
+
 ### Validaciones principales
 
 - `name`, `ownerName`, `startDate` y `targetDate` son requeridos para proyectos.
