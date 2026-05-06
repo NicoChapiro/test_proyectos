@@ -38,6 +38,19 @@ enum RoadmapMilestoneStatus {
   cancelado
 }
 
+enum RoadmapProjectType {
+  packaging
+  product_launch
+  campaign
+  trade_marketing
+  ecommerce
+  content_design
+  event
+  innovation
+  regulatory_compliance
+  internal_process
+  other
+}
 
 model PackagingRequest {
   id                  String           @id @default(cuid())
@@ -65,7 +78,10 @@ model RoadmapProject {
   code                String              @unique
   name                String
   description         String?
+  projectType         RoadmapProjectType  @default(other)
   category            String?
+  area                String?
+  channel             String?
   brand               String?
   ownerName           String
   priority            RoadmapPriority
@@ -81,13 +97,16 @@ model RoadmapProject {
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
   milestones          RoadmapMilestone[]
-  packagingRequest    PackagingRequest?  @relation(fields: [sourcePackagingId], references: [id], onDelete: SetNull)
+  packagingRequest    PackagingRequest?   @relation(fields: [sourcePackagingId], references: [id], onDelete: SetNull)
 
   @@index([startDate, targetDate])
   @@index([status])
+  @@index([projectType])
   @@index([ownerName])
   @@index([brand])
   @@index([category])
+  @@index([area])
+  @@index([channel])
   @@index([sourcePackagingId])
 }
 

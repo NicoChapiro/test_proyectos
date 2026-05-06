@@ -1,18 +1,23 @@
-# Test Proyectos
+# Roadmap de Marketing
 
-Aplicación Next.js con Prisma/PostgreSQL para organizar proyectos internos.
+Aplicación Next.js con Prisma/PostgreSQL para organizar proyectos internos de Marketing.
 
-## Roadmap
+## Marketing Roadmap
 
-El módulo **Roadmap** permite crear, listar y visualizar proyectos con hitos en una vista anual dividida en Q1, Q2, Q3 y Q4.
+El módulo **Roadmap** es una herramienta transversal de gestión de proyectos de Marketing. Permite planificar y dar seguimiento a lanzamientos de producto, campañas, packaging, trade marketing, ecommerce, contenido/diseño, eventos, innovación, trabajo regulatorio/compliance, procesos internos y otras iniciativas.
+
+**Packaging** permanece disponible como un tipo de proyecto dentro del Roadmap y como módulo especializado para gestionar solicitudes de packaging y vincularlas con proyectos del roadmap.
 
 ### Funcionalidades incluidas
 
 - Modelos Prisma `RoadmapProject`, `RoadmapMilestone` y `PackagingRequest`, con relación opcional para que una solicitud de packaging aparezca en el roadmap.
-- Migraciones SQL para roadmap y el vínculo con packaging en `prisma/migrations/`.
-- Seed opcional con 5 proyectos de ejemplo mediante `npm run seed`.
+- Taxonomía tipada de proyectos de Marketing mediante `projectType`, con filtros y etiquetas en español en la UI.
+- Campos generales para `Área`, `Canal`, `Marca`, `Responsable`, `Hitos`, `Estado`, `Prioridad` y `Semáforo`.
+- Plantillas base de hitos por tipo de proyecto preparadas para uso futuro.
+- Migraciones SQL para roadmap, el vínculo con packaging y la generalización de Marketing en `prisma/migrations/`.
+- Seed opcional con proyectos de ejemplo de Marketing mediante `npm run seed`.
 - APIs básicas:
-  - `GET /api/roadmap?year=&status=&owner=&brand=&category=&q=`
+  - `GET /api/roadmap?year=&status=&projectType=&owner=&brand=&category=&area=&channel=&q=`
   - `POST /api/roadmap`
   - `GET /api/roadmap/[id]`
   - `PATCH /api/roadmap/[id]`
@@ -20,10 +25,10 @@ El módulo **Roadmap** permite crear, listar y visualizar proyectos con hitos en
   - `PATCH /api/roadmap/[id]/milestones/[milestoneId]`
 - UI inicial:
   - `/roadmap`: selector de año, filtros simples y vista anual/trimestral con barras e hitos.
-  - `/roadmap/new`: formulario para crear proyectos.
+  - `/roadmap/new`: formulario para crear proyectos de Marketing.
   - `/roadmap/[id]`: detalle, edición de proyecto, listado y creación/actualización de hitos.
   - `/packaging`: listado de solicitudes de packaging.
-  - `/packaging/[id]`: detalle de solicitud con acciones para crear un proyecto roadmap o vincular uno existente.
+  - `/packaging/[id]`: detalle de solicitud con acciones para crear un proyecto roadmap de tipo Packaging o vincular uno existente.
 
 ### Configuración local
 
@@ -43,6 +48,7 @@ El módulo **Roadmap** permite crear, listar y visualizar proyectos con hitos en
 ### Validaciones principales
 
 - `name`, `ownerName`, `startDate` y `targetDate` son requeridos para proyectos.
+- `projectType` debe pertenecer a la taxonomía de proyectos de Marketing.
 - `targetDate` no puede ser anterior a `startDate`.
 - `priority`, `status` y `trafficLight` deben pertenecer a los enums del módulo.
 - Los hitos requieren `name` y `dueDate`.

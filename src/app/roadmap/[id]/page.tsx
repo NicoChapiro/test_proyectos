@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ROADMAP_MILESTONE_STATUSES, ROADMAP_STATUS_LABELS } from "@/modules/roadmap/constants";
+import { ROADMAP_MILESTONE_STATUSES, ROADMAP_PROJECT_TYPE_LABELS, ROADMAP_STATUS_LABELS } from "@/modules/roadmap/constants";
 import { RoadmapNotFoundError } from "@/modules/roadmap/errors";
 import { findRoadmapProject } from "@/modules/roadmap/service";
 import { displayDate, inputDate } from "@/modules/roadmap/ui/date";
@@ -40,9 +40,10 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
         <div className="grid">
           <article className="panel">
             <h2>Datos generales</h2>
-            <div className="badges"><span className={`badge ${project.trafficLight}`}>{project.trafficLight}</span><span className="badge">{ROADMAP_STATUS_LABELS[project.status]}</span><span className="badge">{project.priority}</span></div>
+            <div className="badges"><span className={`badge ${project.trafficLight}`}>{project.trafficLight}</span><span className="badge">{ROADMAP_STATUS_LABELS[project.status]}</span><span className="badge">{ROADMAP_PROJECT_TYPE_LABELS[project.projectType]}</span><span className="badge">{project.priority}</span></div>
             <p>{project.description || "Sin comentarios."}</p>
-            <p className="muted">Owner: {project.ownerName} · Marca: {project.brand || "—"} · Categoría: {project.category || "—"}</p>
+            <p className="muted">Responsable: {project.ownerName} · Área: {project.area || "—"} · Canal: {project.channel || "—"}</p>
+            <p className="muted">Marca: {project.brand || "—"} · Categoría: {project.category || "—"}</p>
             {project.packagingRequest ? <p><Link className="button" href={`/packaging/${project.packagingRequest.id}`}>Ver solicitud packaging {project.packagingRequest.code}</Link></p> : null}
             {project.sharepointFolderUrl ? <p><a className="button" href={project.sharepointFolderUrl} target="_blank" rel="noreferrer">Abrir SharePoint</a></p> : null}
           </article>
@@ -83,7 +84,7 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
             <form action={createMilestone} className="grid">
               <label className="field"><span>Nombre *</span><input name="name" required /></label>
               <label className="field"><span>Descripción</span><textarea name="description" /></label>
-              <label className="field"><span>Owner</span><input name="ownerName" /></label>
+              <label className="field"><span>Responsable</span><input name="ownerName" /></label>
               <label className="field"><span>Fecha compromiso *</span><input type="date" name="dueDate" required /></label>
               <label className="field"><span>Estado</span><select name="status" defaultValue="pendiente">{ROADMAP_MILESTONE_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}</select></label>
               <label className="field"><span>Orden</span><input type="number" name="sortOrder" defaultValue="0" /></label>

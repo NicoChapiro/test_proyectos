@@ -1,6 +1,6 @@
-import { ROADMAP_MILESTONE_STATUSES, ROADMAP_PRIORITIES, ROADMAP_STATUSES, ROADMAP_TRAFFIC_LIGHTS } from "./constants";
+import { ROADMAP_MILESTONE_STATUSES, ROADMAP_PRIORITIES, ROADMAP_PROJECT_TYPES, ROADMAP_STATUSES, ROADMAP_TRAFFIC_LIGHTS } from "./constants";
 import { RoadmapError } from "./errors";
-import type { RoadmapFilters, RoadmapMilestoneInput, RoadmapMilestoneStatusValue, RoadmapMilestoneUpdateInput, RoadmapPriorityValue, RoadmapProjectInput, RoadmapProjectUpdateInput, RoadmapStatusValue, RoadmapTrafficLightValue } from "./types";
+import type { RoadmapFilters, RoadmapMilestoneInput, RoadmapMilestoneStatusValue, RoadmapMilestoneUpdateInput, RoadmapPriorityValue, RoadmapProjectInput, RoadmapProjectTypeValue, RoadmapProjectUpdateInput, RoadmapStatusValue, RoadmapTrafficLightValue } from "./types";
 
 function asRecord(payload: unknown): Record<string, unknown> {
   if (!payload || typeof payload !== "object") throw new RoadmapError("Payload inválido");
@@ -60,9 +60,12 @@ export function validateRoadmapFilters(searchParams: URLSearchParams): RoadmapFi
   return {
     year,
     status: optionalEnumValue(searchParams.get("status"), ROADMAP_STATUSES, "status") as RoadmapStatusValue | undefined,
+    projectType: optionalEnumValue(searchParams.get("projectType"), ROADMAP_PROJECT_TYPES, "projectType") as RoadmapProjectTypeValue | undefined,
     owner: optionalString(searchParams.get("owner")) ?? undefined,
     brand: optionalString(searchParams.get("brand")) ?? undefined,
     category: optionalString(searchParams.get("category")) ?? undefined,
+    area: optionalString(searchParams.get("area")) ?? undefined,
+    channel: optionalString(searchParams.get("channel")) ?? undefined,
     q: optionalString(searchParams.get("q")) ?? undefined,
   };
 }
@@ -72,7 +75,10 @@ export function validateRoadmapProjectInput(payload: unknown): RoadmapProjectInp
   const input: RoadmapProjectInput = {
     name: requiredString(data.name, "name"),
     description: optionalString(data.description) ?? null,
+    projectType: (optionalEnumValue(data.projectType, ROADMAP_PROJECT_TYPES, "projectType") ?? "other") as RoadmapProjectTypeValue,
     category: optionalString(data.category) ?? null,
+    area: optionalString(data.area) ?? null,
+    channel: optionalString(data.channel) ?? null,
     brand: optionalString(data.brand) ?? null,
     ownerName: requiredString(data.ownerName, "ownerName"),
     priority: enumValue(data.priority, ROADMAP_PRIORITIES, "priority") as RoadmapPriorityValue,
@@ -95,7 +101,10 @@ export function validateRoadmapProjectUpdateInput(payload: unknown): RoadmapProj
   const input: RoadmapProjectUpdateInput = {};
   if (data.name !== undefined) input.name = requiredString(data.name, "name");
   if (data.description !== undefined) input.description = optionalString(data.description) ?? null;
+  if (data.projectType !== undefined) input.projectType = enumValue(data.projectType, ROADMAP_PROJECT_TYPES, "projectType") as RoadmapProjectTypeValue;
   if (data.category !== undefined) input.category = optionalString(data.category) ?? null;
+  if (data.area !== undefined) input.area = optionalString(data.area) ?? null;
+  if (data.channel !== undefined) input.channel = optionalString(data.channel) ?? null;
   if (data.brand !== undefined) input.brand = optionalString(data.brand) ?? null;
   if (data.ownerName !== undefined) input.ownerName = requiredString(data.ownerName, "ownerName");
   if (data.priority !== undefined) input.priority = enumValue(data.priority, ROADMAP_PRIORITIES, "priority") as RoadmapPriorityValue;
