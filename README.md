@@ -55,43 +55,76 @@ El módulo **Roadmap** es una herramienta transversal de gestión de proyectos d
 
 ### Health check post-despliegue
 
-Después de cada despliegue en Vercel, abre `https://<tu-dominio-vercel>/api/health` para validar rápidamente que el runtime de Vercel puede leer la configuración mínima y conectarse a Supabase mediante Prisma.
+Después de cada despliegue en Vercel, abre `https://<tu-dominio-vercel>/api/health` para validar rápidamente que el runtime puede leer la configuración mínima, conectarse a Supabase/PostgreSQL mediante Prisma y consultar las tablas principales de la aplicación.
 
-El endpoint `GET /api/health` nunca devuelve el valor de `DATABASE_URL`; solo informa `env.databaseUrlConfigured` como `true` o `false`. Si la conexión a la base de datos funciona, responde HTTP 200 con `status: "ok"`, `database.connected: true` y los conteos actuales de `RoadmapProject`, `RoadmapMilestone` y `PackagingRequest`.
+El endpoint `GET /api/health` usa runtime Node.js y es dinámico. Nunca devuelve `DATABASE_URL`, URLs de conexión, host, usuario, contraseña, tokens ni credenciales; solo expone indicadores booleanos y conteos seguros.
+
+Interpretación de campos clave:
+
+- `env.databaseUrlConfigured: false` significa que `DATABASE_URL` no está configurada en el entorno de Vercel que estás probando. Configúrala en **Production** o **Preview** según corresponda.
+- `env.databaseUrlLooksLikePostgres` indica si la variable configurada parece una URL de PostgreSQL (`postgresql://` o `postgres://`) sin mostrar su valor.
+- `database.connected: false` significa que Vercel no puede conectarse a Supabase/PostgreSQL con la configuración disponible, o que Prisma no pudo ejecutar una consulta mínima.
+- `database.migrationsTableExists: false` significa que Prisma no encontró `_prisma_migrations`; las migraciones pueden no haberse aplicado en esa base de datos.
+- `database.appliedMigrations` muestra cuántas migraciones Prisma aparecen registradas como aplicadas cuando existe `_prisma_migrations`.
+- `database.counts.roadmapProjects`, `database.counts.roadmapMilestones` y `database.counts.packagingRequests` confirman que la app puede leer `RoadmapProject`, `RoadmapMilestone` y `PackagingRequest`.
 
 Ejemplo saludable:
 
 ```json
 {
   "status": "ok",
+  "service": "test-proyectos",
+  "runtime": {
+    "nodeEnv": "production",
+    "vercelEnv": "production",
+    "isVercel": true
+  },
   "env": {
-    "databaseUrlConfigured": true
+    "databaseUrlConfigured": true,
+    "databaseUrlLooksLikePostgres": true
   },
   "database": {
     "connected": true,
-    "roadmapProjects": 0,
-    "roadmapMilestones": 0,
-    "packagingRequests": 0
+    "provider": "postgresql",
+    "prismaQueryOk": true,
+    "migrationsTableExists": true,
+    "appliedMigrations": 5,
+    "counts": {
+      "roadmapProjects": 0,
+      "roadmapMilestones": 0,
+      "packagingRequests": 0
+    }
   }
 }
 ```
 
-Si Vercel no puede conectarse a Supabase/PostgreSQL o `DATABASE_URL` falta/no es válida, responde HTTP 500 con un mensaje seguro y sin exponer URL, usuario ni contraseña:
+Si `DATABASE_URL` falta, Vercel no puede conectarse a Supabase/PostgreSQL o faltan tablas necesarias, responde HTTP 500 con un mensaje seguro:
 
 ```json
 {
   "status": "error",
+  "service": "test-proyectos",
+  "runtime": {
+    "nodeEnv": "production",
+    "vercelEnv": "preview",
+    "isVercel": true
+  },
   "env": {
-    "databaseUrlConfigured": true
+    "databaseUrlConfigured": false,
+    "databaseUrlLooksLikePostgres": false
   },
   "database": {
-    "connected": false
+    "connected": false,
+    "provider": "postgresql",
+    "prismaQueryOk": false,
+    "migrationsTableExists": false
   },
-  "message": "Database connection failed"
+  "message": "Database health check failed",
+  "hint": "Check DATABASE_URL, Supabase availability and Prisma migrations."
 }
 ```
 
-Usa esta ruta como primera verificación cuando `/roadmap` falle en Preview o Production: si `/api/health` devuelve 500, revisa que `DATABASE_URL` esté configurada en el entorno correcto de Vercel, que Supabase acepte conexiones desde Vercel y que las migraciones se hayan aplicado con `npm run prisma:deploy`.
+Usa esta ruta como primera verificación cuando `/roadmap` o `/packaging` fallen en Preview o Production. Si `/api/health` devuelve 500, revisa `DATABASE_URL`, disponibilidad de Supabase/PostgreSQL y que las migraciones se hayan aplicado con `npm run prisma:deploy`.
 
 ### Validaciones principales
 
