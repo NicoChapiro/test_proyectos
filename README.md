@@ -45,6 +45,14 @@ El módulo **Roadmap** es una herramienta transversal de gestión de proyectos d
 - Las páginas server-side que leen datos con Prisma están marcadas como dinámicas para evitar que Next.js intente prerenderizarlas durante `next build`. Si falta `DATABASE_URL`, el error debe corregirse configurando la variable de entorno, no ocultándolo en código.
 - En Vercel no uses `prisma migrate dev`; ese comando es solo para desarrollo local. Para despliegues, genera el cliente con `npm run prisma:generate` o usa el script `npm run build`, que ejecuta `prisma generate && next build`.
 
+### Checklist de despliegue en Vercel
+
+- Configura `DATABASE_URL` en los entornos **Production** y **Preview** del proyecto en Vercel; `/roadmap` consulta Prisma en runtime y necesita la variable en ambos entornos.
+- Después de cambios en `prisma/schema.prisma`, ejecuta `npx prisma migrate deploy` contra la base de datos objetivo para aplicar las migraciones pendientes. También puedes usar `npm run prisma:deploy`.
+- No uses `prisma migrate dev` en Vercel: ese flujo es interactivo y está pensado para desarrollo local, no para despliegues.
+- No hagas que el build ejecute migraciones automáticamente salvo que el proceso de despliegue lo requiera explícitamente; el build solo debe generar Prisma Client y compilar Next.js.
+- Si `/roadmap` falla pero la home funciona, revisa los runtime logs de Vercel para detectar errores de `DATABASE_URL` ausente o migraciones faltantes, por ejemplo columnas/enums nuevos que todavía no existen en la base de datos Preview.
+
 ### Validaciones principales
 
 - `name`, `ownerName`, `startDate` y `targetDate` son requeridos para proyectos.
