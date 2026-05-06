@@ -7,6 +7,7 @@
     "build": "prisma generate && next build",
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",
+    "prisma:deploy": "prisma migrate deploy",
     "prisma:migrate": "prisma migrate dev",
     "seed": "tsx prisma/seed.ts"
   },
