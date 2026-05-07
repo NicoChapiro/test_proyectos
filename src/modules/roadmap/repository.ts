@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ROADMAP_STANDARD_MILESTONE_TEMPLATES } from "./constants";
+import { calculateUpcomingMilestoneDateWindow } from "./insights";
 import type {
   RoadmapBulkOwnerAssignmentInput,
   RoadmapFilters,
@@ -40,12 +41,6 @@ function buildWhere(filters: RoadmapFilters): Prisma.RoadmapProjectWhereInput {
   };
 }
 
-function startOfUtcToday(): Date {
-  const now = new Date();
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
-}
 
 function buildBulkOwnerScopeWhere(
   input: RoadmapBulkOwnerAssignmentInput,
@@ -65,8 +60,7 @@ function buildBulkOwnerScopeWhere(
     return { ...baseWhere, approvalStatus: "pending" };
   }
   if (input.scope === "upcoming_unassigned") {
-    const start = startOfUtcToday();
-    const end = new Date(start.getTime() + 8 * 24 * 60 * 60 * 1000);
+    const { start, end } = calculateUpcomingMilestoneDateWindow();
     return {
       ...baseWhere,
       plannedDate: {
