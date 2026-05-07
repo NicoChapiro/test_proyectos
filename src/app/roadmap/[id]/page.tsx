@@ -31,10 +31,12 @@ import {
 import { AppShell, SummaryMetricCard } from "@/modules/roadmap/ui/shell";
 import type {
   RoadmapApprovalStatusValue,
+  RoadmapBulkOwnerAssignmentScope,
   RoadmapMilestoneStatusValue,
   RoadmapMilestoneTrackValue,
 } from "@/modules/roadmap/types";
 import {
+  bulkAssignMilestoneOwnersAction,
   createMilestoneAction,
   updateMilestoneStatusAction,
   updateRoadmapProjectAction,
@@ -46,6 +48,139 @@ export const revalidate = 0;
 type PageProps = { params: Promise<{ id: string }> };
 type Project = Awaited<ReturnType<typeof findRoadmapProject>>;
 type Milestone = Project["milestones"][number];
+
+const BULK_ASSIGNMENT_SCOPE_OPTIONS: Array<{
+  value: RoadmapBulkOwnerAssignmentScope;
+  label: string;
+}> = [
+  { value: "all_unassigned", label: "Todos los hitos sin responsable" },
+  {
+    value: "supply_unassigned",
+    label: "Operaciones / Proveedor sin responsable",
+  },
+  {
+    value: "marketing_unassigned",
+    label: "Marketing / Campaña sin responsable",
+  },
+  {
+    value: "pending_approvals_unassigned",
+    label: "Aprobaciones pendientes sin responsable",
+  },
+  { value: "upcoming_unassigned", label: "Próximos 7 días sin responsable" },
+];
+
+type BulkAssignmentCounts = {
+  all: number;
+  supply: number;
+  marketing: number;
+  pendingApprovals: number;
+  upcoming: number;
+};
+
+function startOfUtcDay(date: Date): number {
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+function isMilestoneAssignable(milestone: Milestone): boolean {
+  return milestone.status !== "completed" && !milestone.ownerName?.trim();
+}
+
+function isMilestoneUpcomingForBulkAssignment(milestone: Milestone): boolean {
+  if (!milestone.plannedDate) return false;
+  const todayStart = startOfUtcDay(new Date());
+  const upcomingEnd = todayStart + 8 * 24 * 60 * 60 * 1000;
+  const plannedDate = new Date(milestone.plannedDate);
+  const plannedDay = startOfUtcDay(plannedDate);
+  return plannedDay >= todayStart && plannedDay < upcomingEnd;
+}
+
+function buildBulkAssignmentCounts(milestones: Milestone[]): BulkAssignmentCounts {
+  const assignableMilestones = milestones.filter(isMilestoneAssignable);
+  return {
+    all: assignableMilestones.length,
+    supply: assignableMilestones.filter(
+      (milestone) => milestone.track === "supply",
+    ).length,
+    marketing: assignableMilestones.filter(
+      (milestone) => milestone.track === "marketing",
+    ).length,
+    pendingApprovals: assignableMilestones.filter(
+      (milestone) => milestone.approvalStatus === "pending",
+    ).length,
+    upcoming: assignableMilestones.filter(isMilestoneUpcomingForBulkAssignment).length,
+  };
+}
+
+function BulkAssignmentCount({ label, value }: { label: string; value: number }) {
+  return (
+    <span className={`bulk-assignment-count${value === 0 ? " muted" : ""}`}>
+      {label}: <strong>{value}</strong>
+    </span>
+  );
+}
+
+function BulkAssignmentPanel({
+  action,
+  counts,
+}: {
+  action: (formData: FormData) => Promise<void>;
+  counts: BulkAssignmentCounts;
+}) {
+  return (
+    <section className="panel bulk-assignment-card" id="asignacion-rapida">
+      <div className="section-title compact">
+        <div>
+          <p className="eyebrow">Administración</p>
+          <h2>Asignación rápida</h2>
+          <p className="muted">
+            Asigna responsables a hitos pendientes sin dueño.
+          </p>
+        </div>
+      </div>
+      <div
+        className="bulk-assignment-counts"
+        aria-label="Hitos disponibles para asignación rápida"
+      >
+        <BulkAssignmentCount label="Sin responsable" value={counts.all} />
+        <BulkAssignmentCount label="Operaciones" value={counts.supply} />
+        <BulkAssignmentCount label="Marketing" value={counts.marketing} />
+        <BulkAssignmentCount
+          label="Aprobaciones pendientes"
+          value={counts.pendingApprovals}
+        />
+        <BulkAssignmentCount label="Próximos 7 días" value={counts.upcoming} />
+      </div>
+      <form action={action} className="grid bulk-assignment-form">
+        <label className="field">
+          <span>Responsable(s)</span>
+          <input
+            name="ownerName"
+            required
+            placeholder="Ej: Mario, Rodolfo"
+          />
+        </label>
+        <label className="field">
+          <span>Alcance</span>
+          <select name="scope" defaultValue="all_unassigned">
+            {BULK_ASSIGNMENT_SCOPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="muted bulk-assignment-helper full">
+          Puedes ingresar uno o más responsables, separados por coma. Solo se
+          actualizarán hitos pendientes sin responsable. No se sobrescriben
+          responsables existentes.
+        </p>
+        <button className="button primary" type="submit">
+          Asignar responsable(s)
+        </button>
+      </form>
+    </section>
+  );
+}
 
 function findMilestoneByCode(milestones: Milestone[], code: string) {
   return milestones.find((milestone) => milestone.milestoneCode === code);
@@ -83,8 +218,7 @@ function todayInputDate(): string {
 }
 
 function startOfUtcToday(): number {
-  const now = new Date();
-  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return startOfUtcDay(new Date());
 }
 
 function isMilestoneOverdue(milestone: Milestone): boolean {
@@ -288,7 +422,7 @@ function MilestoneTable({
           <thead>
             <tr>
               <th>Hito</th>
-              <th>Responsable</th>
+              <th>Responsable(s)</th>
               <th>Planificada</th>
               <th>Real</th>
               <th>Estado</th>
@@ -452,11 +586,11 @@ function MilestoneTable({
                           value={milestone.sequence ?? milestone.sortOrder ?? 0}
                         />
                         <label className="field">
-                          <span>Responsable</span>
+                          <span>Responsable(s)</span>
                           <input
                             name="ownerName"
                             defaultValue={milestone.ownerName ?? ""}
-                            placeholder="Nombre del responsable"
+                            placeholder="Ej: Mario, Rodolfo"
                           />
                         </label>
                         <label className="field">
@@ -559,6 +693,10 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
 
   const updateProject = updateRoadmapProjectAction.bind(null, project.id);
   const createMilestone = createMilestoneAction.bind(null, project.id);
+  const bulkAssignMilestoneOwners = bulkAssignMilestoneOwnersAction.bind(
+    null,
+    project.id,
+  );
   const supplyMilestones = project.milestones.filter(
     (milestone) => milestone.track === "supply",
   );
@@ -578,6 +716,7 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
     project.milestones,
     "marketing_activation_date",
   );
+  const bulkAssignmentCounts = buildBulkAssignmentCounts(project.milestones);
 
   return (
     <AppShell active="roadmap">
@@ -700,7 +839,7 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
             }
           />
           <SummaryMetricCard
-            label="Responsable próxima acción"
+            label="Responsable(s) próxima acción"
             value={nextMilestone?.ownerName || "Sin responsable"}
             tone={
               nextMilestone && !nextMilestone.ownerName?.trim()
@@ -774,8 +913,14 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
         </div>
       </section>
 
+      <BulkAssignmentPanel
+        action={bulkAssignMilestoneOwners}
+        counts={bulkAssignmentCounts}
+      />
+
       <nav className="section-tabs" aria-label="Secciones del proyecto">
         <a href="#control-proyecto-title">Control del proyecto</a>
+        <a href="#asignacion-rapida">Asignación rápida</a>
         <a href="#operaciones">Operaciones / Proveedor</a>
         <a href="#marketing">Marketing / Campaña</a>
         <a href="#resumen-proyecto">Resumen del proyecto</a>
@@ -895,8 +1040,8 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
               </select>
             </label>
             <label className="field">
-              <span>Responsable</span>
-              <input name="ownerName" />
+              <span>Responsable(s)</span>
+              <input name="ownerName" placeholder="Ej: Mario, Rodolfo" />
             </label>
             <label className="field">
               <span>

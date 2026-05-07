@@ -1,7 +1,22 @@
 import { Prisma } from "@prisma/client";
 import { RoadmapNotFoundError } from "./errors";
-import { createRoadmapMilestone, createRoadmapProject, getRoadmapProject, listRoadmapProjects, updateRoadmapMilestone, updateRoadmapProject } from "./repository";
-import type { RoadmapFilters, RoadmapMilestoneInput, RoadmapMilestoneUpdateInput, RoadmapProjectInput, RoadmapProjectUpdateInput } from "./types";
+import {
+  bulkUpdateMilestoneOwners,
+  createRoadmapMilestone,
+  createRoadmapProject,
+  getRoadmapProject,
+  listRoadmapProjects,
+  updateRoadmapMilestone,
+  updateRoadmapProject,
+} from "./repository";
+import type {
+  RoadmapBulkOwnerAssignmentInput,
+  RoadmapFilters,
+  RoadmapMilestoneInput,
+  RoadmapMilestoneUpdateInput,
+  RoadmapProjectInput,
+  RoadmapProjectUpdateInput,
+} from "./types";
 
 function roadmapCode(): string {
   const stamp = Date.now().toString(36).toUpperCase();
@@ -49,4 +64,12 @@ export async function editRoadmapMilestone(projectId: string, milestoneId: strin
   } catch (error) {
     mapPrismaNotFound(error);
   }
+}
+
+export async function bulkAssignMilestoneOwners(
+  projectId: string,
+  input: RoadmapBulkOwnerAssignmentInput,
+) {
+  await findRoadmapProject(projectId);
+  return bulkUpdateMilestoneOwners(projectId, input);
 }

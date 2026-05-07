@@ -1,7 +1,13 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { validateMilestoneInput, validateMilestoneUpdateInput, validateRoadmapProjectInput, validateRoadmapProjectUpdateInput } from "@/modules/roadmap/validators";
+import {
+  validateBulkOwnerAssignmentInput,
+  validateMilestoneInput,
+  validateMilestoneUpdateInput,
+  validateRoadmapProjectInput,
+  validateRoadmapProjectUpdateInput,
+} from "@/modules/roadmap/validators";
 
 function formToObject(formData: FormData): Record<string, FormDataEntryValue | boolean> {
   const result: Record<string, FormDataEntryValue | boolean> = {};
@@ -33,5 +39,17 @@ export async function createMilestoneAction(projectId: string, formData: FormDat
 export async function updateMilestoneStatusAction(projectId: string, milestoneId: string, formData: FormData) {
   const { editRoadmapMilestone } = await import("@/modules/roadmap/service");
   await editRoadmapMilestone(projectId, milestoneId, validateMilestoneUpdateInput(formToObject(formData)));
+  redirect(`/roadmap/${projectId}`);
+}
+
+export async function bulkAssignMilestoneOwnersAction(
+  projectId: string,
+  formData: FormData,
+) {
+  const { bulkAssignMilestoneOwners } = await import("@/modules/roadmap/service");
+  await bulkAssignMilestoneOwners(
+    projectId,
+    validateBulkOwnerAssignmentInput(formToObject(formData)),
+  );
   redirect(`/roadmap/${projectId}`);
 }

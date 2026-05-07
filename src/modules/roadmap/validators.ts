@@ -1,6 +1,14 @@
 import { ROADMAP_APPROVAL_STATUSES, ROADMAP_MILESTONE_STATUSES, ROADMAP_MILESTONE_TRACKS, ROADMAP_PRIORITIES, ROADMAP_PROJECT_TYPES, ROADMAP_STATUSES, ROADMAP_TRAFFIC_LIGHTS } from "./constants";
 import { RoadmapError } from "./errors";
-import type { RoadmapApprovalStatusValue, RoadmapFilters, RoadmapMilestoneInput, RoadmapMilestoneStatusValue, RoadmapMilestoneTrackValue, RoadmapMilestoneUpdateInput, RoadmapPriorityValue, RoadmapProjectInput, RoadmapProjectTypeValue, RoadmapProjectUpdateInput, RoadmapStatusValue, RoadmapTrafficLightValue } from "./types";
+import type { RoadmapApprovalStatusValue, RoadmapBulkOwnerAssignmentInput, RoadmapBulkOwnerAssignmentScope, RoadmapFilters, RoadmapMilestoneInput, RoadmapMilestoneStatusValue, RoadmapMilestoneTrackValue, RoadmapMilestoneUpdateInput, RoadmapPriorityValue, RoadmapProjectInput, RoadmapProjectTypeValue, RoadmapProjectUpdateInput, RoadmapStatusValue, RoadmapTrafficLightValue } from "./types";
+
+const ROADMAP_BULK_OWNER_ASSIGNMENT_SCOPES = [
+  "all_unassigned",
+  "supply_unassigned",
+  "marketing_unassigned",
+  "pending_approvals_unassigned",
+  "upcoming_unassigned",
+] as const satisfies readonly RoadmapBulkOwnerAssignmentScope[];
 
 function asRecord(payload: unknown): Record<string, unknown> {
   if (!payload || typeof payload !== "object") throw new RoadmapError("Payload inválido");
@@ -200,4 +208,18 @@ export function validateMilestoneUpdateInput(payload: unknown): RoadmapMilestone
   if (data.notes !== undefined) input.notes = optionalString(data.notes) ?? null;
   if (data.isCritical !== undefined) input.isCritical = Boolean(data.isCritical);
   return input;
+}
+
+export function validateBulkOwnerAssignmentInput(
+  payload: unknown,
+): RoadmapBulkOwnerAssignmentInput {
+  const data = asRecord(payload);
+  return {
+    ownerName: requiredString(data.ownerName, "Responsable(s)"),
+    scope: enumValue(
+      data.scope,
+      ROADMAP_BULK_OWNER_ASSIGNMENT_SCOPES,
+      "Alcance",
+    ) as RoadmapBulkOwnerAssignmentScope,
+  };
 }
