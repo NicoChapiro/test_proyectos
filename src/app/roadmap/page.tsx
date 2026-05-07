@@ -13,6 +13,16 @@ export const revalidate = 0;
 type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 type Project = Awaited<ReturnType<typeof searchRoadmapProjects>>[number];
+type ProjectMilestone = Project["milestones"][number];
+
+const TIMELINE_LABEL_PRIORITY_CODES = [
+  "supply_estimated_arrival_santiago",
+  "marketing_activation_date",
+  "supply_quilicura_warehouse_arrival",
+] as const;
+const TIMELINE_LABEL_LIMIT = 3;
+const MIN_TIMELINE_LABEL_GAP = 14;
+
 
 function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -22,12 +32,46 @@ function pendingMilestones(projects: Project[]) {
   return projects.reduce((total, project) => total + project.milestones.filter((milestone) => milestone.status !== "completed").length, 0);
 }
 
-function nextMilestones(project: Project, year: number) {
+function plannedMilestones(project: Project, year: number) {
   return project.milestones
     .filter((milestone) => milestone.plannedDate)
     .sort((a, b) => Number(a.plannedDate) - Number(b.plannedDate))
-    .slice(0, 5)
     .map((milestone) => ({ milestone, left: clampYearPercent(milestone.plannedDate!, year) }));
+}
+
+function timelineLabelPriority(milestone: ProjectMilestone, nextMilestone?: ProjectMilestone | null) {
+  if (nextMilestone?.id === milestone.id) return 0;
+
+  const codePriority = TIMELINE_LABEL_PRIORITY_CODES.indexOf(milestone.milestoneCode as (typeof TIMELINE_LABEL_PRIORITY_CODES)[number]);
+  return codePriority === -1 ? Number.POSITIVE_INFINITY : codePriority + 1;
+}
+
+function timelineLabelClass(left: number) {
+  if (left < 8) return "milestone-label align-start";
+  if (left > 92) return "milestone-label align-end";
+  return "milestone-label";
+}
+
+function timelineMilestones(project: Project, year: number, nextMilestone?: ProjectMilestone | null) {
+  const milestones = plannedMilestones(project, year);
+  const labels = milestones
+    .map((item) => ({ ...item, priority: timelineLabelPriority(item.milestone, nextMilestone) }))
+    .filter((item) => Number.isFinite(item.priority))
+    .sort((a, b) => a.priority - b.priority || Number(a.milestone.plannedDate) - Number(b.milestone.plannedDate));
+
+  const visibleLabels = labels.reduce<typeof labels>((selected, item) => {
+    if (selected.length >= TIMELINE_LABEL_LIMIT) return selected;
+    const collides = selected.some((selectedItem) => Math.abs(selectedItem.left - item.left) < MIN_TIMELINE_LABEL_GAP);
+    return collides ? selected : [...selected, item];
+  }, []);
+
+  const hiddenPriorityLabels = labels.filter((item) => !visibleLabels.some((selected) => selected.milestone.id === item.milestone.id));
+
+  return {
+    milestones,
+    visibleLabels: visibleLabels.sort((a, b) => a.left - b.left),
+    hiddenPriorityLabels,
+  };
 }
 
 export default async function RoadmapPage({ searchParams }: PageProps) {
@@ -106,6 +150,7 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
           const right = clampYearPercent(project.targetDate, year);
           const width = Math.max(1, right - left);
           const color = project.colorLabel || ROADMAP_DEFAULT_COLORS[project.trafficLight];
+          const timeline = timelineMilestones(project, year, nextMilestone);
           return (
             <article className="timeline-project-row" key={project.id}>
               <div className="project-summary">
@@ -125,8 +170,8 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
                 </div>
                 <div className="timeline" aria-label={`Línea de tiempo de ${project.name}`}>
                   <span className="timeline-bar" style={{ left: `${left}%`, width: `${width}%`, background: color }} title={`${displayDate(project.startDate)} → ${displayDate(project.targetDate)}`} />
-                  {nextMilestones(project, year).map(({ milestone, left: milestoneLeft }) => <span key={milestone.id} className={`milestone-dot milestone-${milestone.status}`} style={{ left: `calc(${milestoneLeft}% - 6px)` }} title={`${displayMilestoneName(milestone)}: ${displayDate(milestone.plannedDate)}`} />)}
-                  {nextMilestones(project, year).slice(0, 3).map(({ milestone, left: milestoneLeft }) => <span key={`${milestone.id}-label`} className="milestone-label" style={{ left: `${milestoneLeft}%` }}>{displayMilestoneName(milestone)}</span>)}
+                  {timeline.milestones.map(({ milestone, left: milestoneLeft }) => <span key={milestone.id} className={`milestone-dot milestone-${milestone.status}`} style={{ left: `calc(${milestoneLeft}% - 6px)` }} title={`${displayMilestoneName(milestone)}: ${displayDate(milestone.plannedDate)}`} />)}
+                  {timeline.visibleLabels.map(({ milestone, left: milestoneLeft }) => <span key={`${milestone.id}-label`} className={timelineLabelClass(milestoneLeft)} style={{ left: `${milestoneLeft}%` }}>{displayMilestoneName(milestone)}</span>)}
                 </div>
                 <div className={`next-action-card${nextMilestone && !nextMilestone.ownerName?.trim() ? " warning-card" : ""}`}>
                   <p className="eyebrow">Próximo hito</p>
@@ -136,6 +181,11 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
                       <p className="muted">{nextMilestone.ownerName || "Sin responsable"} · {displayPlannedDate(nextMilestone.plannedDate)} · {displayMilestoneStatus(nextMilestone.status)}</p>
                     </div>
                   ) : <p className="muted">Sin acciones pendientes.</p>}
+                  {timeline.hiddenPriorityLabels.length > 0 ? (
+                    <p className="muted compact-milestone-summary">
+                      También: {timeline.hiddenPriorityLabels.map(({ milestone }) => displayMilestoneName(milestone)).join(" · ")}
+                    </p>
+                  ) : null}
                 </div>
               </div>
               <div className="row-actions"><Link className="button small" href={`/roadmap/${project.id}`}>Ver detalle</Link></div>
