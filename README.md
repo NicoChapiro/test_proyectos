@@ -12,8 +12,10 @@ El módulo **Roadmap** es una herramienta transversal de gestión de proyectos d
 
 - Modelos Prisma `RoadmapProject`, `RoadmapMilestone` y `PackagingRequest`, con relación opcional para que una solicitud de packaging aparezca en el roadmap.
 - Taxonomía tipada de proyectos de Marketing mediante `projectType`, con filtros y etiquetas en español en la UI.
-- Campos generales para `Área`, `Canal`, `Marca`, `Responsable`, `Hitos`, `Estado`, `Prioridad` y `Semáforo`.
-- Plantillas base de hitos por tipo de proyecto preparadas para uso futuro.
+- Campos generales para `Área`, `Canal`, `Marca`, `Responsable`, `Estado`, `Prioridad`, `Semáforo`, fechas y URL de SharePoint.
+- Página de detalle `/roadmap/[id]` con encabezado del proyecto, metadata general y tablas separadas por track para actualizar hitos.
+- Plantilla automática de 12 hitos estándar cada vez que se crea un proyecto. Los hitos quedan vinculados al proyecto y guardan `milestoneCode`, `track`, `sequence`, estado, responsable, fechas planificada/real, estado de aprobación, links, documentos y notas.
+- Modelo de dos tracks paralelos: **Supply / Operaciones / Proveedores** para aprobaciones internas, órdenes de compra, muestras, producción, embarque, llegada, aduana y bodega Quilicura; y **Marketing campaign** para concepto, implementación y activación de campaña.
 - Migraciones SQL para roadmap, el vínculo con packaging y la generalización de Marketing en `prisma/migrations/`.
 - Seed opcional con proyectos de ejemplo de Marketing mediante `npm run seed`.
 - APIs básicas:
@@ -26,9 +28,23 @@ El módulo **Roadmap** es una herramienta transversal de gestión de proyectos d
 - UI inicial:
   - `/roadmap`: selector de año, filtros simples y vista anual/trimestral con barras e hitos.
   - `/roadmap/new`: formulario para crear proyectos de Marketing.
-  - `/roadmap/[id]`: detalle, edición de proyecto, listado y creación/actualización de hitos.
+  - `/roadmap/[id]`: detalle del proyecto, metadata general, tabla Supply, tabla Marketing, edición del proyecto y creación/actualización de hitos.
   - `/packaging`: listado de solicitudes de packaging.
   - `/packaging/[id]`: detalle de solicitud con acciones para crear un proyecto roadmap de tipo Packaging o vincular uno existente.
+
+### Workflow de detalle e hitos
+
+Cuando se crea un proyecto desde `/roadmap/new` o `POST /api/roadmap`, la aplicación redirige al detalle del proyecto y crea automáticamente el set estándar de hitos. La secuencia primero agrega los 9 hitos de Supply / Operaciones / Proveedores y luego los 3 hitos de Marketing campaign.
+
+El detalle `/roadmap/[id]` muestra:
+
+1. Encabezado con nombre, código, fechas y acceso de retorno al roadmap.
+2. Metadata general: tipo, área, canal, marca, categoría, responsable, prioridad, estado, semáforo, fechas y SharePoint.
+3. Tabla Supply / Operaciones / Proveedores con hitos de aprobaciones, OC, muestras, producción, embarque, Santiago, aduana y bodega Quilicura.
+4. Tabla Marketing campaign con concepto, implementación y activación.
+5. Formularios simples inline para actualizar responsable, fechas, estado, aprobación, links, documentos y notas por hito.
+
+La vista anual `/roadmap` sigue funcionando como overview y cada proyecto enlaza a `/roadmap/[id]`. Los proyectos antiguos sin metadata nueva se renderizan de forma segura usando fechas y campos existentes.
 
 ### Configuración local
 
@@ -163,4 +179,4 @@ Usa esta ruta como primera verificación cuando `/roadmap` o `/packaging` fallen
 - `projectType` debe pertenecer a la taxonomía de proyectos de Marketing.
 - `targetDate` no puede ser anterior a `startDate`.
 - `priority`, `status` y `trafficLight` deben pertenecer a los enums del módulo.
-- Los hitos requieren `name` y `dueDate`.
+- Los hitos requieren `name` y una fecha planificada/due date; las URLs de SharePoint, links y documentos se validan cuando están presentes.

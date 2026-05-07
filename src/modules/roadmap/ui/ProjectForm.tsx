@@ -24,7 +24,7 @@ export function ProjectForm({ project, action, submitLabel }: Props) {
       <label className="field"><span>Semáforo</span><select name="trafficLight" defaultValue={project?.trafficLight ?? "gris"}>{ROADMAP_TRAFFIC_LIGHTS.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
       <label className="field"><span>Inicio *</span><input type="date" name="startDate" required defaultValue={inputDate(project?.startDate)} /></label>
       <label className="field"><span>Fecha objetivo *</span><input type="date" name="targetDate" required defaultValue={inputDate(project?.targetDate)} /></label>
-      <label className="field full"><span>Carpeta SharePoint</span><input type="url" name="sharepointFolderUrl" defaultValue={project?.sharepointFolderUrl ?? ""} /></label>
+      <label className="field full"><span>Carpeta SharePoint</span><input type="url" name="sharepointUrl" defaultValue={project?.sharepointUrl ?? project?.sharepointFolderUrl ?? ""} /></label>
       <div className="actions full"><button className="button primary" type="submit">{submitLabel}</button></div>
     </form>
   );

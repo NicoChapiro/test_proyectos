@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { ROADMAP_STANDARD_MILESTONE_TEMPLATES } from "../src/modules/roadmap/constants";
 
 const prisma = new PrismaClient();
 
@@ -53,10 +54,27 @@ async function main() {
         targetDate: new Date(`${sample.targetDate}T00:00:00.000Z`),
         trafficLight: sample.trafficLight,
         milestones: {
-          create: [
-            { name: "Brief aprobado", dueDate: new Date(`${sample.startDate}T00:00:00.000Z`), status: "completado", sortOrder: 1 },
-            { name: "Lanzamiento / entrega", dueDate: new Date(`${sample.targetDate}T00:00:00.000Z`), status: "pendiente", sortOrder: 2, isCritical: true },
-          ],
+          create: ROADMAP_STANDARD_MILESTONE_TEMPLATES.map((template) => {
+            const plannedDate = template.code === "marketing_activation_date"
+              ? new Date(`${sample.targetDate}T00:00:00.000Z`)
+              : new Date(`${sample.startDate}T00:00:00.000Z`);
+            return {
+              name: template.name,
+              milestoneCode: template.code,
+              track: template.track,
+              sequence: template.sequence,
+              sortOrder: template.sequence,
+              status: template.sequence === 1 ? "completed" : "not_started",
+              ownerName: template.sequence === 1 ? sample.ownerName : null,
+              plannedDate,
+              actualDate: template.sequence === 1 ? plannedDate : null,
+              completedAt: template.sequence === 1 ? plannedDate : null,
+              dueDate: plannedDate,
+              approvalStatus: "approvalStatus" in template ? template.approvalStatus : null,
+              notes: "notes" in template ? template.notes : null,
+              isCritical: template.code === "marketing_activation_date" || template.code === "supply_quilicura_warehouse_arrival",
+            };
+          }),
         },
       },
     });
