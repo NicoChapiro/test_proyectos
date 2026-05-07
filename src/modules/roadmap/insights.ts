@@ -74,6 +74,11 @@ function startOfUtcDay(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
+export function calculateUpcomingMilestoneDateWindow(today: Date = new Date()): { start: Date; end: Date } {
+  const start = startOfUtcDay(today);
+  return { start, end: new Date(start.getTime() + 8 * DAY_IN_MS) };
+}
+
 function milestoneOrderValue(milestone: RoadmapInsightMilestone): number {
   return milestone.sequence || milestone.sortOrder || Number.MAX_SAFE_INTEGER;
 }
@@ -116,10 +121,9 @@ export function calculateOverdueMilestones<T extends RoadmapInsightMilestone>(mi
 }
 
 export function calculateUpcomingMilestones<T extends RoadmapInsightMilestone>(milestones: T[], today: Date = new Date()): T[] {
-  const todayStart = startOfUtcDay(today);
-  const upcomingEnd = new Date(todayStart.getTime() + 8 * DAY_IN_MS);
+  const { start, end } = calculateUpcomingMilestoneDateWindow(today);
   return [...milestones]
-    .filter((milestone) => isIncomplete(milestone) && milestone.plannedDate && milestone.plannedDate >= todayStart && milestone.plannedDate < upcomingEnd)
+    .filter((milestone) => isIncomplete(milestone) && milestone.plannedDate && milestone.plannedDate >= start && milestone.plannedDate < end)
     .sort(byActionPriority);
 }
 
