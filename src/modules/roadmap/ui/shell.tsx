@@ -15,30 +15,30 @@ const navItems = [
 export function AppShell({ children, active = "roadmap" }: { children: ReactNode; active?: NavKey }) {
   return (
     <main className="app-shell">
-      <aside className="sidebar" aria-label="Navegación principal">
-        <Link className="sidebar-brand" href="/roadmap" aria-label="Marketing Roadmap">
+      <header className="top-nav-shell" aria-label="Navegación principal">
+        <Link className="top-nav-brand" href="/roadmap" aria-label="Marketing Roadmap">
           <span className="brand-mark">M</span>
           <span>
             <strong>Marketing</strong>
             <small>Roadmap 2026</small>
           </span>
         </Link>
-        <nav className="sidebar-nav">
+        <nav className="top-nav-links">
           {navItems.map((item) => (
-            <Link key={`${item.label}-${item.href}`} className={`sidebar-link${item.key === active ? " active" : ""}`} href={item.href}>
+            <Link key={`${item.label}-${item.href}`} className={`top-nav-link${item.key === active ? " active" : ""}`} href={item.href} aria-current={item.key === active ? "page" : undefined}>
               <span className="nav-dot" aria-hidden="true" />
               {item.label}
             </Link>
           ))}
         </nav>
-        <div className="sidebar-user">
+        <div className="top-nav-user">
           <span className="user-avatar" aria-hidden="true">M</span>
           <span>
             <strong>Mario</strong>
             <small>Marketing</small>
           </span>
         </div>
-      </aside>
+      </header>
       <section className="content-shell">{children}</section>
     </main>
   );
