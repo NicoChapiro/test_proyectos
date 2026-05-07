@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ROADMAP_APPROVAL_STATUS_LABELS, ROADMAP_APPROVAL_STATUSES, ROADMAP_MILESTONE_STATUS_LABELS, ROADMAP_MILESTONE_STATUSES, ROADMAP_PRIORITY_LABELS, ROADMAP_PROJECT_TYPE_LABELS, ROADMAP_STATUS_LABELS, ROADMAP_TRAFFIC_LIGHT_LABELS } from "@/modules/roadmap/constants";
 import { RoadmapNotFoundError } from "@/modules/roadmap/errors";
-import { buildRoadmapProjectInsights } from "@/modules/roadmap/insights";
+import { buildRoadmapProjectInsights, type RoadmapProjectInsights } from "@/modules/roadmap/insights";
 import { findRoadmapProject } from "@/modules/roadmap/service";
 import { displayDate, displayPlannedDate, inputDate } from "@/modules/roadmap/ui/date";
 import { ProjectForm } from "@/modules/roadmap/ui/ProjectForm";
@@ -37,6 +37,38 @@ function milestoneSummary(milestone: Milestone): string {
 
 function statusClass(status: string) {
   return `badge milestone-${status}`;
+}
+
+function severityTone(severity: RoadmapProjectInsights["severity"]): "success" | "warning" | "danger" {
+  if (severity === "critical") return "danger";
+  if (severity === "warning") return "warning";
+  return "success";
+}
+
+function pluralize(count: number, singular: string, plural: string) {
+  return count === 1 ? singular : plural;
+}
+
+function buildOperationalAlerts(insights: RoadmapProjectInsights<Milestone>) {
+  const alerts: string[] = [];
+
+  if (insights.milestonesWithoutOwner.length > 0) {
+    alerts.push(`Hay ${insights.milestonesWithoutOwner.length} ${pluralize(insights.milestonesWithoutOwner.length, "hito", "hitos")} sin responsable.`);
+  }
+
+  if (insights.pendingApprovalCount > 0) {
+    alerts.push(`Hay ${insights.pendingApprovalCount} ${pluralize(insights.pendingApprovalCount, "aprobación pendiente", "aprobaciones pendientes")}.`);
+  }
+
+  if (insights.overdueMilestones.length > 0) {
+    alerts.push(`Hay ${insights.overdueMilestones.length} ${pluralize(insights.overdueMilestones.length, "hito vencido", "hitos vencidos")}.`);
+  }
+
+  if (insights.blockedMilestones.length > 0) {
+    alerts.push(`Hay ${insights.blockedMilestones.length} ${pluralize(insights.blockedMilestones.length, "hito bloqueado", "hitos bloqueados")}.`);
+  }
+
+  return alerts;
 }
 
 function MilestoneTable({ milestones, projectId, track }: { milestones: Milestone[]; projectId: string; track: RoadmapMilestoneTrackValue }) {
@@ -132,6 +164,7 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
   const summary = buildProjectSummary(project.milestones);
   const insights = buildRoadmapProjectInsights(project.milestones);
   const nextMilestone = insights.nextMilestone;
+  const operationalAlerts = buildOperationalAlerts(insights);
   const santiagoArrival = findMilestoneByCode(project.milestones, "supply_estimated_arrival_santiago");
   const campaignActivation = findMilestoneByCode(project.milestones, "marketing_activation_date");
 
@@ -168,7 +201,39 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
         <SummaryMetricCard label="Activación de campaña" value={displayPlannedDate(campaignActivation?.plannedDate)} />
       </section>
 
+      <section className="panel project-control" aria-labelledby="control-proyecto-title">
+        <div className="section-title">
+          <div>
+            <p className="eyebrow">Control operativo</p>
+            <h2 id="control-proyecto-title">Control del proyecto</h2>
+          </div>
+          <span className={`badge severity-${insights.severity}`}>{insights.severityLabel}</span>
+        </div>
+        <div className="control-grid">
+          <SummaryMetricCard label="Fase actual" value={insights.currentPhase.label} />
+          <SummaryMetricCard label="Severidad" value={insights.severityLabel} tone={severityTone(insights.severity)} />
+          <SummaryMetricCard label="Próxima acción" value={nextMilestone ? displayMilestoneName(nextMilestone) : "Sin pendientes"} detail={nextMilestone ? displayPlannedDate(nextMilestone.plannedDate) : "No hay acciones pendientes."} />
+          <SummaryMetricCard label="Responsable próxima acción" value={nextMilestone?.ownerName || "Sin responsable"} tone={nextMilestone && !nextMilestone.ownerName?.trim() ? "warning" : undefined} />
+          <SummaryMetricCard label="Hitos vencidos" value={insights.overdueMilestones.length} detail={insights.overdueMilestones[0] ? milestoneSummary(insights.overdueMilestones[0]) : "Sin hitos vencidos."} tone={insights.overdueMilestones.length > 0 ? "danger" : undefined} />
+          <SummaryMetricCard label="Próximos 7 días" value={insights.upcomingMilestones.length} detail={insights.upcomingMilestones[0] ? milestoneSummary(insights.upcomingMilestones[0]) : "Sin hitos en los próximos 7 días."} />
+          <SummaryMetricCard label="Bloqueados" value={insights.blockedMilestones.length} detail={insights.blockedMilestones[0] ? milestoneSummary(insights.blockedMilestones[0]) : "Sin hitos bloqueados."} tone={insights.blockedMilestones.length > 0 ? "danger" : undefined} />
+          <SummaryMetricCard label="Sin responsable" value={insights.milestonesWithoutOwner.length} detail={insights.milestonesWithoutOwner[0] ? milestoneSummary(insights.milestonesWithoutOwner[0]) : "Todos los hitos pendientes tienen responsable."} tone={insights.milestonesWithoutOwner.length > 0 ? "warning" : undefined} />
+          <SummaryMetricCard label="Aprobaciones pendientes" value={insights.pendingApprovalCount} detail={insights.pendingApprovalMilestones[0] ? milestoneSummary(insights.pendingApprovalMilestones[0]) : "Sin aprobaciones pendientes."} tone={insights.pendingApprovalCount > 0 ? "warning" : undefined} />
+        </div>
+        <div className={`operational-alert-list ${insights.severity}`}>
+          <strong>Alertas operativas</strong>
+          {operationalAlerts.length === 0 ? (
+            <p className="muted">Sin alertas operativas.</p>
+          ) : (
+            <ul>
+              {operationalAlerts.map((alert) => <li key={alert}>{alert}</li>)}
+            </ul>
+          )}
+        </div>
+      </section>
+
       <nav className="section-tabs" aria-label="Secciones del proyecto">
+        <a href="#control-proyecto-title">Control del proyecto</a>
         <a href="#operaciones">Operaciones / Proveedor</a>
         <a href="#marketing">Marketing / Campaña</a>
         <a href="#resumen-proyecto">Resumen del proyecto</a>
@@ -192,11 +257,6 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
         </dl>
       </section>
 
-      <section className="insight-grid">
-        <SummaryMetricCard label="Hitos vencidos" value={insights.overdueMilestones.length} detail={insights.overdueMilestones[0] ? milestoneSummary(insights.overdueMilestones[0]) : "Sin hitos vencidos."} tone={insights.overdueMilestones.length > 0 ? "warning" : undefined} />
-        <SummaryMetricCard label="Hitos próximos" value={insights.upcomingMilestones.length} detail={insights.upcomingMilestones[0] ? milestoneSummary(insights.upcomingMilestones[0]) : "Sin hitos en los próximos 7 días."} />
-        <SummaryMetricCard label="Sin responsable" value={insights.milestonesWithoutOwner.length} detail={insights.milestonesWithoutOwner[0] ? milestoneSummary(insights.milestonesWithoutOwner[0]) : "Todos los hitos pendientes tienen responsable."} tone={insights.milestonesWithoutOwner.length > 0 ? "warning" : undefined} />
-      </section>
 
       <MilestoneTable milestones={supplyMilestones} projectId={project.id} track="supply" />
       <MilestoneTable milestones={marketingMilestones} projectId={project.id} track="marketing" />
