@@ -72,10 +72,10 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
               <div>
                 <div className="timeline" aria-label={`Línea de tiempo de ${project.name}`}>
                   <div className="timeline-bar" style={{ left: `${left}%`, width: `${width}%`, background: color }} title={`${displayDate(project.startDate)} → ${displayDate(project.targetDate)}`} />
-                  {project.milestones.map((milestone) => <span key={milestone.id} className="milestone-dot" style={{ left: `calc(${clampYearPercent(milestone.dueDate, year)}% - 6px)` }} title={`${milestone.name}: ${displayDate(milestone.dueDate)}`} />)}
+                  {project.milestones.map((milestone) => <span key={milestone.id} className="milestone-dot" style={{ left: `calc(${clampYearPercent(milestone.plannedDate ?? milestone.dueDate, year)}% - 6px)` }} title={`${milestone.name}: ${displayDate(milestone.plannedDate ?? milestone.dueDate)}`} />)}
                 </div>
                 <ul className="milestone-list">
-                  {project.milestones.slice(0, 4).map((milestone) => <li key={milestone.id}>{milestone.name} · {displayDate(milestone.dueDate)} · {milestone.status}</li>)}
+                  {project.milestones.slice(0, 4).map((milestone) => <li key={milestone.id}>{milestone.name} · {displayDate(milestone.plannedDate ?? milestone.dueDate)} · {milestone.status}</li>)}
                 </ul>
               </div>
             </article>

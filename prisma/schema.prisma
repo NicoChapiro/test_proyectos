@@ -31,11 +31,21 @@ enum RoadmapTrafficLight {
 }
 
 enum RoadmapMilestoneStatus {
-  pendiente
-  en_curso
-  completado
-  atrasado
-  cancelado
+  not_started
+  in_progress
+  completed
+  blocked
+}
+
+enum RoadmapMilestoneTrack {
+  supply
+  marketing
+}
+
+enum RoadmapApprovalStatus {
+  pending
+  approved
+  rejected
 }
 
 enum RoadmapProjectType {
@@ -92,6 +102,7 @@ model RoadmapProject {
   trafficLight        RoadmapTrafficLight
   sourceType          String?
   sourcePackagingId   String?
+  sharepointUrl       String?
   sharepointFolderUrl String?
   colorLabel          String?
   createdAt           DateTime            @default(now())
@@ -111,21 +122,33 @@ model RoadmapProject {
 }
 
 model RoadmapMilestone {
-  id          String                 @id @default(cuid())
-  projectId   String
-  name        String
-  description String?
-  ownerName   String?
-  status      RoadmapMilestoneStatus
-  dueDate     DateTime
-  completedAt DateTime?
-  isCritical  Boolean                @default(false)
-  sortOrder   Int                    @default(0)
-  createdAt   DateTime               @default(now())
-  updatedAt   DateTime               @updatedAt
-  project     RoadmapProject         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id             String                  @id @default(cuid())
+  projectId      String
+  name           String
+  description    String?
+  milestoneCode  String?
+  track          RoadmapMilestoneTrack   @default(supply)
+  sequence       Int                     @default(0)
+  ownerName      String?
+  status         RoadmapMilestoneStatus  @default(not_started)
+  dueDate        DateTime
+  plannedDate    DateTime?
+  actualDate     DateTime?
+  completedAt    DateTime?
+  approvalStatus RoadmapApprovalStatus?
+  linkUrl        String?
+  documentUrl    String?
+  notes          String?
+  isCritical     Boolean                 @default(false)
+  sortOrder      Int                     @default(0)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  project        RoadmapProject          @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
+  @@unique([projectId, milestoneCode])
   @@index([projectId])
   @@index([dueDate])
+  @@index([plannedDate])
   @@index([status])
+  @@index([track, sequence])
 }

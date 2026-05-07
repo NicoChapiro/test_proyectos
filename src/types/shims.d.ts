@@ -38,7 +38,9 @@ declare module "@prisma/client" {
   export type RoadmapPriority = "baja" | "media" | "alta" | "urgente";
   export type RoadmapStatus = "no_iniciado" | "en_curso" | "en_riesgo" | "bloqueado" | "completado" | "cancelado";
   export type RoadmapTrafficLight = "verde" | "amarillo" | "rojo" | "gris";
-  export type RoadmapMilestoneStatus = "pendiente" | "en_curso" | "completado" | "atrasado" | "cancelado";
+  export type RoadmapMilestoneStatus = "not_started" | "in_progress" | "completed" | "blocked";
+  export type RoadmapMilestoneTrack = "supply" | "marketing";
+  export type RoadmapApprovalStatus = "pending" | "approved" | "rejected";
   export type RoadmapProjectType = "packaging" | "product_launch" | "campaign" | "trade_marketing" | "ecommerce" | "content_design" | "event" | "innovation" | "regulatory_compliance" | "internal_process" | "other";
 
   export type PackagingRequest = {
@@ -75,6 +77,7 @@ declare module "@prisma/client" {
     trafficLight: RoadmapTrafficLight;
     sourceType: string | null;
     sourcePackagingId: string | null;
+    sharepointUrl: string | null;
     sharepointFolderUrl: string | null;
     colorLabel: string | null;
     createdAt: Date;
@@ -86,10 +89,19 @@ declare module "@prisma/client" {
     projectId: string;
     name: string;
     description: string | null;
+    milestoneCode: string | null;
+    track: RoadmapMilestoneTrack;
+    sequence: number;
     ownerName: string | null;
     status: RoadmapMilestoneStatus;
     dueDate: Date;
+    plannedDate: Date | null;
+    actualDate: Date | null;
     completedAt: Date | null;
+    approvalStatus: RoadmapApprovalStatus | null;
+    linkUrl: string | null;
+    documentUrl: string | null;
+    notes: string | null;
     isCritical: boolean;
     sortOrder: number;
     createdAt: Date;
@@ -114,6 +126,7 @@ declare module "@prisma/client" {
       description?: StringFilter;
       OR?: RoadmapProjectWhereInput[];
     };
+    export type RoadmapMilestoneCreateWithoutProjectInput = Record<string, unknown>;
     export class PrismaClientKnownRequestError extends Error {
       code: string;
     }

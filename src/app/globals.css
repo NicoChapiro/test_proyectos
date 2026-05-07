@@ -49,3 +49,20 @@ textarea { min-height: 110px; resize: vertical; }
 @media (max-width: 860px) {
   .form-grid, .detail-grid, .project-row, .filters { grid-template-columns: 1fr; }
 }
+.section-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.metadata-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+.metadata-grid div { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: #f8fafc; }
+.metadata-grid dt { color: var(--muted); font-size: .78rem; font-weight: 800; text-transform: uppercase; }
+.metadata-grid dd { margin: 4px 0 0; font-weight: 700; }
+.table-wrap { width: 100%; overflow-x: auto; }
+.milestone-table { width: 100%; min-width: 980px; border-collapse: collapse; }
+.milestone-table th, .milestone-table td { border-bottom: 1px solid var(--line); padding: 12px; text-align: left; vertical-align: top; }
+.milestone-table th { background: #f8fafc; color: var(--muted); font-size: .78rem; text-transform: uppercase; }
+.link-cell { display: grid; gap: 6px; }
+.button.small { padding: 7px 10px; font-size: .86rem; margin-top: 8px; }
+.inline-edit { display: grid; gap: 10px; min-width: 260px; margin-top: 10px; }
+.compact-notes { margin: 0; max-width: 260px; }
+@media (max-width: 860px) {
+  .metadata-grid { grid-template-columns: 1fr; }
+  .section-title { display: grid; }
+}
