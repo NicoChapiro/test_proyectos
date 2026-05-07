@@ -57,7 +57,9 @@ El módulo **Roadmap** es una herramienta transversal de gestión de proyectos d
 
 Después de cada despliegue en Vercel, abre `https://<tu-dominio-vercel>/api/health` para validar rápidamente que el runtime puede leer la configuración mínima, conectarse a Supabase/PostgreSQL mediante Prisma y consultar las tablas principales de la aplicación.
 
-El endpoint `GET /api/health` usa runtime Node.js y es dinámico. Nunca devuelve `DATABASE_URL`, URLs de conexión, host, usuario, contraseña, tokens ni credenciales; solo expone indicadores booleanos y conteos seguros.
+El proyecto fija Node.js en `22.x` mediante `package.json` para mantener compatibilidad con Vercel, Prisma 5.22.0 y el runtime Node.js LTS esperado. Si Vercel muestra otro runtime en logs después de un cambio, redepliega para que tome la versión fijada.
+
+El endpoint `GET /api/health` usa runtime Node.js y es dinámico. Nunca devuelve `DATABASE_URL`, URLs de conexión, host, usuario, contraseña, tokens, stack traces, cadenas de conexión ni credenciales; solo expone indicadores booleanos, conteos seguros y diagnósticos clasificados.
 
 Interpretación de campos clave:
 
@@ -67,6 +69,18 @@ Interpretación de campos clave:
 - `database.migrationsTableExists: false` significa que Prisma no encontró `_prisma_migrations`; las migraciones pueden no haberse aplicado en esa base de datos.
 - `database.appliedMigrations` muestra cuántas migraciones Prisma aparecen registradas como aplicadas cuando existe `_prisma_migrations`.
 - `database.counts.roadmapProjects`, `database.counts.roadmapMilestones` y `database.counts.packagingRequests` confirman que la app puede leer `RoadmapProject`, `RoadmapMilestone` y `PackagingRequest`.
+
+Cuando hay un fallo de base de datos, `diagnostics.category` ayuda a acotar el problema sin exponer secretos:
+
+- `authentication_failed` significa que el usuario o password de la base de datos es incorrecto.
+- `database_unreachable` significa que host, puerto, pooler, red o disponibilidad de Supabase/PostgreSQL no permiten conectar.
+- `database_timeout` significa que la conexión o consulta mínima agotó el tiempo de espera.
+- `invalid_database_url` significa que `DATABASE_URL` está mal formada.
+- `missing_table` significa que falta una tabla requerida y probablemente no se aplicaron migraciones.
+- `missing_column` significa que falta una columna requerida y probablemente no se aplicaron migraciones.
+- `unknown_database_error` significa que Prisma no entregó un código reconocido por el clasificador.
+
+En producción, la respuesta de error puede incluir `diagnostics.category`, `diagnostics.code` y `diagnostics.name`, pero no incluye mensajes crudos de Prisma ni stack traces. En desarrollo local puede incluir un mensaje sanitizado con URLs y credenciales removidas para acelerar la depuración.
 
 Ejemplo saludable:
 
@@ -110,14 +124,19 @@ Si `DATABASE_URL` falta, Vercel no puede conectarse a Supabase/PostgreSQL o falt
     "isVercel": true
   },
   "env": {
-    "databaseUrlConfigured": false,
-    "databaseUrlLooksLikePostgres": false
+    "databaseUrlConfigured": true,
+    "databaseUrlLooksLikePostgres": true
   },
   "database": {
     "connected": false,
     "provider": "postgresql",
     "prismaQueryOk": false,
     "migrationsTableExists": false
+  },
+  "diagnostics": {
+    "category": "database_unreachable",
+    "code": "P1001",
+    "name": "PrismaClientInitializationError"
   },
   "message": "Database health check failed",
   "hint": "Check DATABASE_URL, Supabase availability and Prisma migrations."
