@@ -81,6 +81,18 @@ Si no usas un flujo de desarrollo local, puedes aplicar las migraciones Prisma y
 
 No uses `prisma migrate dev` en GitHub Actions ni en Vercel. Ese comando es solo para desarrollo local; en despliegues o ejecuciones manuales contra Supabase usa migraciones confirmadas con `npm run prisma:deploy` / `prisma migrate deploy`.
 
+### Cargar datos de ejemplo sin entorno local
+
+Si `/api/health` responde `status: "ok"` pero los conteos de `database.counts.roadmapProjects`, `database.counts.roadmapMilestones` y `database.counts.packagingRequests` están en `0`, puedes cargar los datos de ejemplo intencionalmente con un workflow manual separado.
+
+1. En GitHub, configura `DATABASE_URL` como secreto en **Settings → Secrets and variables → Actions → Repository secrets**. Usa la URL de conexión de Supabase PostgreSQL de la base de datos objetivo.
+2. Ve a **GitHub → Actions → Prisma Seed Database → Run workflow** y ejecútalo manualmente solo cuando quieras cargar datos de ejemplo.
+3. El workflow falla de forma explícita si `DATABASE_URL` no está configurada, instala dependencias con `npm ci` cuando existe `package-lock.json` o `npm install` en caso contrario, ejecuta `npm run prisma:generate` y después `npm run seed`.
+4. Este workflow no aplica migraciones ni ejecuta `npm run prisma:deploy`; primero usa el workflow manual **Prisma Migrate Deploy** si la base de datos todavía no tiene las migraciones requeridas.
+5. Al terminar correctamente, vuelve a abrir `https://<tu-dominio-vercel>/api/health` y confirma que aumentaron los conteos de `roadmapProjects`, `roadmapMilestones` y `packagingRequests`.
+
+El workflow lee `DATABASE_URL` únicamente desde GitHub Secrets y no imprime la cadena de conexión ni otros secretos en los logs.
+
 ### Health check post-despliegue
 
 Después de cada despliegue en Vercel, abre `https://<tu-dominio-vercel>/api/health` para validar rápidamente que el runtime puede leer la configuración mínima, conectarse a Supabase/PostgreSQL mediante Prisma y consultar las tablas principales de la aplicación.
