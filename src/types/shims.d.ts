@@ -110,7 +110,8 @@ declare module "@prisma/client" {
 
   export namespace Prisma {
     type StringFilter = { contains?: string; mode?: "insensitive" };
-    type DateTimeFilter = { lte?: Date; gte?: Date };
+    type DateTimeFilter = { lte?: Date; gte?: Date; lt?: Date; not?: string };
+    type StringNullableFilter = string | null | { not?: string | null };
     export type RoadmapProjectWhereInput = {
       startDate?: DateTimeFilter;
       targetDate?: DateTimeFilter;
@@ -127,6 +128,15 @@ declare module "@prisma/client" {
       OR?: RoadmapProjectWhereInput[];
     };
     export type RoadmapMilestoneCreateWithoutProjectInput = Record<string, unknown>;
+    export type RoadmapMilestoneWhereInput = {
+      projectId?: string;
+      status?: RoadmapMilestoneStatus | { not?: RoadmapMilestoneStatus };
+      ownerName?: StringNullableFilter;
+      track?: RoadmapMilestoneTrack;
+      approvalStatus?: RoadmapApprovalStatus;
+      plannedDate?: DateTimeFilter;
+      OR?: RoadmapMilestoneWhereInput[];
+    };
     export class PrismaClientKnownRequestError extends Error {
       code: string;
     }
@@ -155,6 +165,10 @@ declare module "@prisma/client" {
     roadmapMilestone: {
       create(args: { data: unknown }): Promise<RoadmapMilestone>;
       update(args: { where: { id: string }; data: unknown }): Promise<RoadmapMilestone>;
+      updateMany(args: {
+        where: Prisma.RoadmapMilestoneWhereInput;
+        data: unknown;
+      }): Promise<{ count: number }>;
       count(args?: { where?: unknown }): Promise<number>;
     };
     $queryRaw(query: TemplateStringsArray, ...values: unknown[]): Promise<unknown>;

@@ -8,6 +8,12 @@ export type RoadmapMilestoneStatusValue = (typeof ROADMAP_MILESTONE_STATUSES)[nu
 export type RoadmapMilestoneTrackValue = (typeof ROADMAP_MILESTONE_TRACKS)[number];
 export type RoadmapApprovalStatusValue = (typeof ROADMAP_APPROVAL_STATUSES)[number];
 export type RoadmapProjectTypeValue = (typeof ROADMAP_PROJECT_TYPES)[number];
+export type RoadmapBulkOwnerAssignmentScope =
+  | "all_unassigned"
+  | "supply_unassigned"
+  | "marketing_unassigned"
+  | "pending_approvals_unassigned"
+  | "upcoming_unassigned";
 
 export type RoadmapProjectWithMilestones = RoadmapProject & { milestones: RoadmapMilestone[]; packagingRequest?: PackagingRequest | null };
 
@@ -68,3 +74,8 @@ export type RoadmapMilestoneInput = {
 };
 
 export type RoadmapMilestoneUpdateInput = Partial<RoadmapMilestoneInput>;
+
+export type RoadmapBulkOwnerAssignmentInput = {
+  ownerName: string;
+  scope: RoadmapBulkOwnerAssignmentScope;
+};

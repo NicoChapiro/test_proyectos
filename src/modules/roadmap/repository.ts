@@ -1,7 +1,14 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ROADMAP_STANDARD_MILESTONE_TEMPLATES } from "./constants";
-import type { RoadmapFilters, RoadmapMilestoneInput, RoadmapMilestoneUpdateInput, RoadmapProjectInput, RoadmapProjectUpdateInput } from "./types";
+import type {
+  RoadmapBulkOwnerAssignmentInput,
+  RoadmapFilters,
+  RoadmapMilestoneInput,
+  RoadmapMilestoneUpdateInput,
+  RoadmapProjectInput,
+  RoadmapProjectUpdateInput,
+} from "./types";
 
 function buildDateOverlap(year?: number): Prisma.RoadmapProjectWhereInput {
   if (!year) return {};
@@ -31,6 +38,46 @@ function buildWhere(filters: RoadmapFilters): Prisma.RoadmapProjectWhereInput {
         }
       : {}),
   };
+}
+
+function startOfUtcToday(): Date {
+  const now = new Date();
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
+}
+
+function buildBulkOwnerScopeWhere(
+  input: RoadmapBulkOwnerAssignmentInput,
+): Prisma.RoadmapMilestoneWhereInput {
+  const baseWhere: Prisma.RoadmapMilestoneWhereInput = {
+    status: { not: "completed" },
+    OR: [{ ownerName: null }, { ownerName: "" }],
+  };
+
+  if (input.scope === "all_unassigned") return baseWhere;
+  if (input.scope === "supply_unassigned") {
+    return { ...baseWhere, track: "supply" };
+  }
+  if (input.scope === "marketing_unassigned") {
+    return { ...baseWhere, track: "marketing" };
+  }
+  if (input.scope === "pending_approvals_unassigned") {
+    return { ...baseWhere, approvalStatus: "pending" };
+  }
+  if (input.scope === "upcoming_unassigned") {
+    const start = startOfUtcToday();
+    const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+    return {
+      ...baseWhere,
+      plannedDate: {
+        gte: start,
+        lt: end,
+      },
+    };
+  }
+
+  throw new Error("Alcance de asignación no válido");
 }
 
 const milestoneOrder = [{ track: "asc" as const }, { sequence: "asc" as const }, { sortOrder: "asc" as const }, { dueDate: "asc" as const }];
@@ -101,5 +148,18 @@ export async function updateRoadmapMilestone(projectId: string, milestoneId: str
   return prisma.roadmapMilestone.update({
     where: { id: milestoneId },
     data: input,
+  });
+}
+
+export async function bulkUpdateMilestoneOwners(
+  projectId: string,
+  input: RoadmapBulkOwnerAssignmentInput,
+) {
+  return prisma.roadmapMilestone.updateMany({
+    where: {
+      projectId,
+      ...buildBulkOwnerScopeWhere(input),
+    },
+    data: { ownerName: input.ownerName },
   });
 }
