@@ -52,7 +52,6 @@ function buildBulkOwnerScopeWhere(
 ): Prisma.RoadmapMilestoneWhereInput {
   const baseWhere: Prisma.RoadmapMilestoneWhereInput = {
     status: { not: "completed" },
-    OR: [{ ownerName: null }, { ownerName: "" }],
   };
 
   if (input.scope === "all_unassigned") return baseWhere;
@@ -67,7 +66,7 @@ function buildBulkOwnerScopeWhere(
   }
   if (input.scope === "upcoming_unassigned") {
     const start = startOfUtcToday();
-    const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const end = new Date(start.getTime() + 8 * 24 * 60 * 60 * 1000);
     return {
       ...baseWhere,
       plannedDate: {
@@ -78,6 +77,10 @@ function buildBulkOwnerScopeWhere(
   }
 
   throw new Error("Alcance de asignación no válido");
+}
+
+function hasMissingOwner(ownerName: string | null): boolean {
+  return !ownerName?.trim();
 }
 
 const milestoneOrder = [{ track: "asc" as const }, { sequence: "asc" as const }, { sortOrder: "asc" as const }, { dueDate: "asc" as const }];
@@ -155,10 +158,23 @@ export async function bulkUpdateMilestoneOwners(
   projectId: string,
   input: RoadmapBulkOwnerAssignmentInput,
 ) {
-  return prisma.roadmapMilestone.updateMany({
+  const candidates = await prisma.roadmapMilestone.findMany({
     where: {
       projectId,
       ...buildBulkOwnerScopeWhere(input),
+    },
+    select: { id: true, ownerName: true },
+  });
+  const milestoneIds = candidates
+    .filter((milestone) => hasMissingOwner(milestone.ownerName))
+    .map((milestone) => milestone.id);
+
+  if (milestoneIds.length === 0) return { count: 0 };
+
+  return prisma.roadmapMilestone.updateMany({
+    where: {
+      projectId,
+      id: { in: milestoneIds },
     },
     data: { ownerName: input.ownerName },
   });

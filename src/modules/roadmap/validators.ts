@@ -215,7 +215,7 @@ export function validateBulkOwnerAssignmentInput(
 ): RoadmapBulkOwnerAssignmentInput {
   const data = asRecord(payload);
   return {
-    ownerName: requiredString(data.ownerName, "Responsable"),
+    ownerName: requiredString(data.ownerName, "Responsable(s)"),
     scope: enumValue(
       data.scope,
       ROADMAP_BULK_OWNER_ASSIGNMENT_SCOPES,

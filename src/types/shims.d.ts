@@ -112,6 +112,7 @@ declare module "@prisma/client" {
     type StringFilter = { contains?: string; mode?: "insensitive" };
     type DateTimeFilter = { lte?: Date; gte?: Date; lt?: Date; not?: string };
     type StringNullableFilter = string | null | { not?: string | null };
+    type StringListFilter = { in?: string[] };
     export type RoadmapProjectWhereInput = {
       startDate?: DateTimeFilter;
       targetDate?: DateTimeFilter;
@@ -129,6 +130,7 @@ declare module "@prisma/client" {
     };
     export type RoadmapMilestoneCreateWithoutProjectInput = Record<string, unknown>;
     export type RoadmapMilestoneWhereInput = {
+      id?: string | StringListFilter;
       projectId?: string;
       status?: RoadmapMilestoneStatus | { not?: RoadmapMilestoneStatus };
       ownerName?: StringNullableFilter;
@@ -164,6 +166,11 @@ declare module "@prisma/client" {
     };
     roadmapMilestone: {
       create(args: { data: unknown }): Promise<RoadmapMilestone>;
+      findMany(args?: {
+        where?: Prisma.RoadmapMilestoneWhereInput;
+        select?: unknown;
+        orderBy?: OrderBy[];
+      }): Promise<RoadmapMilestone[]>;
       update(args: { where: { id: string }; data: unknown }): Promise<RoadmapMilestone>;
       updateMany(args: {
         where: Prisma.RoadmapMilestoneWhereInput;

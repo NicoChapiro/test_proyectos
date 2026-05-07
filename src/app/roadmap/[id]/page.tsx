@@ -88,7 +88,7 @@ function isMilestoneAssignable(milestone: Milestone): boolean {
 function isMilestoneUpcomingForBulkAssignment(milestone: Milestone): boolean {
   if (!milestone.plannedDate) return false;
   const todayStart = startOfUtcDay(new Date());
-  const upcomingEnd = todayStart + 7 * 24 * 60 * 60 * 1000;
+  const upcomingEnd = todayStart + 8 * 24 * 60 * 60 * 1000;
   const plannedDate = new Date(milestone.plannedDate);
   const plannedDay = startOfUtcDay(plannedDate);
   return plannedDay >= todayStart && plannedDay < upcomingEnd;
@@ -152,11 +152,11 @@ function BulkAssignmentPanel({
       </div>
       <form action={action} className="grid bulk-assignment-form">
         <label className="field">
-          <span>Responsable</span>
+          <span>Responsable(s)</span>
           <input
             name="ownerName"
             required
-            placeholder="Nombre del responsable"
+            placeholder="Ej: Mario, Rodolfo"
           />
         </label>
         <label className="field">
@@ -170,11 +170,12 @@ function BulkAssignmentPanel({
           </select>
         </label>
         <p className="muted bulk-assignment-helper full">
-          Solo se actualizarán hitos pendientes sin responsable. No se
-          sobrescriben responsables existentes.
+          Puedes ingresar uno o más responsables, separados por coma. Solo se
+          actualizarán hitos pendientes sin responsable. No se sobrescriben
+          responsables existentes.
         </p>
         <button className="button primary" type="submit">
-          Asignar responsable
+          Asignar responsable(s)
         </button>
       </form>
     </section>
@@ -421,7 +422,7 @@ function MilestoneTable({
           <thead>
             <tr>
               <th>Hito</th>
-              <th>Responsable</th>
+              <th>Responsable(s)</th>
               <th>Planificada</th>
               <th>Real</th>
               <th>Estado</th>
@@ -585,11 +586,11 @@ function MilestoneTable({
                           value={milestone.sequence ?? milestone.sortOrder ?? 0}
                         />
                         <label className="field">
-                          <span>Responsable</span>
+                          <span>Responsable(s)</span>
                           <input
                             name="ownerName"
                             defaultValue={milestone.ownerName ?? ""}
-                            placeholder="Nombre del responsable"
+                            placeholder="Ej: Mario, Rodolfo"
                           />
                         </label>
                         <label className="field">
@@ -838,7 +839,7 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
             }
           />
           <SummaryMetricCard
-            label="Responsable próxima acción"
+            label="Responsable(s) próxima acción"
             value={nextMilestone?.ownerName || "Sin responsable"}
             tone={
               nextMilestone && !nextMilestone.ownerName?.trim()
@@ -1039,8 +1040,8 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
               </select>
             </label>
             <label className="field">
-              <span>Responsable</span>
-              <input name="ownerName" />
+              <span>Responsable(s)</span>
+              <input name="ownerName" placeholder="Ej: Mario, Rodolfo" />
             </label>
             <label className="field">
               <span>
