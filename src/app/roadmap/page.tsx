@@ -160,17 +160,25 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
         </div>
       </form>
 
-      <section className="roadmap-board">
-        <div className="quarter-header" aria-hidden="true"><div><strong>Q1</strong><span>Ene - Mar</span></div><div><strong>Q2</strong><span>Abr - Jun</span></div><div><strong>Q3</strong><span>Jul - Sep</span></div><div><strong>Q4</strong><span>Oct - Dic</span></div></div>
-        {projects.length === 0 ? (
-          <div className="empty-state">
-            <span className="empty-icon" aria-hidden="true">+</span>
-            <h2>No hay proyectos todavía</h2>
-            <p>Crea el primer proyecto para comenzar a construir el roadmap anual.</p>
-            <Link className="button primary" href="/roadmap/new">Nuevo proyecto</Link>
+      <section className="roadmap-board" aria-label="Roadmap anual por trimestre y mes">
+        <div className="roadmap-board-content">
+          <div className="timeline-scale" aria-hidden="true">
+            <div className="scale-spacer">Proyecto</div>
+            <div className="scale-grid">
+              <div className="quarter-header"><div><strong>Q1</strong><span>Ene - Mar</span></div><div><strong>Q2</strong><span>Abr - Jun</span></div><div><strong>Q3</strong><span>Jul - Sep</span></div><div><strong>Q4</strong><span>Oct - Dic</span></div></div>
+              <div className="month-header"><span>Ene</span><span>Feb</span><span>Mar</span><span>Abr</span><span>May</span><span>Jun</span><span>Jul</span><span>Ago</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dic</span></div>
+            </div>
+            <div className="scale-spacer actions-spacer">Acción</div>
           </div>
-        ) : null}
-        {projects.map((project) => {
+          {projects.length === 0 ? (
+            <div className="empty-state">
+              <span className="empty-icon" aria-hidden="true">+</span>
+              <h2>No hay proyectos todavía</h2>
+              <p>Crea el primer proyecto para comenzar a construir el roadmap anual.</p>
+              <Link className="button primary" href="/roadmap/new">Nuevo proyecto</Link>
+            </div>
+          ) : null}
+          {projects.map((project) => {
           const insights = buildRoadmapProjectInsights(project.milestones);
           const nextMilestone = insights.nextMilestone;
           const left = clampYearPercent(project.startDate, year);
@@ -216,7 +224,8 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
               <div className="row-actions"><Link className="button small" href={`/roadmap/${project.id}`}>Ver detalle</Link></div>
             </article>
           );
-        })}
+          })}
+        </div>
       </section>
     </AppShell>
   );
