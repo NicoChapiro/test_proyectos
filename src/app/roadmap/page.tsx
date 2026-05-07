@@ -27,6 +27,11 @@ function milestoneWorkflowValue(milestone: ProjectMilestone): number {
   return milestone.sequence || milestone.sortOrder || Number.MAX_SAFE_INTEGER;
 }
 
+function startOfTodayUtc(): number {
+  const now = new Date();
+  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+}
+
 function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
@@ -62,9 +67,10 @@ function timelineLabelClass(left: number) {
 
 function timelineMilestones(project: Project, year: number, nextMilestone?: ProjectMilestone | null) {
   const milestones = plannedMilestones(project, year);
+  const todayStart = startOfTodayUtc();
   const upcomingMilestones = milestones
     .map(({ milestone }) => milestone)
-    .filter((milestone) => milestone.status !== "completed" && milestone.plannedDate && new Date(milestone.plannedDate).getTime() >= Date.now())
+    .filter((milestone) => milestone.status !== "completed" && milestone.plannedDate && new Date(milestone.plannedDate).getTime() >= todayStart)
     .sort((a, b) => Number(a.plannedDate) - Number(b.plannedDate));
   const finalMilestone = milestones
     .map(({ milestone }) => milestone)
