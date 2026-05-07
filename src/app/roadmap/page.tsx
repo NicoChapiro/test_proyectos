@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ROADMAP_DEFAULT_COLORS, ROADMAP_PROJECT_TYPE_LABELS, ROADMAP_PROJECT_TYPES, ROADMAP_STATUSES, ROADMAP_STATUS_LABELS, ROADMAP_TRAFFIC_LIGHT_LABELS } from "@/modules/roadmap/constants";
 import { buildRoadmapProjectInsights } from "@/modules/roadmap/insights";
 import { searchRoadmapProjects } from "@/modules/roadmap/service";
-import { clampYearPercent, displayDate, displayPlannedDate } from "@/modules/roadmap/ui/date";
+import { buildYearTimelineScale, clampYearPercent, displayDate, displayPlannedDate } from "@/modules/roadmap/ui/date";
 import { displayMilestoneName, displayMilestoneStatus } from "@/modules/roadmap/ui/labels";
 import { AppShell, KpiCard, PageHeader } from "@/modules/roadmap/ui/shell";
 import type { RoadmapProjectTypeValue, RoadmapStatusValue } from "@/modules/roadmap/types";
@@ -121,6 +121,7 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
   const projectsInProgress = projects.filter((project) => project.status === "en_curso").length;
   const projectsAtRisk = projects.filter((project) => project.status === "en_riesgo").length;
   const blockedProjects = projects.filter((project) => project.status === "bloqueado").length;
+  const timelineScale = buildYearTimelineScale(year);
 
   return (
     <AppShell active="roadmap">
@@ -165,8 +166,14 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
           <div className="timeline-scale" aria-hidden="true">
             <div className="scale-spacer">Proyecto</div>
             <div className="scale-grid">
-              <div className="quarter-header"><div><strong>Q1</strong><span>Ene - Mar</span></div><div><strong>Q2</strong><span>Abr - Jun</span></div><div><strong>Q3</strong><span>Jul - Sep</span></div><div><strong>Q4</strong><span>Oct - Dic</span></div></div>
-              <div className="month-header"><span>Ene</span><span>Feb</span><span>Mar</span><span>Abr</span><span>May</span><span>Jun</span><span>Jul</span><span>Ago</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dic</span></div>
+              <div className="quarter-header">
+                {timelineScale.quarters.map((quarter) => (
+                  <div key={quarter.label} style={{ width: `${quarter.width}%` }}><strong>{quarter.label}</strong><span>{quarter.range}</span></div>
+                ))}
+              </div>
+              <div className="month-header">
+                {timelineScale.months.map((month) => <span key={month.label} style={{ width: `${month.width}%` }}>{month.label}</span>)}
+              </div>
             </div>
             <div className="scale-spacer actions-spacer">Acción</div>
           </div>
@@ -204,6 +211,10 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
                   <span>{displayDate(project.startDate)} → {displayDate(project.targetDate)}</span>
                 </div>
                 <div className="timeline" aria-label={`Línea de tiempo de ${project.name}`}>
+                  <span className="timeline-grid" aria-hidden="true">
+                    {timelineScale.months.slice(1).map((month) => <span key={`${project.id}-${month.label}-month`} className="timeline-month-line" style={{ left: `${month.start}%` }} />)}
+                    {timelineScale.months.filter((month) => month.isQuarterStart).map((month) => <span key={`${project.id}-${month.label}-quarter`} className="timeline-quarter-line" style={{ left: `${month.start}%` }} />)}
+                  </span>
                   <span className="timeline-bar" style={{ left: `${left}%`, width: `${width}%`, background: color }} title={`${displayDate(project.startDate)} → ${displayDate(project.targetDate)}`} />
                   {timeline.milestones.map(({ milestone, left: milestoneLeft }) => <span key={milestone.id} className={`milestone-dot milestone-${milestone.status}`} style={{ left: `${milestoneLeft}%` }} title={`${displayMilestoneName(milestone)}: ${displayDate(milestone.plannedDate)}`} />)}
                   {timeline.visibleLabels.map(({ milestone, left: milestoneLeft }) => <span key={`${milestone.id}-label`} className={timelineLabelClass(milestoneLeft)} style={{ left: `${milestoneLeft}%` }}>{displayMilestoneName(milestone)}</span>)}

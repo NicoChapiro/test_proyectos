@@ -16,6 +16,44 @@ export function clampYearPercent(date: Date | string, year: number): number {
   return ((clamped - start) / (end - start)) * 100;
 }
 
+
+const MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"] as const;
+const QUARTER_LABELS = ["Q1", "Q2", "Q3", "Q4"] as const;
+
+function yearBoundaryDate(year: number, month: number): Date {
+  return new Date(Date.UTC(year, month, 1));
+}
+
+export function buildYearTimelineScale(year: number) {
+  const months = MONTH_LABELS.map((label, index) => {
+    const start = clampYearPercent(yearBoundaryDate(year, index), year);
+    const end = index === MONTH_LABELS.length - 1 ? 100 : clampYearPercent(yearBoundaryDate(year, index + 1), year);
+
+    return {
+      label,
+      start,
+      end,
+      width: end - start,
+      isQuarterStart: index > 0 && index % 3 === 0,
+    };
+  });
+
+  const quarters = QUARTER_LABELS.map((label, index) => {
+    const firstMonth = months[index * 3];
+    const lastMonth = months[index * 3 + 2];
+
+    return {
+      label,
+      range: `${firstMonth.label} - ${lastMonth.label}`,
+      start: firstMonth.start,
+      end: lastMonth.end,
+      width: lastMonth.end - firstMonth.start,
+    };
+  });
+
+  return { months, quarters };
+}
+
 export function displayPlannedDate(date: Date | string | null | undefined): string {
   return date ? displayDate(date) : "Sin fecha";
 }
