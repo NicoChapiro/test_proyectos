@@ -53,6 +53,18 @@ El módulo **Roadmap** es una herramienta transversal de gestión de proyectos d
 - No hagas que el build ejecute migraciones automáticamente salvo que el proceso de despliegue lo requiera explícitamente; el build solo debe generar Prisma Client y compilar Next.js.
 - Si `/roadmap` falla pero la home funciona, revisa los runtime logs de Vercel para detectar errores de `DATABASE_URL` ausente o migraciones faltantes, por ejemplo columnas/enums nuevos que todavía no existen en la base de datos Preview.
 
+### Aplicar migraciones sin entorno local
+
+Si no usas un flujo de desarrollo local, puedes aplicar las migraciones Prisma ya confirmadas en el repositorio directamente contra Supabase mediante GitHub Actions.
+
+1. En GitHub, abre el repositorio y configura `DATABASE_URL` como secreto en **Settings → Secrets and variables → Actions → Repository secrets**. Usa la URL de conexión de Supabase PostgreSQL correspondiente a la base de datos objetivo.
+2. Ve a **GitHub → Actions → Prisma Migrate Deploy → Run workflow** y ejecuta el workflow manualmente.
+3. El workflow instala dependencias, ejecuta `npm run prisma:generate` y después `npm run prisma:deploy` con `DATABASE_URL` leída únicamente desde GitHub Secrets.
+4. Cuando el workflow termine correctamente, abre `https://<tu-dominio-vercel>/api/health`.
+5. Si `/api/health` devuelve `status: "ok"`, entonces `/roadmap` debería cargar correctamente porque la app puede conectarse a la base de datos y las tablas esperadas existen.
+
+No uses `prisma migrate dev` en GitHub Actions ni en Vercel. Ese comando es solo para desarrollo local; en despliegues o ejecuciones manuales contra Supabase usa migraciones confirmadas con `npm run prisma:deploy` / `prisma migrate deploy`.
+
 ### Health check post-despliegue
 
 Después de cada despliegue en Vercel, abre `https://<tu-dominio-vercel>/api/health` para validar rápidamente que el runtime puede leer la configuración mínima, conectarse a Supabase/PostgreSQL mediante Prisma y consultar las tablas principales de la aplicación.
