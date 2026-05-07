@@ -171,10 +171,25 @@ export async function bulkUpdateMilestoneOwners(
 
   if (milestoneIds.length === 0) return { count: 0 };
 
+  const missingOwnerValues = [
+    ...new Set(
+      candidates
+        .map((milestone) => milestone.ownerName)
+        .filter((ownerName): ownerName is string =>
+          Boolean(ownerName && !ownerName.trim()),
+        ),
+    ),
+  ];
+
   return prisma.roadmapMilestone.updateMany({
     where: {
       projectId,
       id: { in: milestoneIds },
+      OR: [
+        { ownerName: null },
+        { ownerName: "" },
+        ...missingOwnerValues.map((ownerName) => ({ ownerName })),
+      ],
     },
     data: { ownerName: input.ownerName },
   });
