@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ROADMAP_APPROVAL_STATUS_LABELS, ROADMAP_APPROVAL_STATUSES, ROADMAP_MILESTONE_STATUS_LABELS, ROADMAP_MILESTONE_STATUSES, ROADMAP_PROJECT_TYPE_LABELS, ROADMAP_STATUS_LABELS } from "@/modules/roadmap/constants";
 import { RoadmapNotFoundError } from "@/modules/roadmap/errors";
+import { buildRoadmapProjectInsights } from "@/modules/roadmap/insights";
 import { findRoadmapProject } from "@/modules/roadmap/service";
 import { displayDate, displayPlannedDate, inputDate } from "@/modules/roadmap/ui/date";
 import { ProjectForm } from "@/modules/roadmap/ui/ProjectForm";
@@ -24,11 +25,6 @@ function findMilestoneByCode(milestones: Milestone[], code: string) {
   return milestones.find((milestone) => milestone.milestoneCode === code);
 }
 
-function nextUpcomingMilestone(milestones: Milestone[]) {
-  return milestones
-    .filter((milestone) => milestone.status !== "completed" && milestone.plannedDate)
-    .sort((firstMilestone, secondMilestone) => firstMilestone.plannedDate!.getTime() - secondMilestone.plannedDate!.getTime())[0] ?? null;
-}
 
 function buildProjectSummary(milestones: Milestone[]) {
   const total = milestones.length;
@@ -37,6 +33,20 @@ function buildProjectSummary(milestones: Milestone[]) {
   const pending = milestones.filter((milestone) => milestone.status !== "completed").length;
   const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
   return { total, completed, pending, blocked, progress };
+}
+
+function milestoneSummary(milestone: Milestone): string {
+  return `${displayMilestoneName(milestone)} · ${milestone.ownerName || "Sin responsable"} · ${displayPlannedDate(milestone.plannedDate)} · ${displayMilestoneStatus(milestone.status)}`;
+}
+
+function InsightCard({ title, value, detail, warning = false }: { title: string; value: string | number; detail?: string; warning?: boolean }) {
+  return (
+    <article className={`insight-card${warning ? " warning-card" : ""}`}>
+      <p className="eyebrow">{title}</p>
+      <strong>{value}</strong>
+      {detail ? <p className="muted">{detail}</p> : null}
+    </article>
+  );
 }
 
 function MilestoneTable({ milestones, projectId, track }: { milestones: Milestone[]; projectId: string; track: RoadmapMilestoneTrackValue }) {
@@ -128,7 +138,8 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
   const marketingMilestones = project.milestones.filter((milestone) => milestone.track === "marketing");
   const sharepointUrl = project.sharepointUrl ?? project.sharepointFolderUrl;
   const summary = buildProjectSummary(project.milestones);
-  const nextMilestone = nextUpcomingMilestone(project.milestones);
+  const insights = buildRoadmapProjectInsights(project.milestones);
+  const nextMilestone = insights.nextMilestone;
   const santiagoArrival = findMilestoneByCode(project.milestones, "supply_estimated_arrival_santiago");
   const campaignActivation = findMilestoneByCode(project.milestones, "marketing_activation_date");
 
@@ -176,19 +187,53 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
               <p className="eyebrow">Avance de hitos</p>
               <h2>Resumen operativo</h2>
             </div>
-            <span className="badge">{summary.progress}% completado</span>
+            <span className="badge">{insights.progressPercentage}% completado</span>
           </div>
           <dl className="metadata-grid">
             <div><dt>Total de hitos</dt><dd>{summary.total}</dd></div>
             <div><dt>Hitos completados</dt><dd>{summary.completed}</dd></div>
             <div><dt>Hitos pendientes</dt><dd>{summary.pending}</dd></div>
             <div><dt>Hitos bloqueados</dt><dd>{summary.blocked}</dd></div>
-            <div><dt>Próximo hito</dt><dd>{nextMilestone ? `${displayMilestoneName(nextMilestone)} · ${displayPlannedDate(nextMilestone.plannedDate)}` : "Sin fecha"}</dd></div>
+            <div><dt>Fase actual</dt><dd>{insights.currentPhase.label}</dd></div>
+            <div><dt>Próxima acción</dt><dd>{nextMilestone ? milestoneSummary(nextMilestone) : "Sin acciones pendientes"}</dd></div>
             <div><dt>Llegada estimada a Santiago de Chile</dt><dd>{displayPlannedDate(santiagoArrival?.plannedDate)}</dd></div>
             <div><dt>Activación de campaña</dt><dd>{displayPlannedDate(campaignActivation?.plannedDate)}</dd></div>
-            <div><dt>Progreso</dt><dd>{summary.progress}%</dd></div>
+            <div><dt>Progreso</dt><dd>{insights.progressPercentage}%</dd></div>
           </dl>
         </article>
+
+        <section className="insight-grid full">
+          <InsightCard title="Fase actual" value={insights.currentPhase.label} detail={`${insights.progressPercentage}% completado`} />
+          <InsightCard
+            title="Próxima acción"
+            value={nextMilestone ? displayMilestoneName(nextMilestone) : "Sin pendientes"}
+            detail={nextMilestone ? `Responsable: ${nextMilestone.ownerName || "Sin responsable"} · Planificada: ${displayPlannedDate(nextMilestone.plannedDate)} · Estado: ${displayMilestoneStatus(nextMilestone.status)}` : "No hay hitos pendientes."}
+            warning={Boolean(nextMilestone && !nextMilestone.ownerName?.trim())}
+          />
+          <InsightCard
+            title="Hitos vencidos"
+            value={insights.overdueMilestones.length}
+            detail={insights.overdueMilestones[0] ? milestoneSummary(insights.overdueMilestones[0]) : "Sin hitos vencidos."}
+            warning={insights.overdueMilestones.length > 0}
+          />
+          <InsightCard
+            title="Hitos próximos"
+            value={insights.upcomingMilestones.length}
+            detail={insights.upcomingMilestones[0] ? milestoneSummary(insights.upcomingMilestones[0]) : "Sin hitos en los próximos 7 días."}
+          />
+          <InsightCard
+            title="Hitos bloqueados"
+            value={insights.blockedMilestones.length}
+            detail={insights.blockedMilestones[0] ? milestoneSummary(insights.blockedMilestones[0]) : "Sin bloqueos activos."}
+            warning={insights.blockedMilestones.length > 0}
+          />
+          <InsightCard
+            title="Hitos sin responsable"
+            value={insights.milestonesWithoutOwner.length}
+            detail={insights.milestonesWithoutOwner[0] ? milestoneSummary(insights.milestonesWithoutOwner[0]) : "Todos los hitos pendientes tienen responsable."}
+            warning={Boolean(nextMilestone && !nextMilestone.ownerName?.trim())}
+          />
+        </section>
 
         <MilestoneTable milestones={supplyMilestones} projectId={project.id} track="supply" />
         <MilestoneTable milestones={marketingMilestones} projectId={project.id} track="marketing" />

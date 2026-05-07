@@ -66,3 +66,16 @@ textarea { min-height: 110px; resize: vertical; }
   .metadata-grid { grid-template-columns: 1fr; }
   .section-title { display: grid; }
 }
+.badge.phase { background: #ede9fe; color: #5b21b6; }
+.badge.warning { background: #fef3c7; color: #92400e; }
+.next-action-card { margin-top: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: #f8fafc; }
+.next-action-card p { margin: 4px 0 0; }
+.insight-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.insight-card { border: 1px solid var(--line); border-radius: 16px; padding: 16px; background: white; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05); }
+.insight-card strong { display: block; font-size: 1.35rem; }
+.insight-card p:last-child { margin-bottom: 0; }
+.warning-card { border-color: #f59e0b; background: #fffbeb; }
+.warning-card .eyebrow { color: #b45309; }
+@media (max-width: 860px) {
+  .insight-grid { grid-template-columns: 1fr; }
+}

@@ -1,9 +1,11 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { ROADMAP_DEFAULT_COLORS, ROADMAP_PROJECT_TYPE_LABELS, ROADMAP_PROJECT_TYPES, ROADMAP_STATUSES, ROADMAP_STATUS_LABELS } from "@/modules/roadmap/constants";
+import { buildRoadmapProjectInsights } from "@/modules/roadmap/insights";
 import { searchRoadmapProjects } from "@/modules/roadmap/service";
 import { clampYearPercent, displayDate, displayPlannedDate } from "@/modules/roadmap/ui/date";
 import { displayMilestoneName, displayMilestoneStatus } from "@/modules/roadmap/ui/labels";
-import type { RoadmapMilestoneStatusValue, RoadmapProjectTypeValue, RoadmapStatusValue } from "@/modules/roadmap/types";
+import type { RoadmapProjectTypeValue, RoadmapStatusValue } from "@/modules/roadmap/types";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -14,18 +16,10 @@ function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function relevantMilestones<T extends { plannedDate: Date | null; status: RoadmapMilestoneStatusValue; sequence: number; sortOrder: number }>(milestones: T[]): T[] {
-  const incomplete = milestones.filter((milestone) => milestone.status !== "completed");
-  const pool = incomplete.length > 0 ? incomplete : milestones;
-  return [...pool]
-    .sort((firstMilestone, secondMilestone) => {
-      if (firstMilestone.plannedDate && secondMilestone.plannedDate) return firstMilestone.plannedDate.getTime() - secondMilestone.plannedDate.getTime();
-      if (firstMilestone.plannedDate) return -1;
-      if (secondMilestone.plannedDate) return 1;
-      return (firstMilestone.sequence || firstMilestone.sortOrder) - (secondMilestone.sequence || secondMilestone.sortOrder);
-    })
-    .slice(0, 5);
+function WarningBadge({ children }: { children: ReactNode }) {
+  return <span className="badge warning">{children}</span>;
 }
+
 
 export default async function RoadmapPage({ searchParams }: PageProps) {
   const params = await searchParams;
@@ -72,6 +66,8 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
         <div className="quarter-header"><div>Q1</div><div>Q2</div><div>Q3</div><div>Q4</div></div>
         {projects.length === 0 ? <div className="panel muted">No hay proyectos para los filtros seleccionados.</div> : null}
         {projects.map((project) => {
+          const insights = buildRoadmapProjectInsights(project.milestones);
+          const nextMilestone = insights.nextMilestone;
           const left = clampYearPercent(project.startDate, year);
           const right = clampYearPercent(project.targetDate, year);
           const width = Math.max(1, right - left);
@@ -81,16 +77,32 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
               <div className="project-meta">
                 <h3><Link href={`/roadmap/${project.id}`}>{project.name}</Link></h3>
                 <p className="muted">{project.code}</p>
-                <div className="badges"><span className={`badge ${project.trafficLight}`}>{project.trafficLight}</span><span className="badge">{ROADMAP_STATUS_LABELS[project.status]}</span><span className="badge">{ROADMAP_PROJECT_TYPE_LABELS[project.projectType]}</span>{project.packagingRequest ? <span className="badge">Solicitud Packaging</span> : null}</div>
+                <div className="badges">
+                  <span className={`badge ${project.trafficLight}`}>{project.trafficLight}</span>
+                  <span className="badge">{ROADMAP_STATUS_LABELS[project.status]}</span>
+                  <span className="badge">{ROADMAP_PROJECT_TYPE_LABELS[project.projectType]}</span>
+                  <span className="badge phase">Fase: {insights.currentPhase.label}</span>
+                  {insights.overdueMilestones.length > 0 ? <WarningBadge>{insights.overdueMilestones.length} vencidos</WarningBadge> : null}
+                  {insights.blockedMilestones.length > 0 ? <WarningBadge>{insights.blockedMilestones.length} bloqueados</WarningBadge> : null}
+                  {nextMilestone && !nextMilestone.ownerName?.trim() ? <WarningBadge>Próxima acción sin responsable</WarningBadge> : null}
+                  {project.packagingRequest ? <span className="badge">Solicitud Packaging</span> : null}
+                </div>
               </div>
               <div>
                 <div className="timeline" aria-label={`Línea de tiempo de ${project.name}`}>
                   <div className="timeline-bar" style={{ left: `${left}%`, width: `${width}%`, background: color }} title={`${displayDate(project.startDate)} → ${displayDate(project.targetDate)}`} />
                   {project.milestones.filter((milestone) => milestone.plannedDate).map((milestone) => <span key={milestone.id} className="milestone-dot" style={{ left: `calc(${clampYearPercent(milestone.plannedDate!, year)}% - 6px)` }} title={`${displayMilestoneName(milestone)}: ${displayDate(milestone.plannedDate)}`} />)}
                 </div>
-                <ul className="milestone-list">
-                  {relevantMilestones(project.milestones).map((milestone) => <li key={milestone.id}>{displayMilestoneName(milestone)} · {displayPlannedDate(milestone.plannedDate)} · {displayMilestoneStatus(milestone.status)}</li>)}
-                </ul>
+                <div className={`next-action-card${nextMilestone && !nextMilestone.ownerName?.trim() ? " warning-card" : ""}`}>
+                  <p className="eyebrow">Próxima acción</p>
+                  {nextMilestone ? (
+                    <div>
+                      <strong>{displayMilestoneName(nextMilestone)}</strong>
+                      <p className="muted">Responsable: {nextMilestone.ownerName || "Sin responsable"}</p>
+                      <p className="muted">Planificada: {displayPlannedDate(nextMilestone.plannedDate)} · Estado: {displayMilestoneStatus(nextMilestone.status)}</p>
+                    </div>
+                  ) : <p className="muted">Sin acciones pendientes.</p>}
+                </div>
               </div>
             </article>
           );
