@@ -129,6 +129,9 @@ textarea { min-height: 110px; resize: vertical; }
 .milestone-dot.milestone-in_progress { background: var(--warning); }
 .milestone-dot.milestone-blocked { background: var(--danger); }
 .milestone-label { position: absolute; top: 68px; max-width: 132px; transform: translateX(-50%); color: var(--muted); font-size: .68rem; font-weight: 800; text-align: center; line-height: 1.2; }
+.milestone-label.align-start { transform: none; text-align: left; }
+.milestone-label.align-end { transform: translateX(-100%); text-align: right; }
+.compact-milestone-summary { margin-top: 8px; font-size: .78rem; font-weight: 800; }
 .next-action-card { border: 1px solid var(--line-soft); border-radius: 14px; padding: 12px; background: #f8fafc; }
 .next-action-card p { margin-bottom: 0; }
 .warning-card { border-color: #fcd34d !important; background: #fffbeb !important; }
