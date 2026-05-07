@@ -8,7 +8,7 @@ const navItems = [
   { label: "Proyectos", href: "/roadmap", key: "projects" },
   { label: "Solicitudes Packaging", href: "/packaging", key: "packaging" },
   { label: "Calendario", href: "/roadmap", key: "calendar" },
-  { label: "Reportes", href: "/roadmap", key: "reports" },
+  { label: "Reportes", href: "/roadmap/weekly", key: "reports" },
   { label: "Configuración", href: "/roadmap", key: "settings" },
 ] as const;
 
