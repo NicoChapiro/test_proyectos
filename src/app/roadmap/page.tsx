@@ -21,8 +21,16 @@ const TIMELINE_LABEL_PRIORITY_CODES = [
   "supply_quilicura_warehouse_arrival",
 ] as const;
 const TIMELINE_LABEL_LIMIT = 3;
-const MIN_TIMELINE_LABEL_GAP = 14;
+const MIN_TIMELINE_LABEL_GAP = 24;
 
+function milestoneWorkflowValue(milestone: ProjectMilestone): number {
+  return milestone.sequence || milestone.sortOrder || Number.MAX_SAFE_INTEGER;
+}
+
+function startOfTodayUtc(): number {
+  const now = new Date();
+  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+}
 
 function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -39,11 +47,16 @@ function plannedMilestones(project: Project, year: number) {
     .map((milestone) => ({ milestone, left: clampYearPercent(milestone.plannedDate!, year) }));
 }
 
-function timelineLabelPriority(milestone: ProjectMilestone, nextMilestone?: ProjectMilestone | null) {
-  if (nextMilestone?.id === milestone.id) return 0;
+function timelineLabelPriority(milestone: ProjectMilestone, context: { nextMilestone?: ProjectMilestone | null; earliestUpcomingId?: string; finalMilestoneId?: string }) {
+  if (context.nextMilestone?.id === milestone.id) return 0;
 
   const codePriority = TIMELINE_LABEL_PRIORITY_CODES.indexOf(milestone.milestoneCode as (typeof TIMELINE_LABEL_PRIORITY_CODES)[number]);
-  return codePriority === -1 ? Number.POSITIVE_INFINITY : codePriority + 1;
+  if (codePriority !== -1) return codePriority + 1;
+
+  if (milestone.isCritical || context.finalMilestoneId === milestone.id) return 4;
+  if (context.earliestUpcomingId === milestone.id) return 5;
+
+  return Number.POSITIVE_INFINITY;
 }
 
 function timelineLabelClass(left: number) {
@@ -54,8 +67,22 @@ function timelineLabelClass(left: number) {
 
 function timelineMilestones(project: Project, year: number, nextMilestone?: ProjectMilestone | null) {
   const milestones = plannedMilestones(project, year);
+  const todayStart = startOfTodayUtc();
+  const upcomingMilestones = milestones
+    .map(({ milestone }) => milestone)
+    .filter((milestone) => milestone.status !== "completed" && milestone.plannedDate && new Date(milestone.plannedDate).getTime() >= todayStart)
+    .sort((a, b) => Number(a.plannedDate) - Number(b.plannedDate));
+  const finalMilestone = milestones
+    .map(({ milestone }) => milestone)
+    .sort((a, b) => milestoneWorkflowValue(a) - milestoneWorkflowValue(b) || Number(a.plannedDate) - Number(b.plannedDate))
+    .at(-1);
+  const context = {
+    nextMilestone,
+    earliestUpcomingId: upcomingMilestones[0]?.id,
+    finalMilestoneId: finalMilestone?.id,
+  };
   const labels = milestones
-    .map((item) => ({ ...item, priority: timelineLabelPriority(item.milestone, nextMilestone) }))
+    .map((item) => ({ ...item, priority: timelineLabelPriority(item.milestone, context) }))
     .filter((item) => Number.isFinite(item.priority))
     .sort((a, b) => a.priority - b.priority || Number(a.milestone.plannedDate) - Number(b.milestone.plannedDate));
 
@@ -64,13 +91,13 @@ function timelineMilestones(project: Project, year: number, nextMilestone?: Proj
     const collides = selected.some((selectedItem) => Math.abs(selectedItem.left - item.left) < MIN_TIMELINE_LABEL_GAP);
     return collides ? selected : [...selected, item];
   }, []);
-
-  const hiddenPriorityLabels = labels.filter((item) => !visibleLabels.some((selected) => selected.milestone.id === item.milestone.id));
+  const visibleLabelIds = new Set(visibleLabels.map((item) => item.milestone.id));
+  const secondaryMilestoneCount = upcomingMilestones.filter((milestone) => !visibleLabelIds.has(milestone.id)).length;
 
   return {
     milestones,
     visibleLabels: visibleLabels.sort((a, b) => a.left - b.left),
-    hiddenPriorityLabels,
+    secondaryMilestoneCount,
   };
 }
 
@@ -170,7 +197,7 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
                 </div>
                 <div className="timeline" aria-label={`Línea de tiempo de ${project.name}`}>
                   <span className="timeline-bar" style={{ left: `${left}%`, width: `${width}%`, background: color }} title={`${displayDate(project.startDate)} → ${displayDate(project.targetDate)}`} />
-                  {timeline.milestones.map(({ milestone, left: milestoneLeft }) => <span key={milestone.id} className={`milestone-dot milestone-${milestone.status}`} style={{ left: `calc(${milestoneLeft}% - 6px)` }} title={`${displayMilestoneName(milestone)}: ${displayDate(milestone.plannedDate)}`} />)}
+                  {timeline.milestones.map(({ milestone, left: milestoneLeft }) => <span key={milestone.id} className={`milestone-dot milestone-${milestone.status}`} style={{ left: `${milestoneLeft}%` }} title={`${displayMilestoneName(milestone)}: ${displayDate(milestone.plannedDate)}`} />)}
                   {timeline.visibleLabels.map(({ milestone, left: milestoneLeft }) => <span key={`${milestone.id}-label`} className={timelineLabelClass(milestoneLeft)} style={{ left: `${milestoneLeft}%` }}>{displayMilestoneName(milestone)}</span>)}
                 </div>
                 <div className={`next-action-card${nextMilestone && !nextMilestone.ownerName?.trim() ? " warning-card" : ""}`}>
@@ -181,10 +208,8 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
                       <p className="muted">{nextMilestone.ownerName || "Sin responsable"} · {displayPlannedDate(nextMilestone.plannedDate)} · {displayMilestoneStatus(nextMilestone.status)}</p>
                     </div>
                   ) : <p className="muted">Sin acciones pendientes.</p>}
-                  {timeline.hiddenPriorityLabels.length > 0 ? (
-                    <p className="muted compact-milestone-summary">
-                      También: {timeline.hiddenPriorityLabels.map(({ milestone }) => displayMilestoneName(milestone)).join(" · ")}
-                    </p>
+                  {timeline.secondaryMilestoneCount > 0 ? (
+                    <p className="muted compact-milestone-summary">+ {timeline.secondaryMilestoneCount} hitos próximos</p>
                   ) : null}
                 </div>
               </div>
