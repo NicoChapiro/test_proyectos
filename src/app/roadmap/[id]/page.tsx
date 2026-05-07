@@ -92,6 +92,8 @@ function MilestoneTable({ milestones, projectId, track }: { milestones: Mileston
 
 export default async function RoadmapProjectDetailPage({ params }: PageProps) {
   const { id } = await params;
+  if (id === "new") notFound();
+
   let project;
   try {
     project = await findRoadmapProject(id);
