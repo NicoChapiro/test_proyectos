@@ -65,6 +65,10 @@ function timelineLabelClass(left: number) {
   return "milestone-label";
 }
 
+function operationalChip(label: string, count: number) {
+  return count > 0 ? { label, count } : null;
+}
+
 function timelineMilestones(project: Project, year: number, nextMilestone?: ProjectMilestone | null) {
   const milestones = plannedMilestones(project, year);
   const todayStart = startOfTodayUtc();
@@ -193,6 +197,13 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
           const width = Math.max(1, right - left);
           const color = project.colorLabel || ROADMAP_DEFAULT_COLORS[project.trafficLight];
           const timeline = timelineMilestones(project, year, nextMilestone);
+          const operationalChips = [
+            operationalChip("Vencidos", insights.overdueMilestones.length),
+            operationalChip("Próximos 7 días", insights.upcomingMilestones.length),
+            operationalChip("Bloqueados", insights.blockedMilestones.length),
+            operationalChip("Sin responsable", insights.milestonesWithoutOwner.length),
+            operationalChip("Aprobaciones", insights.pendingApprovalCount),
+          ].filter((chip): chip is { label: string; count: number } => Boolean(chip));
           return (
             <article className="timeline-project-row" key={project.id}>
               <div className="project-summary">
@@ -203,7 +214,13 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
                   <span className={`badge status-${project.status}`}>{ROADMAP_STATUS_LABELS[project.status]}</span>
                   <span className={`badge ${project.trafficLight}`}>{ROADMAP_TRAFFIC_LIGHT_LABELS[project.trafficLight]}</span>
                   <span className="badge phase">{insights.currentPhase.label}</span>
+                  <span className={`badge severity-${insights.severity}`}>{insights.severityLabel}</span>
                 </div>
+                {operationalChips.length > 0 ? (
+                  <div className="badges operational-chips" aria-label="Alertas operativas">
+                    {operationalChips.map((chip) => <span key={chip.label} className="badge alert-chip">{chip.label}: {chip.count}</span>)}
+                  </div>
+                ) : null}
               </div>
               <div className="timeline-content">
                 <div className="row-topline">

@@ -1,5 +1,5 @@
 import { ROADMAP_MILESTONE_CODE_LABELS, ROADMAP_MILESTONE_STATUS_LABELS } from "./constants";
-import type { RoadmapMilestoneStatusValue } from "./types";
+import type { RoadmapApprovalStatusValue, RoadmapMilestoneStatusValue } from "./types";
 
 export type RoadmapInsightMilestone = {
   id?: string;
@@ -10,9 +10,11 @@ export type RoadmapInsightMilestone = {
   status: RoadmapMilestoneStatusValue;
   plannedDate: Date | null;
   ownerName: string | null;
+  approvalStatus?: RoadmapApprovalStatusValue | null;
 };
 
 export type RoadmapProjectPhaseKey = "design" | "purchase" | "sample" | "production" | "logistics" | "campaign" | "tracking" | "completed" | "empty";
+export type RoadmapProjectSeverity = "critical" | "warning" | "ok";
 
 export type RoadmapProjectPhase = {
   key: RoadmapProjectPhaseKey;
@@ -26,7 +28,17 @@ export type RoadmapProjectInsights<T extends RoadmapInsightMilestone = RoadmapIn
   upcomingMilestones: T[];
   blockedMilestones: T[];
   milestonesWithoutOwner: T[];
+  pendingApprovalMilestones: T[];
+  pendingApprovalCount: number;
+  severity: RoadmapProjectSeverity;
+  severityLabel: string;
   progressPercentage: number;
+};
+
+export const ROADMAP_SEVERITY_LABELS: Record<RoadmapProjectSeverity, string> = {
+  critical: "Crítico",
+  warning: "Atención",
+  ok: "En orden",
 };
 
 export const ROADMAP_PHASE_LABELS: Record<RoadmapProjectPhaseKey, string> = {
@@ -119,6 +131,16 @@ export function calculateMilestonesWithoutOwner<T extends RoadmapInsightMileston
   return [...milestones].filter((milestone) => isIncomplete(milestone) && !milestone.ownerName?.trim()).sort(byWorkflowOrder);
 }
 
+export function calculatePendingApprovalMilestones<T extends RoadmapInsightMilestone>(milestones: T[]): T[] {
+  return [...milestones].filter((milestone) => isIncomplete(milestone) && milestone.approvalStatus === "pending").sort(byActionPriority);
+}
+
+export function calculateProjectSeverity(metrics: Pick<RoadmapProjectInsights, "overdueMilestones" | "blockedMilestones" | "milestonesWithoutOwner" | "pendingApprovalMilestones">): RoadmapProjectSeverity {
+  if (metrics.overdueMilestones.length > 0 || metrics.blockedMilestones.length > 0) return "critical";
+  if (metrics.milestonesWithoutOwner.length > 0 || metrics.pendingApprovalMilestones.length > 0) return "warning";
+  return "ok";
+}
+
 export function calculateProgressPercentage(milestones: RoadmapInsightMilestone[]): number {
   if (milestones.length === 0) return 0;
   const completed = milestones.filter((milestone) => milestone.status === "completed").length;
@@ -143,13 +165,24 @@ export function calculateCurrentProjectPhase<T extends RoadmapInsightMilestone>(
 }
 
 export function buildRoadmapProjectInsights<T extends RoadmapInsightMilestone>(milestones: T[], today: Date = new Date()): RoadmapProjectInsights<T> {
+  const overdueMilestones = calculateOverdueMilestones(milestones, today);
+  const upcomingMilestones = calculateUpcomingMilestones(milestones, today);
+  const blockedMilestones = calculateBlockedMilestones(milestones);
+  const milestonesWithoutOwner = calculateMilestonesWithoutOwner(milestones);
+  const pendingApprovalMilestones = calculatePendingApprovalMilestones(milestones);
+  const severity = calculateProjectSeverity({ overdueMilestones, blockedMilestones, milestonesWithoutOwner, pendingApprovalMilestones });
+
   return {
     currentPhase: calculateCurrentProjectPhase(milestones),
     nextMilestone: calculateNextMilestone(milestones),
-    overdueMilestones: calculateOverdueMilestones(milestones, today),
-    upcomingMilestones: calculateUpcomingMilestones(milestones, today),
-    blockedMilestones: calculateBlockedMilestones(milestones),
-    milestonesWithoutOwner: calculateMilestonesWithoutOwner(milestones),
+    overdueMilestones,
+    upcomingMilestones,
+    blockedMilestones,
+    milestonesWithoutOwner,
+    pendingApprovalMilestones,
+    pendingApprovalCount: pendingApprovalMilestones.length,
+    severity,
+    severityLabel: ROADMAP_SEVERITY_LABELS[severity],
     progressPercentage: calculateProgressPercentage(milestones),
   };
 }
