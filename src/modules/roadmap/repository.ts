@@ -37,8 +37,8 @@ const milestoneOrder = [{ track: "asc" as const }, { sequence: "asc" as const },
 
 function defaultMilestonesForProject(project: RoadmapProjectInput): Prisma.RoadmapMilestoneCreateWithoutProjectInput[] {
   return ROADMAP_STANDARD_MILESTONE_TEMPLATES.map((template) => {
-    const isMarketingActivation = template.code === "marketing_activation_date";
-    const plannedDate = isMarketingActivation ? project.targetDate : project.startDate;
+    const usesTargetDate = template.code === "marketing_activation_date" || template.code === "supply_quilicura_warehouse_arrival";
+    const plannedDate = usesTargetDate ? project.targetDate : null;
     return {
       name: template.name,
       milestoneCode: template.code,
@@ -48,10 +48,10 @@ function defaultMilestonesForProject(project: RoadmapProjectInput): Prisma.Roadm
       status: "not_started",
       ownerName: template.sequence === 1 ? project.ownerName : null,
       plannedDate,
-      dueDate: plannedDate,
+      dueDate: plannedDate ?? project.targetDate,
       approvalStatus: "approvalStatus" in template ? template.approvalStatus : null,
       notes: "notes" in template ? template.notes : null,
-      isCritical: isMarketingActivation || template.code === "supply_quilicura_warehouse_arrival",
+      isCritical: usesTargetDate,
     };
   });
 }

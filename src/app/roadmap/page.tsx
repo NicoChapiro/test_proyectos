@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { ROADMAP_DEFAULT_COLORS, ROADMAP_PROJECT_TYPE_LABELS, ROADMAP_PROJECT_TYPES, ROADMAP_STATUSES, ROADMAP_STATUS_LABELS } from "@/modules/roadmap/constants";
 import { searchRoadmapProjects } from "@/modules/roadmap/service";
-import { clampYearPercent, displayDate } from "@/modules/roadmap/ui/date";
-import type { RoadmapProjectTypeValue, RoadmapStatusValue } from "@/modules/roadmap/types";
+import { clampYearPercent, displayDate, displayPlannedDate } from "@/modules/roadmap/ui/date";
+import { displayMilestoneName, displayMilestoneStatus } from "@/modules/roadmap/ui/labels";
+import type { RoadmapMilestoneStatusValue, RoadmapProjectTypeValue, RoadmapStatusValue } from "@/modules/roadmap/types";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -11,6 +12,19 @@ type PageProps = { searchParams: Promise<Record<string, string | string[] | unde
 
 function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function relevantMilestones<T extends { plannedDate: Date | null; status: RoadmapMilestoneStatusValue; sequence: number; sortOrder: number }>(milestones: T[]): T[] {
+  const incomplete = milestones.filter((milestone) => milestone.status !== "completed");
+  const pool = incomplete.length > 0 ? incomplete : milestones;
+  return [...pool]
+    .sort((firstMilestone, secondMilestone) => {
+      if (firstMilestone.plannedDate && secondMilestone.plannedDate) return firstMilestone.plannedDate.getTime() - secondMilestone.plannedDate.getTime();
+      if (firstMilestone.plannedDate) return -1;
+      if (secondMilestone.plannedDate) return 1;
+      return (firstMilestone.sequence || firstMilestone.sortOrder) - (secondMilestone.sequence || secondMilestone.sortOrder);
+    })
+    .slice(0, 5);
 }
 
 export default async function RoadmapPage({ searchParams }: PageProps) {
@@ -72,10 +86,10 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
               <div>
                 <div className="timeline" aria-label={`Línea de tiempo de ${project.name}`}>
                   <div className="timeline-bar" style={{ left: `${left}%`, width: `${width}%`, background: color }} title={`${displayDate(project.startDate)} → ${displayDate(project.targetDate)}`} />
-                  {project.milestones.map((milestone) => <span key={milestone.id} className="milestone-dot" style={{ left: `calc(${clampYearPercent(milestone.plannedDate ?? milestone.dueDate, year)}% - 6px)` }} title={`${milestone.name}: ${displayDate(milestone.plannedDate ?? milestone.dueDate)}`} />)}
+                  {project.milestones.filter((milestone) => milestone.plannedDate).map((milestone) => <span key={milestone.id} className="milestone-dot" style={{ left: `calc(${clampYearPercent(milestone.plannedDate!, year)}% - 6px)` }} title={`${displayMilestoneName(milestone)}: ${displayDate(milestone.plannedDate)}`} />)}
                 </div>
                 <ul className="milestone-list">
-                  {project.milestones.slice(0, 4).map((milestone) => <li key={milestone.id}>{milestone.name} · {displayDate(milestone.plannedDate ?? milestone.dueDate)} · {milestone.status}</li>)}
+                  {relevantMilestones(project.milestones).map((milestone) => <li key={milestone.id}>{displayMilestoneName(milestone)} · {displayPlannedDate(milestone.plannedDate)} · {displayMilestoneStatus(milestone.status)}</li>)}
                 </ul>
               </div>
             </article>

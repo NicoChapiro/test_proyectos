@@ -15,3 +15,7 @@ export function clampYearPercent(date: Date | string, year: number): number {
   const clamped = Math.min(Math.max(value, start), end);
   return ((clamped - start) / (end - start)) * 100;
 }
+
+export function displayPlannedDate(date: Date | string | null | undefined): string {
+  return date ? displayDate(date) : "Sin fecha";
+}
