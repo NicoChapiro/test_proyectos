@@ -5,6 +5,20 @@ export const ROADMAP_MILESTONE_STATUSES = ["not_started", "in_progress", "comple
 export const ROADMAP_MILESTONE_TRACKS = ["supply", "marketing"] as const;
 export const ROADMAP_APPROVAL_STATUSES = ["pending", "approved", "rejected"] as const;
 
+export const ROADMAP_PRIORITY_LABELS: Record<(typeof ROADMAP_PRIORITIES)[number], string> = {
+  baja: "Baja",
+  media: "Media",
+  alta: "Alta",
+  urgente: "Urgente",
+};
+
+export const ROADMAP_TRAFFIC_LIGHT_LABELS: Record<(typeof ROADMAP_TRAFFIC_LIGHTS)[number], string> = {
+  verde: "Verde",
+  amarillo: "Amarillo",
+  rojo: "Rojo",
+  gris: "Gris",
+};
+
 export const ROADMAP_PROJECT_TYPES = [
   "packaging",
   "product_launch",

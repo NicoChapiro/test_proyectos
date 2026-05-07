@@ -1,10 +1,10 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
-import { ROADMAP_DEFAULT_COLORS, ROADMAP_PROJECT_TYPE_LABELS, ROADMAP_PROJECT_TYPES, ROADMAP_STATUSES, ROADMAP_STATUS_LABELS } from "@/modules/roadmap/constants";
+import { ROADMAP_DEFAULT_COLORS, ROADMAP_PROJECT_TYPE_LABELS, ROADMAP_PROJECT_TYPES, ROADMAP_STATUSES, ROADMAP_STATUS_LABELS, ROADMAP_TRAFFIC_LIGHT_LABELS } from "@/modules/roadmap/constants";
 import { buildRoadmapProjectInsights } from "@/modules/roadmap/insights";
 import { searchRoadmapProjects } from "@/modules/roadmap/service";
 import { clampYearPercent, displayDate, displayPlannedDate } from "@/modules/roadmap/ui/date";
 import { displayMilestoneName, displayMilestoneStatus } from "@/modules/roadmap/ui/labels";
+import { AppShell, KpiCard, PageHeader } from "@/modules/roadmap/ui/shell";
 import type { RoadmapProjectTypeValue, RoadmapStatusValue } from "@/modules/roadmap/types";
 
 export const dynamic = "force-dynamic";
@@ -12,14 +12,23 @@ export const revalidate = 0;
 
 type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
+type Project = Awaited<ReturnType<typeof searchRoadmapProjects>>[number];
+
 function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function WarningBadge({ children }: { children: ReactNode }) {
-  return <span className="badge warning">{children}</span>;
+function pendingMilestones(projects: Project[]) {
+  return projects.reduce((total, project) => total + project.milestones.filter((milestone) => milestone.status !== "completed").length, 0);
 }
 
+function nextMilestones(project: Project, year: number) {
+  return project.milestones
+    .filter((milestone) => milestone.plannedDate)
+    .sort((a, b) => Number(a.plannedDate) - Number(b.plannedDate))
+    .slice(0, 5)
+    .map((milestone) => ({ milestone, left: clampYearPercent(milestone.plannedDate!, year) }));
+}
 
 export default async function RoadmapPage({ searchParams }: PageProps) {
   const params = await searchParams;
@@ -38,33 +47,58 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
     q: first(params.q),
   });
 
-  return (
-    <main className="page-shell">
-      <div className="topbar">
-        <div>
-          <p className="eyebrow">Roadmap de Marketing</p>
-          <h1>Roadmap anual {year}</h1>
-          <p className="muted">Vista transversal para proyectos de Marketing, por Q1, Q2, Q3 y Q4 con hitos clave.</p>
-        </div>
-        <Link className="button primary" href="/roadmap/new">Nuevo proyecto</Link>
-      </div>
+  const projectsInProgress = projects.filter((project) => project.status === "en_curso").length;
+  const projectsAtRisk = projects.filter((project) => project.status === "en_riesgo").length;
+  const blockedProjects = projects.filter((project) => project.status === "bloqueado").length;
 
-      <form className="panel filters">
-        <label className="field"><span>Año</span><input name="year" type="number" min="2000" max="2100" defaultValue={year} /></label>
-        <label className="field"><span>Estado</span><select name="status" defaultValue={status ?? ""}><option value="">Todos</option>{ROADMAP_STATUSES.map((item) => <option key={item} value={item}>{ROADMAP_STATUS_LABELS[item]}</option>)}</select></label>
-        <label className="field"><span>Tipo de proyecto</span><select name="projectType" defaultValue={projectType ?? ""}><option value="">Todos</option>{ROADMAP_PROJECT_TYPES.map((item) => <option key={item} value={item}>{ROADMAP_PROJECT_TYPE_LABELS[item]}</option>)}</select></label>
-        <label className="field"><span>Responsable</span><input name="owner" defaultValue={first(params.owner) ?? ""} /></label>
-        <label className="field"><span>Marca</span><input name="brand" defaultValue={first(params.brand) ?? ""} /></label>
-        <label className="field"><span>Área</span><input name="area" defaultValue={first(params.area) ?? ""} /></label>
-        <label className="field"><span>Canal</span><input name="channel" defaultValue={first(params.channel) ?? ""} /></label>
-        <label className="field"><span>Categoría</span><input name="category" defaultValue={first(params.category) ?? ""} /></label>
-        <label className="field"><span>Buscar</span><input name="q" defaultValue={first(params.q) ?? ""} /></label>
-        <div className="actions full"><button className="button" type="submit">Aplicar filtros</button><Link className="button" href="/roadmap">Limpiar</Link></div>
+  return (
+    <AppShell active="roadmap">
+      <PageHeader
+        eyebrow="ROADMAP DE MARKETING"
+        title={`Roadmap anual ${year}`}
+        subtitle="Vista transversal de proyectos de Marketing, por Q1, Q2, Q3 y Q4 con hitos clave."
+        actions={<Link className="button primary" href="/roadmap/new">+ Nuevo proyecto</Link>}
+      />
+
+      <section className="kpi-grid" aria-label="Indicadores del roadmap">
+        <KpiCard label="Total proyectos" value={projects.length} tone="blue" detail="En el año filtrado" />
+        <KpiCard label="En curso" value={projectsInProgress} tone="green" detail="Avanzando según plan" />
+        <KpiCard label="En riesgo" value={projectsAtRisk} tone="amber" detail="Requieren seguimiento" />
+        <KpiCard label="Bloqueados" value={blockedProjects} tone="red" detail="Con impedimentos" />
+        <KpiCard label="Hitos pendientes" value={pendingMilestones(projects)} tone="slate" detail="No completados" />
+      </section>
+
+      <form className="panel filter-panel">
+        <div className="filter-heading">
+          <div>
+            <p className="eyebrow">Filtros</p>
+            <h2>Segmenta el roadmap</h2>
+          </div>
+          <div className="filter-actions"><Link className="button secondary" href="/roadmap">Limpiar</Link><button className="button primary" type="submit">Aplicar filtros</button></div>
+        </div>
+        <div className="filter-grid">
+          <label className="field"><span>Año</span><input name="year" type="number" min="2000" max="2100" defaultValue={year} /></label>
+          <label className="field"><span>Estado</span><select name="status" defaultValue={status ?? ""}><option value="">Todos</option>{ROADMAP_STATUSES.map((item) => <option key={item} value={item}>{ROADMAP_STATUS_LABELS[item]}</option>)}</select></label>
+          <label className="field"><span>Tipo de proyecto</span><select name="projectType" defaultValue={projectType ?? ""}><option value="">Todos</option>{ROADMAP_PROJECT_TYPES.map((item) => <option key={item} value={item}>{ROADMAP_PROJECT_TYPE_LABELS[item]}</option>)}</select></label>
+          <label className="field"><span>Responsable</span><input name="owner" defaultValue={first(params.owner) ?? ""} /></label>
+          <label className="field"><span>Marca</span><input name="brand" defaultValue={first(params.brand) ?? ""} /></label>
+          <label className="field"><span>Área</span><input name="area" defaultValue={first(params.area) ?? ""} /></label>
+          <label className="field"><span>Canal</span><input name="channel" defaultValue={first(params.channel) ?? ""} /></label>
+          <label className="field"><span>Categoría</span><input name="category" defaultValue={first(params.category) ?? ""} /></label>
+          <label className="field wide"><span>Buscar</span><input name="q" placeholder="Proyecto, código o comentario" defaultValue={first(params.q) ?? ""} /></label>
+        </div>
       </form>
 
-      <section className="roadmap-board" style={{ marginTop: 18 }}>
-        <div className="quarter-header"><div>Q1</div><div>Q2</div><div>Q3</div><div>Q4</div></div>
-        {projects.length === 0 ? <div className="panel muted">No hay proyectos para los filtros seleccionados.</div> : null}
+      <section className="roadmap-board">
+        <div className="quarter-header" aria-hidden="true"><div><strong>Q1</strong><span>Ene - Mar</span></div><div><strong>Q2</strong><span>Abr - Jun</span></div><div><strong>Q3</strong><span>Jul - Sep</span></div><div><strong>Q4</strong><span>Oct - Dic</span></div></div>
+        {projects.length === 0 ? (
+          <div className="empty-state">
+            <span className="empty-icon" aria-hidden="true">+</span>
+            <h2>No hay proyectos todavía</h2>
+            <p>Crea el primer proyecto para comenzar a construir el roadmap anual.</p>
+            <Link className="button primary" href="/roadmap/new">Nuevo proyecto</Link>
+          </div>
+        ) : null}
         {projects.map((project) => {
           const insights = buildRoadmapProjectInsights(project.milestones);
           const nextMilestone = insights.nextMilestone;
@@ -73,41 +107,42 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
           const width = Math.max(1, right - left);
           const color = project.colorLabel || ROADMAP_DEFAULT_COLORS[project.trafficLight];
           return (
-            <article className="project-row" key={project.id}>
-              <div className="project-meta">
+            <article className="timeline-project-row" key={project.id}>
+              <div className="project-summary">
+                <p className="muted project-code">{project.code}</p>
                 <h3><Link href={`/roadmap/${project.id}`}>{project.name}</Link></h3>
-                <p className="muted">{project.code}</p>
+                <div className="project-meta-line"><span>{project.ownerName || "Sin responsable"}</span><span>{ROADMAP_PROJECT_TYPE_LABELS[project.projectType]}</span><span>{project.area || "Sin área"}</span></div>
                 <div className="badges">
-                  <span className={`badge ${project.trafficLight}`}>{project.trafficLight}</span>
-                  <span className="badge">{ROADMAP_STATUS_LABELS[project.status]}</span>
-                  <span className="badge">{ROADMAP_PROJECT_TYPE_LABELS[project.projectType]}</span>
-                  <span className="badge phase">Fase: {insights.currentPhase.label}</span>
-                  {insights.overdueMilestones.length > 0 ? <WarningBadge>{insights.overdueMilestones.length} vencidos</WarningBadge> : null}
-                  {insights.blockedMilestones.length > 0 ? <WarningBadge>{insights.blockedMilestones.length} bloqueados</WarningBadge> : null}
-                  {nextMilestone && !nextMilestone.ownerName?.trim() ? <WarningBadge>Próxima acción sin responsable</WarningBadge> : null}
-                  {project.packagingRequest ? <span className="badge">Solicitud Packaging</span> : null}
+                  <span className={`badge status-${project.status}`}>{ROADMAP_STATUS_LABELS[project.status]}</span>
+                  <span className={`badge ${project.trafficLight}`}>{ROADMAP_TRAFFIC_LIGHT_LABELS[project.trafficLight]}</span>
+                  <span className="badge phase">{insights.currentPhase.label}</span>
                 </div>
               </div>
-              <div>
+              <div className="timeline-content">
+                <div className="row-topline">
+                  <span>Progreso {insights.progressPercentage}%</span>
+                  <span>{displayDate(project.startDate)} → {displayDate(project.targetDate)}</span>
+                </div>
                 <div className="timeline" aria-label={`Línea de tiempo de ${project.name}`}>
-                  <div className="timeline-bar" style={{ left: `${left}%`, width: `${width}%`, background: color }} title={`${displayDate(project.startDate)} → ${displayDate(project.targetDate)}`} />
-                  {project.milestones.filter((milestone) => milestone.plannedDate).map((milestone) => <span key={milestone.id} className="milestone-dot" style={{ left: `calc(${clampYearPercent(milestone.plannedDate!, year)}% - 6px)` }} title={`${displayMilestoneName(milestone)}: ${displayDate(milestone.plannedDate)}`} />)}
+                  <span className="timeline-bar" style={{ left: `${left}%`, width: `${width}%`, background: color }} title={`${displayDate(project.startDate)} → ${displayDate(project.targetDate)}`} />
+                  {nextMilestones(project, year).map(({ milestone, left: milestoneLeft }) => <span key={milestone.id} className={`milestone-dot milestone-${milestone.status}`} style={{ left: `calc(${milestoneLeft}% - 6px)` }} title={`${displayMilestoneName(milestone)}: ${displayDate(milestone.plannedDate)}`} />)}
+                  {nextMilestones(project, year).slice(0, 3).map(({ milestone, left: milestoneLeft }) => <span key={`${milestone.id}-label`} className="milestone-label" style={{ left: `${milestoneLeft}%` }}>{displayMilestoneName(milestone)}</span>)}
                 </div>
                 <div className={`next-action-card${nextMilestone && !nextMilestone.ownerName?.trim() ? " warning-card" : ""}`}>
-                  <p className="eyebrow">Próxima acción</p>
+                  <p className="eyebrow">Próximo hito</p>
                   {nextMilestone ? (
                     <div>
                       <strong>{displayMilestoneName(nextMilestone)}</strong>
-                      <p className="muted">Responsable: {nextMilestone.ownerName || "Sin responsable"}</p>
-                      <p className="muted">Planificada: {displayPlannedDate(nextMilestone.plannedDate)} · Estado: {displayMilestoneStatus(nextMilestone.status)}</p>
+                      <p className="muted">{nextMilestone.ownerName || "Sin responsable"} · {displayPlannedDate(nextMilestone.plannedDate)} · {displayMilestoneStatus(nextMilestone.status)}</p>
                     </div>
                   ) : <p className="muted">Sin acciones pendientes.</p>}
                 </div>
               </div>
+              <div className="row-actions"><Link className="button small" href={`/roadmap/${project.id}`}>Ver detalle</Link></div>
             </article>
           );
         })}
       </section>
-    </main>
+    </AppShell>
   );
 }
