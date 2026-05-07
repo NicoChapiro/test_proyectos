@@ -240,3 +240,33 @@ textarea { min-height: 110px; resize: vertical; }
   .form-footer { justify-content: stretch; }
   .form-footer .button { width: 100%; }
 }
+
+.milestone-row { position: relative; }
+.milestone-row td:first-child { box-shadow: inset 4px 0 0 transparent; }
+.milestone-row.has-warning td:first-child { box-shadow: inset 4px 0 0 var(--warning); }
+.milestone-row.has-danger td:first-child { box-shadow: inset 4px 0 0 var(--danger); }
+.milestone-row.is-completed td:first-child { box-shadow: inset 4px 0 0 var(--success); }
+.milestone-row.has-warning td { background: linear-gradient(90deg, rgba(254, 243, 199, .42), transparent 42%); }
+.milestone-row.has-danger td { background: linear-gradient(90deg, rgba(254, 226, 226, .46), transparent 42%); }
+.milestone-row.is-completed td { background: linear-gradient(90deg, rgba(220, 252, 231, .34), transparent 42%); }
+.milestone-row:hover td { background: #f8fafc; }
+.milestone-indicators { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.milestone-action-cell { min-width: 330px; }
+.compact-notes { display: -webkit-box; margin: 0 0 10px; max-width: 360px; overflow: hidden; font-size: .86rem; line-height: 1.35; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.quick-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+.quick-action-form { display: inline-flex; }
+.button.quick-action { min-height: 30px; padding: 6px 9px; border-radius: 999px; font-size: .78rem; box-shadow: none; }
+.button.quick-action.success { border-color: #bbf7d0; background: var(--success-soft); color: #166534; }
+.button.quick-action.warning { border-color: #fde68a; background: var(--warning-soft); color: #92400e; }
+.button.quick-action.danger { border-color: #fecaca; background: var(--danger-soft); color: #991b1b; }
+.button.quick-action.secondary { background: #f8fafc; color: #334155; }
+.edit-details { margin-top: 2px; }
+.edit-details summary { list-style: none; width: fit-content; }
+.edit-details summary::-webkit-details-marker { display: none; }
+.milestone-edit-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); min-width: min(620px, calc(100vw - 64px)); max-width: 760px; padding: 16px; background: linear-gradient(180deg, #ffffff, #f8fafc); }
+.milestone-edit-panel textarea { min-height: 96px; }
+
+@media (max-width: 860px) {
+  .milestone-action-cell { min-width: 280px; }
+  .milestone-edit-panel { grid-template-columns: 1fr; min-width: 280px; }
+}
