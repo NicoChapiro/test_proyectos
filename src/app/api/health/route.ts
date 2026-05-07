@@ -7,6 +7,17 @@ export const runtime = "nodejs";
 const SERVICE_NAME = "test-proyectos";
 const DATABASE_PROVIDER = "postgresql";
 
+const DATABASE_ERROR_CATEGORIES = {
+  P1000: "authentication_failed",
+  P1001: "database_unreachable",
+  P1002: "database_timeout",
+  P1013: "invalid_database_url",
+  P2021: "missing_table",
+  P2022: "missing_column",
+} as const;
+
+type DatabaseErrorCategory = (typeof DATABASE_ERROR_CATEGORIES)[keyof typeof DATABASE_ERROR_CATEGORIES] | "unknown_database_error";
+
 type RuntimeInfo = {
   nodeEnv: string;
   vercelEnv: string | null;
@@ -33,22 +44,33 @@ type DatabaseInfo = {
   counts?: DatabaseCounts;
 };
 
+type DatabaseDiagnostics = {
+  category: DatabaseErrorCategory;
+  code?: string;
+  name?: string;
+  sanitizedMessage?: string;
+};
+
 type HealthResponse = {
   status: "ok" | "error";
   service: typeof SERVICE_NAME;
   runtime: RuntimeInfo;
   env: EnvInfo;
   database: DatabaseInfo;
+  diagnostics?: DatabaseDiagnostics;
   message?: string;
   hint?: string;
-  error?: {
-    name?: string;
-    code?: string;
-  };
 };
 
 type MigrationCountRow = {
   count: bigint | number | string;
+};
+
+type PrismaLikeError = {
+  name?: unknown;
+  code?: unknown;
+  errorCode?: unknown;
+  message?: unknown;
 };
 
 function getRuntimeInfo(): RuntimeInfo {
@@ -99,28 +121,76 @@ async function checkMigrationsTable(): Promise<Pick<DatabaseInfo, "migrationsTab
   }
 }
 
-function getSafeDevelopmentError(error: unknown): HealthResponse["error"] | undefined {
-  if (process.env.NODE_ENV === "production" || typeof error !== "object" || error === null) {
+function getPrismaErrorField(error: unknown, field: keyof PrismaLikeError): string | undefined {
+  if (typeof error !== "object" || error === null) {
     return undefined;
   }
 
-  const candidate = error as { name?: unknown; code?: unknown };
-  const safeError: NonNullable<HealthResponse["error"]> = {};
+  const value = (error as PrismaLikeError)[field];
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
 
-  if (typeof candidate.name === "string") {
-    safeError.name = candidate.name;
+function getPrismaErrorCode(error: unknown): string | undefined {
+  return getPrismaErrorField(error, "code") ?? getPrismaErrorField(error, "errorCode");
+}
+
+function classifyDatabaseError(error: unknown): DatabaseDiagnostics {
+  const code = getPrismaErrorCode(error);
+  const name = getPrismaErrorField(error, "name");
+  const category = code && code in DATABASE_ERROR_CATEGORIES ? DATABASE_ERROR_CATEGORIES[code as keyof typeof DATABASE_ERROR_CATEGORIES] : "unknown_database_error";
+
+  return {
+    category,
+    ...(code ? { code } : {}),
+    ...(name ? { name } : {}),
+  };
+}
+
+function sanitizeDevelopmentMessage(message: string): string {
+  const databaseUrl = process.env.DATABASE_URL;
+  let sanitizedMessage = message;
+
+  if (databaseUrl) {
+    sanitizedMessage = sanitizedMessage.split(databaseUrl).join("[redacted-database-url]");
   }
 
-  if (typeof candidate.code === "string") {
-    safeError.code = candidate.code;
+  return sanitizedMessage
+    .replace(/\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|https?):\/\/[^\s"'<>]+/gi, "[redacted-url]")
+    .replace(/\b[A-Za-z][A-Za-z0-9+.-]*:\/\/[^\s/@:]+(?::[^\s/@]*)?@/g, "[redacted-credentials]@")
+    .replace(/([?&](?:user|username|password|pass|token|access_token|refresh_token|apikey|api_key|secret)=)[^\s&"'<>]+/gi, "$1[redacted]")
+    .replace(/\b(?:user|username|password|pass|token|access_token|refresh_token|apikey|api_key|secret)=([^\s,;]+)/gi, (match) => {
+      const [key] = match.split("=");
+      return `${key}=[redacted]`;
+    });
+}
+
+function withDevelopmentDiagnostics(diagnostics: DatabaseDiagnostics, error: unknown): DatabaseDiagnostics {
+  const message = getPrismaErrorField(error, "message");
+
+  if (process.env.NODE_ENV === "production" || !message) {
+    return diagnostics;
   }
 
-  return Object.keys(safeError).length > 0 ? safeError : undefined;
+  return {
+    ...diagnostics,
+    sanitizedMessage: sanitizeDevelopmentMessage(message),
+  };
+}
+
+function logSafeDatabaseError(diagnostics: DatabaseDiagnostics, env: EnvInfo) {
+  console.error("Database health check failed", {
+    name: diagnostics.name,
+    code: diagnostics.code,
+    category: diagnostics.category,
+    vercelEnv: process.env.VERCEL_ENV ?? null,
+    databaseUrlConfigured: env.databaseUrlConfigured,
+    databaseUrlLooksLikePostgres: env.databaseUrlLooksLikePostgres,
+  });
 }
 
 function createErrorResponse(error?: unknown) {
   const env = getEnvInfo();
-  const safeError = getSafeDevelopmentError(error);
+  const diagnostics = withDevelopmentDiagnostics(classifyDatabaseError(error), error);
   const response: HealthResponse = {
     status: "error",
     service: SERVICE_NAME,
@@ -132,9 +202,9 @@ function createErrorResponse(error?: unknown) {
       prismaQueryOk: false,
       migrationsTableExists: false,
     },
+    diagnostics,
     message: "Database health check failed",
     hint: "Check DATABASE_URL, Supabase availability and Prisma migrations.",
-    ...(safeError ? { error: safeError } : {}),
   };
 
   return NextResponse.json(response, { status: 500 });
@@ -177,6 +247,9 @@ export async function GET() {
 
     return NextResponse.json(response);
   } catch (error) {
+    const diagnostics = classifyDatabaseError(error);
+    logSafeDatabaseError(diagnostics, env);
+
     return createErrorResponse(error);
   }
 }
