@@ -49,8 +49,8 @@ export const ROADMAP_APPROVAL_STATUS_LABELS: Record<(typeof ROADMAP_APPROVAL_STA
 };
 
 export const ROADMAP_TRACK_LABELS: Record<(typeof ROADMAP_MILESTONE_TRACKS)[number], string> = {
-  supply: "Supply / Operaciones / Proveedores",
-  marketing: "Marketing campaign",
+  supply: "Operaciones / Proveedor",
+  marketing: "Marketing / Campaña",
 };
 
 export const ROADMAP_PROJECT_TYPE_LABELS: Record<(typeof ROADMAP_PROJECT_TYPES)[number], string> = {
@@ -67,17 +67,32 @@ export const ROADMAP_PROJECT_TYPE_LABELS: Record<(typeof ROADMAP_PROJECT_TYPES)[
   other: "Otro",
 };
 
+export const ROADMAP_MILESTONE_CODE_LABELS = {
+  supply_internal_design_approval: "Aprobación del diseño interno",
+  supply_purchase_order_submitted: "Orden de compra emitida",
+  supply_supplier_sample_approval: "Aprobación de muestra del proveedor",
+  supply_sample_correction_approval: "Aprobación de correcciones de muestra",
+  supply_production_start: "Inicio de producción del proveedor",
+  supply_estimated_shipment: "Fecha estimada de despacho desde proveedor",
+  supply_estimated_arrival_santiago: "Fecha estimada de llegada a Santiago de Chile",
+  supply_customs_release: "Liberación de aduana",
+  supply_quilicura_warehouse_arrival: "Llegada a bodega Quilicura",
+  marketing_campaign_concept: "Idea, conceptualización y desarrollo de campaña",
+  marketing_implementation_date: "Fecha de implementación de campaña",
+  marketing_activation_date: "Fecha de activación de campaña",
+} as const;
+
 export const ROADMAP_STANDARD_MILESTONE_TEMPLATES = [
-  { code: "supply_internal_design_approval", name: "Internal design approval", track: "supply", sequence: 1, approvalStatus: "pending", notes: "Track approval status, link and owner." },
-  { code: "supply_purchase_order_submitted", name: "Purchase order submitted", track: "supply", sequence: 2, notes: "Track owner, date and document." },
-  { code: "supply_supplier_sample_approval", name: "Supplier sample approval", track: "supply", sequence: 3, approvalStatus: "pending", notes: "Track sample received date and approval decision." },
-  { code: "supply_sample_correction_approval", name: "Sample correction approval", track: "supply", sequence: 4, approvalStatus: "pending", notes: "Track correction sent date, corrected sample received date and approval decision." },
-  { code: "supply_production_start", name: "Supplier production start", track: "supply", sequence: 5 },
-  { code: "supply_estimated_shipment", name: "Estimated shipment date from supplier", track: "supply", sequence: 6 },
-  { code: "supply_estimated_arrival_santiago", name: "Estimated arrival date to Santiago de Chile", track: "supply", sequence: 7 },
-  { code: "supply_customs_release", name: "Customs release date", track: "supply", sequence: 8 },
-  { code: "supply_quilicura_warehouse_arrival", name: "Arrival at Quilicura warehouse", track: "supply", sequence: 9 },
-  { code: "marketing_campaign_concept", name: "Campaign idea / concept / development", track: "marketing", sequence: 10 },
-  { code: "marketing_implementation_date", name: "Campaign implementation date", track: "marketing", sequence: 11 },
-  { code: "marketing_activation_date", name: "Campaign activation date", track: "marketing", sequence: 12 },
+  { code: "supply_internal_design_approval", name: ROADMAP_MILESTONE_CODE_LABELS.supply_internal_design_approval, track: "supply", sequence: 1, approvalStatus: "pending", notes: "Registrar estado de aprobación, enlace y responsable." },
+  { code: "supply_purchase_order_submitted", name: ROADMAP_MILESTONE_CODE_LABELS.supply_purchase_order_submitted, track: "supply", sequence: 2, notes: "Registrar responsable, fecha y documento." },
+  { code: "supply_supplier_sample_approval", name: ROADMAP_MILESTONE_CODE_LABELS.supply_supplier_sample_approval, track: "supply", sequence: 3, approvalStatus: "pending", notes: "Registrar fecha de recepción de muestra y decisión de aprobación." },
+  { code: "supply_sample_correction_approval", name: ROADMAP_MILESTONE_CODE_LABELS.supply_sample_correction_approval, track: "supply", sequence: 4, approvalStatus: "pending", notes: "Registrar fecha de envío de corrección, recepción de muestra corregida y decisión." },
+  { code: "supply_production_start", name: ROADMAP_MILESTONE_CODE_LABELS.supply_production_start, track: "supply", sequence: 5 },
+  { code: "supply_estimated_shipment", name: ROADMAP_MILESTONE_CODE_LABELS.supply_estimated_shipment, track: "supply", sequence: 6 },
+  { code: "supply_estimated_arrival_santiago", name: ROADMAP_MILESTONE_CODE_LABELS.supply_estimated_arrival_santiago, track: "supply", sequence: 7 },
+  { code: "supply_customs_release", name: ROADMAP_MILESTONE_CODE_LABELS.supply_customs_release, track: "supply", sequence: 8 },
+  { code: "supply_quilicura_warehouse_arrival", name: ROADMAP_MILESTONE_CODE_LABELS.supply_quilicura_warehouse_arrival, track: "supply", sequence: 9 },
+  { code: "marketing_campaign_concept", name: ROADMAP_MILESTONE_CODE_LABELS.marketing_campaign_concept, track: "marketing", sequence: 10 },
+  { code: "marketing_implementation_date", name: ROADMAP_MILESTONE_CODE_LABELS.marketing_implementation_date, track: "marketing", sequence: 11 },
+  { code: "marketing_activation_date", name: ROADMAP_MILESTONE_CODE_LABELS.marketing_activation_date, track: "marketing", sequence: 12 },
 ] as const;

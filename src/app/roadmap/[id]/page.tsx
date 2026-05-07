@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ROADMAP_APPROVAL_STATUS_LABELS, ROADMAP_APPROVAL_STATUSES, ROADMAP_MILESTONE_STATUS_LABELS, ROADMAP_MILESTONE_STATUSES, ROADMAP_PROJECT_TYPE_LABELS, ROADMAP_STATUS_LABELS, ROADMAP_TRACK_LABELS } from "@/modules/roadmap/constants";
+import { ROADMAP_APPROVAL_STATUS_LABELS, ROADMAP_APPROVAL_STATUSES, ROADMAP_MILESTONE_STATUS_LABELS, ROADMAP_MILESTONE_STATUSES, ROADMAP_PROJECT_TYPE_LABELS, ROADMAP_STATUS_LABELS } from "@/modules/roadmap/constants";
 import { RoadmapNotFoundError } from "@/modules/roadmap/errors";
 import { findRoadmapProject } from "@/modules/roadmap/service";
-import { displayDate, inputDate } from "@/modules/roadmap/ui/date";
+import { displayDate, displayPlannedDate, inputDate } from "@/modules/roadmap/ui/date";
 import { ProjectForm } from "@/modules/roadmap/ui/ProjectForm";
+import { displayApprovalStatus, displayMilestoneName, displayMilestoneStatus, displayTrackLabel } from "@/modules/roadmap/ui/labels";
 import type { RoadmapMilestoneTrackValue } from "@/modules/roadmap/types";
 import { createMilestoneAction, updateMilestoneStatusAction, updateRoadmapProjectAction } from "../actions";
 
@@ -16,7 +17,26 @@ type Project = Awaited<ReturnType<typeof findRoadmapProject>>;
 type Milestone = Project["milestones"][number];
 
 function milestoneDate(milestone: Milestone) {
-  return milestone.plannedDate ?? milestone.dueDate;
+  return milestone.plannedDate;
+}
+
+function findMilestoneByCode(milestones: Milestone[], code: string) {
+  return milestones.find((milestone) => milestone.milestoneCode === code);
+}
+
+function nextUpcomingMilestone(milestones: Milestone[]) {
+  return milestones
+    .filter((milestone) => milestone.status !== "completed" && milestone.plannedDate)
+    .sort((firstMilestone, secondMilestone) => firstMilestone.plannedDate!.getTime() - secondMilestone.plannedDate!.getTime())[0] ?? null;
+}
+
+function buildProjectSummary(milestones: Milestone[]) {
+  const total = milestones.length;
+  const completed = milestones.filter((milestone) => milestone.status === "completed").length;
+  const blocked = milestones.filter((milestone) => milestone.status === "blocked").length;
+  const pending = milestones.filter((milestone) => milestone.status !== "completed").length;
+  const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+  return { total, completed, pending, blocked, progress };
 }
 
 function MilestoneTable({ milestones, projectId, track }: { milestones: Milestone[]; projectId: string; track: RoadmapMilestoneTrackValue }) {
@@ -25,7 +45,7 @@ function MilestoneTable({ milestones, projectId, track }: { milestones: Mileston
       <div className="section-title">
         <div>
           <p className="eyebrow">Track</p>
-          <h2>{ROADMAP_TRACK_LABELS[track]}</h2>
+          <h2>{displayTrackLabel(track)}</h2>
         </div>
         <span className="badge">{milestones.length} hitos</span>
       </div>
@@ -49,12 +69,12 @@ function MilestoneTable({ milestones, projectId, track }: { milestones: Mileston
               const updateMilestone = updateMilestoneStatusAction.bind(null, projectId, milestone.id);
               return (
                 <tr key={milestone.id}>
-                  <td><strong>{milestone.name}</strong><br /><span className="muted">{milestone.milestoneCode ?? `Orden ${milestone.sequence || milestone.sortOrder}`}</span></td>
+                  <td><strong>{displayMilestoneName(milestone)}</strong></td>
                   <td>{milestone.ownerName || "—"}</td>
-                  <td>{displayDate(milestoneDate(milestone))}</td>
+                  <td>{displayPlannedDate(milestoneDate(milestone))}</td>
                   <td>{displayDate(milestone.actualDate ?? milestone.completedAt)}</td>
-                  <td><span className="badge">{ROADMAP_MILESTONE_STATUS_LABELS[milestone.status]}</span></td>
-                  <td>{milestone.approvalStatus ? ROADMAP_APPROVAL_STATUS_LABELS[milestone.approvalStatus] : "—"}</td>
+                  <td><span className="badge">{displayMilestoneStatus(milestone.status)}</span></td>
+                  <td>{displayApprovalStatus(milestone.approvalStatus)}</td>
                   <td className="link-cell">
                     {milestone.linkUrl ? <a href={milestone.linkUrl} target="_blank" rel="noreferrer">Link</a> : null}
                     {milestone.documentUrl ? <a href={milestone.documentUrl} target="_blank" rel="noreferrer">Documento</a> : null}
@@ -69,7 +89,7 @@ function MilestoneTable({ milestones, projectId, track }: { milestones: Mileston
                         <input type="hidden" name="track" value={track} />
                         <input type="hidden" name="sequence" value={milestone.sequence || milestone.sortOrder} />
                         <label className="field"><span>Responsable</span><input name="ownerName" defaultValue={milestone.ownerName ?? ""} /></label>
-                        <label className="field"><span>Fecha planificada</span><input type="date" name="plannedDate" defaultValue={inputDate(milestoneDate(milestone))} /></label>
+                        <label className="field"><span>Fecha planificada</span><input type="date" name="plannedDate" defaultValue={inputDate(milestone.plannedDate)} /></label>
                         <label className="field"><span>Fecha real</span><input type="date" name="actualDate" defaultValue={inputDate(milestone.actualDate ?? milestone.completedAt)} /></label>
                         <label className="field"><span>Estado</span><select name="status" defaultValue={milestone.status}>{ROADMAP_MILESTONE_STATUSES.map((status) => <option key={status} value={status}>{ROADMAP_MILESTONE_STATUS_LABELS[status]}</option>)}</select></label>
                         <label className="field"><span>Aprobación</span><select name="approvalStatus" defaultValue={milestone.approvalStatus ?? ""}><option value="">No aplica</option>{ROADMAP_APPROVAL_STATUSES.map((status) => <option key={status} value={status}>{ROADMAP_APPROVAL_STATUS_LABELS[status]}</option>)}</select></label>
@@ -107,6 +127,10 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
   const supplyMilestones = project.milestones.filter((milestone) => milestone.track === "supply");
   const marketingMilestones = project.milestones.filter((milestone) => milestone.track === "marketing");
   const sharepointUrl = project.sharepointUrl ?? project.sharepointFolderUrl;
+  const summary = buildProjectSummary(project.milestones);
+  const nextMilestone = nextUpcomingMilestone(project.milestones);
+  const santiagoArrival = findMilestoneByCode(project.milestones, "supply_estimated_arrival_santiago");
+  const campaignActivation = findMilestoneByCode(project.milestones, "marketing_activation_date");
 
   return (
     <main className="page-shell">
@@ -145,6 +169,27 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
           </div>
         </article>
 
+
+        <article className="panel">
+          <div className="section-title">
+            <div>
+              <p className="eyebrow">Avance de hitos</p>
+              <h2>Resumen operativo</h2>
+            </div>
+            <span className="badge">{summary.progress}% completado</span>
+          </div>
+          <dl className="metadata-grid">
+            <div><dt>Total de hitos</dt><dd>{summary.total}</dd></div>
+            <div><dt>Hitos completados</dt><dd>{summary.completed}</dd></div>
+            <div><dt>Hitos pendientes</dt><dd>{summary.pending}</dd></div>
+            <div><dt>Hitos bloqueados</dt><dd>{summary.blocked}</dd></div>
+            <div><dt>Próximo hito</dt><dd>{nextMilestone ? `${displayMilestoneName(nextMilestone)} · ${displayPlannedDate(nextMilestone.plannedDate)}` : "Sin fecha"}</dd></div>
+            <div><dt>Llegada estimada a Santiago de Chile</dt><dd>{displayPlannedDate(santiagoArrival?.plannedDate)}</dd></div>
+            <div><dt>Activación de campaña</dt><dd>{displayPlannedDate(campaignActivation?.plannedDate)}</dd></div>
+            <div><dt>Progreso</dt><dd>{summary.progress}%</dd></div>
+          </dl>
+        </article>
+
         <MilestoneTable milestones={supplyMilestones} projectId={project.id} track="supply" />
         <MilestoneTable milestones={marketingMilestones} projectId={project.id} track="marketing" />
 
@@ -158,7 +203,7 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
             <h2>Crear hito adicional</h2>
             <form action={createMilestone} className="grid">
               <label className="field"><span>Nombre *</span><input name="name" required /></label>
-              <label className="field"><span>Track</span><select name="track" defaultValue="supply"><option value="supply">Supply</option><option value="marketing">Marketing</option></select></label>
+              <label className="field"><span>Track</span><select name="track" defaultValue="supply"><option value="supply">{displayTrackLabel("supply")}</option><option value="marketing">{displayTrackLabel("marketing")}</option></select></label>
               <label className="field"><span>Responsable</span><input name="ownerName" /></label>
               <label className="field"><span>Fecha planificada *</span><input type="date" name="plannedDate" required /></label>
               <label className="field"><span>Estado</span><select name="status" defaultValue="not_started">{ROADMAP_MILESTONE_STATUSES.map((status) => <option key={status} value={status}>{ROADMAP_MILESTONE_STATUS_LABELS[status]}</option>)}</select></label>
