@@ -1685,3 +1685,215 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+.area-filter-grid {
+  grid-template-columns: minmax(160px, 220px) minmax(220px, 320px) minmax(140px, 180px);
+  align-items: end;
+}
+.area-filter-current {
+  display: grid;
+  gap: 4px;
+  min-height: 45px;
+  padding: 9px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 13px;
+  background: #f8fafc;
+}
+.area-filter-current span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.area-filter-current strong {
+  color: var(--black);
+  font-size: 1rem;
+}
+.area-kpis {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.area-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.area-lane {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  min-width: 0;
+}
+.area-lane-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.area-lane-header h2 {
+  margin: 0;
+  font-size: 1.16rem;
+}
+.area-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.area-metric {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 13px;
+  background: #f8fafc;
+}
+.area-metric span {
+  display: block;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.area-metric strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--black);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.area-metric.warning {
+  background: var(--warning-soft);
+  border-color: #fde68a;
+}
+.area-metric.danger {
+  background: var(--danger-soft);
+  border-color: #fecaca;
+}
+.area-metric.neutral {
+  background: white;
+}
+.area-project-list {
+  display: grid;
+  gap: 8px;
+}
+.area-project-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, auto) minmax(210px, 0.75fr);
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid var(--line-soft);
+  border-radius: 15px;
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.area-project-item:hover {
+  border-color: #facc15;
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+.area-project-main {
+  min-width: 0;
+}
+.area-project-code {
+  margin: 0 0 3px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+.area-project-main h3 {
+  margin: 0;
+  overflow: hidden;
+  font-size: 0.96rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.area-project-tags {
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: var(--muted-strong);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.area-project-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.area-project-next {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  color: #334155;
+}
+.area-project-next span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.area-project-next strong,
+.area-project-next small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.area-project-next strong {
+  font-size: 0.86rem;
+}
+.area-project-next small {
+  color: var(--muted-strong);
+  font-weight: 800;
+}
+.area-more {
+  margin: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--line-soft);
+  border-radius: 13px;
+  background: white;
+  color: var(--muted-strong);
+  font-size: 0.84rem;
+  font-weight: 900;
+  text-align: center;
+}
+.area-empty {
+  padding: 28px;
+  text-align: center;
+}
+.area-empty h2 {
+  margin: 0 0 8px;
+}
+.area-empty p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+@media (max-width: 1180px) {
+  .area-kpis,
+  .area-metrics-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .area-dashboard-grid,
+  .area-project-item {
+    grid-template-columns: 1fr;
+  }
+  .area-project-badges {
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 860px) {
+  .area-filter-grid,
+  .area-kpis,
+  .area-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
