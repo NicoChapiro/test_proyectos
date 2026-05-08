@@ -1,11 +1,19 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { searchRoadmapProjects } from "@/modules/roadmap/service";
-import { ROADMAP_SEVERITY_LABELS, buildRoadmapProjectInsights, type RoadmapProjectInsights } from "@/modules/roadmap/insights";
+import {
+  ROADMAP_SEVERITY_LABELS,
+  buildRoadmapProjectInsights,
+  type RoadmapProjectInsights,
+} from "@/modules/roadmap/insights";
 import { ROADMAP_STATUS_LABELS } from "@/modules/roadmap/constants";
 import type { RoadmapProjectWithMilestones } from "@/modules/roadmap/types";
 import { displayDate, displayPlannedDate } from "@/modules/roadmap/ui/date";
-import { displayApprovalStatus, displayMilestoneName, displayMilestoneStatus } from "@/modules/roadmap/ui/labels";
+import {
+  displayApprovalStatus,
+  displayMilestoneName,
+  displayMilestoneStatus,
+} from "@/modules/roadmap/ui/labels";
 import { AppShell, KpiCard, PageHeader } from "@/modules/roadmap/ui/shell";
 
 export const dynamic = "force-dynamic";
@@ -13,8 +21,12 @@ export const revalidate = 0;
 
 type SearchParams = Record<string, string | string[] | undefined>;
 type PageProps = { searchParams: Promise<SearchParams> };
-type ProjectInsights = RoadmapProjectInsights<RoadmapProjectWithMilestones["milestones"][number]>;
-type WeeklyProject = RoadmapProjectWithMilestones & { insights: ProjectInsights };
+type ProjectInsights = RoadmapProjectInsights<
+  RoadmapProjectWithMilestones["milestones"][number]
+>;
+type WeeklyProject = RoadmapProjectWithMilestones & {
+  insights: ProjectInsights;
+};
 type WeeklyMilestone = RoadmapProjectWithMilestones["milestones"][number] & {
   project: WeeklyProject;
   category: string;
@@ -44,27 +56,59 @@ function currentUtcYear(): number {
 
 function validYear(value: string | undefined): number {
   const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed >= 2000 && parsed <= 2100 ? parsed : currentUtcYear();
+  return Number.isInteger(parsed) && parsed >= 2000 && parsed <= 2100
+    ? parsed
+    : currentUtcYear();
 }
 
 function startOfUtcToday(): Date {
   const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
 }
 
-function sortByDate(firstMilestone: WeeklyMilestone, secondMilestone: WeeklyMilestone): number {
-  if (firstMilestone.plannedDate && secondMilestone.plannedDate) return firstMilestone.plannedDate.getTime() - secondMilestone.plannedDate.getTime();
+function sortByDate(
+  firstMilestone: WeeklyMilestone,
+  secondMilestone: WeeklyMilestone,
+): number {
+  if (firstMilestone.plannedDate && secondMilestone.plannedDate)
+    return (
+      firstMilestone.plannedDate.getTime() -
+      secondMilestone.plannedDate.getTime()
+    );
   if (firstMilestone.plannedDate) return -1;
   if (secondMilestone.plannedDate) return 1;
-  return firstMilestone.sequence - secondMilestone.sequence || firstMilestone.name.localeCompare(secondMilestone.name, "es");
+  return (
+    firstMilestone.sequence - secondMilestone.sequence ||
+    firstMilestone.name.localeCompare(secondMilestone.name, "es")
+  );
 }
 
-function withProject(project: WeeklyProject, milestone: RoadmapProjectWithMilestones["milestones"][number], category: string, tone: WeeklyMilestone["tone"]): WeeklyMilestone {
+function withProject(
+  project: WeeklyProject,
+  milestone: RoadmapProjectWithMilestones["milestones"][number],
+  category: string,
+  tone: WeeklyMilestone["tone"],
+): WeeklyMilestone {
   return { ...milestone, project, category, tone };
 }
 
-function collectMilestones(projects: WeeklyProject[], select: (project: WeeklyProject) => RoadmapProjectWithMilestones["milestones"], category: string, tone: WeeklyMilestone["tone"]): WeeklyMilestone[] {
-  return projects.flatMap((project) => select(project).map((milestone) => withProject(project, milestone, category, tone))).sort(sortByDate);
+function collectMilestones(
+  projects: WeeklyProject[],
+  select: (
+    project: WeeklyProject,
+  ) => RoadmapProjectWithMilestones["milestones"],
+  category: string,
+  tone: WeeklyMilestone["tone"],
+): WeeklyMilestone[] {
+  return projects
+    .flatMap((project) =>
+      select(project).map((milestone) =>
+        withProject(project, milestone, category, tone),
+      ),
+    )
+    .sort(sortByDate);
 }
 
 function collectPriorities(projects: WeeklyProject[]): WeeklyMilestone[] {
@@ -76,18 +120,49 @@ function collectPriorities(projects: WeeklyProject[]): WeeklyMilestone[] {
     }
   };
 
-  append(collectMilestones(projects, (project) => project.insights.blockedMilestones, "Bloqueado", "red"));
-  append(collectMilestones(projects, (project) => project.insights.overdueMilestones, "Vencido", "red"));
-  append(collectMilestones(projects, (project) => project.insights.pendingApprovalMilestones, "Aprobación", "amber"));
   append(
     collectMilestones(
       projects,
-      (project) => project.insights.upcomingMilestones.filter((milestone) => !milestone.ownerName?.trim()),
+      (project) => project.insights.blockedMilestones,
+      "Bloqueado",
+      "red",
+    ),
+  );
+  append(
+    collectMilestones(
+      projects,
+      (project) => project.insights.overdueMilestones,
+      "Vencido",
+      "red",
+    ),
+  );
+  append(
+    collectMilestones(
+      projects,
+      (project) => project.insights.pendingApprovalMilestones,
+      "Aprobación",
+      "amber",
+    ),
+  );
+  append(
+    collectMilestones(
+      projects,
+      (project) =>
+        project.insights.upcomingMilestones.filter(
+          (milestone) => !milestone.ownerName?.trim(),
+        ),
       "Sin responsable",
       "amber",
     ),
   );
-  append(collectMilestones(projects, (project) => project.insights.upcomingMilestones, "Próximo", "blue"));
+  append(
+    collectMilestones(
+      projects,
+      (project) => project.insights.upcomingMilestones,
+      "Próximo",
+      "blue",
+    ),
+  );
 
   return [...selected.values()];
 }
@@ -99,10 +174,25 @@ function limitItems<T>(items: T[]): LimitedItems<T> {
   };
 }
 
-function excludePriorityMilestones(milestones: WeeklyMilestone[], priorityIds: Set<string>): WeeklyMilestone[] {
+function excludePriorityMilestones(
+  milestones: WeeklyMilestone[],
+  priorityIds: Set<string>,
+): WeeklyMilestone[] {
   return milestones.filter((milestone) => !priorityIds.has(milestone.id));
 }
-function Section({ id, title, eyebrow, description, children }: { id: string; title: string; eyebrow: string; description: string; children: ReactNode }) {
+function Section({
+  id,
+  title,
+  eyebrow,
+  description,
+  children,
+}: {
+  id: string;
+  title: string;
+  eyebrow: string;
+  description: string;
+  children: ReactNode;
+}) {
   return (
     <section className="panel weekly-section" id={id}>
       <div className="section-title compact">
@@ -122,44 +212,82 @@ function EmptyState({ message }: { message: string }) {
 }
 
 function MoreFooter({ remaining }: { remaining: number }) {
-  return remaining > 0 ? <p className="weekly-more">+ {remaining} más</p> : null;
+  return remaining > 0 ? (
+    <p className="weekly-more">+ {remaining} más</p>
+  ) : null;
 }
 
 function PriorityList({ milestones }: { milestones: WeeklyMilestone[] }) {
-  if (milestones.length === 0) return <EmptyState message="No hay acciones urgentes para esta semana." />;
+  if (milestones.length === 0)
+    return <EmptyState message="No hay acciones urgentes para esta semana." />;
 
   return (
     <div className="weekly-priority-grid">
       {milestones.map((milestone) => (
-        <article className="weekly-priority-card" key={`${milestone.category}-${milestone.id}`}>
+        <article
+          className="weekly-priority-card"
+          key={`${milestone.category}-${milestone.id}`}
+        >
           <div className="weekly-card-topline">
-            <span className={`badge weekly-${milestone.tone}`}>{milestone.category}</span>
+            <span className={`badge weekly-${milestone.tone}`}>
+              {milestone.category}
+            </span>
           </div>
           <h3>{milestone.project.name}</h3>
-          <p className="weekly-milestone-name">{displayMilestoneName(milestone)}</p>
+          <p className="weekly-milestone-name">
+            {displayMilestoneName(milestone)}
+          </p>
           <dl className="weekly-metadata">
-            <div><dt>Responsable</dt><dd>{milestone.ownerName || "Sin responsable"}</dd></div>
-            <div><dt>Fecha</dt><dd>{displayPlannedDate(milestone.plannedDate)}</dd></div>
-            <div><dt>Estado</dt><dd>{displayMilestoneStatus(milestone.status)}</dd></div>
-            <div><dt>Aprobación</dt><dd>{displayApprovalStatus(milestone.approvalStatus)}</dd></div>
+            <div>
+              <dt>Responsable</dt>
+              <dd>{milestone.ownerName || "Sin responsable"}</dd>
+            </div>
+            <div>
+              <dt>Fecha</dt>
+              <dd>{displayPlannedDate(milestone.plannedDate)}</dd>
+            </div>
+            <div>
+              <dt>Estado</dt>
+              <dd>{displayMilestoneStatus(milestone.status)}</dd>
+            </div>
+            <div>
+              <dt>Aprobación</dt>
+              <dd>{displayApprovalStatus(milestone.approvalStatus)}</dd>
+            </div>
           </dl>
-          <Link className="text-button" href={`/roadmap/${milestone.project.id}`}>Ver proyecto</Link>
+          <Link
+            className="text-button"
+            href={`/roadmap/${milestone.project.id}`}
+          >
+            Ver proyecto
+          </Link>
         </article>
       ))}
     </div>
   );
 }
 
-function CompactMilestoneList({ items, emptyMessage }: { items: LimitedItems<WeeklyMilestone>; emptyMessage: string }) {
+function CompactMilestoneList({
+  items,
+  emptyMessage,
+}: {
+  items: LimitedItems<WeeklyMilestone>;
+  emptyMessage: string;
+}) {
   if (items.visible.length === 0) return <EmptyState message={emptyMessage} />;
 
   return (
     <>
       <div className="weekly-compact-list">
         {items.visible.map((milestone) => (
-          <article className="weekly-compact-row" key={`${milestone.category}-${milestone.id}`}>
+          <article
+            className="weekly-compact-row"
+            key={`${milestone.category}-${milestone.id}`}
+          >
             <div className="weekly-compact-main">
-              <span className={`badge weekly-${milestone.tone}`}>{milestone.category}</span>
+              <span className={`badge weekly-${milestone.tone}`}>
+                {milestone.category}
+              </span>
               <div>
                 <h3>{milestone.project.name}</h3>
                 <p>{displayMilestoneName(milestone)}</p>
@@ -169,7 +297,12 @@ function CompactMilestoneList({ items, emptyMessage }: { items: LimitedItems<Wee
               <span>{milestone.ownerName || "Sin responsable"}</span>
               <span>{displayPlannedDate(milestone.plannedDate)}</span>
               <span>{displayMilestoneStatus(milestone.status)}</span>
-              <Link className="text-button" href={`/roadmap/${milestone.project.id}`}>Ver proyecto</Link>
+              <Link
+                className="text-button"
+                href={`/roadmap/${milestone.project.id}`}
+              >
+                Ver proyecto
+              </Link>
             </div>
           </article>
         ))}
@@ -180,7 +313,8 @@ function CompactMilestoneList({ items, emptyMessage }: { items: LimitedItems<Wee
 }
 
 function CompactProjectList({ items }: { items: LimitedItems<WeeklyProject> }) {
-  if (items.visible.length === 0) return <EmptyState message="Sin proyectos críticos." />;
+  if (items.visible.length === 0)
+    return <EmptyState message="Sin proyectos críticos." />;
 
   return (
     <>
@@ -188,17 +322,25 @@ function CompactProjectList({ items }: { items: LimitedItems<WeeklyProject> }) {
         {items.visible.map((project) => (
           <article className="weekly-compact-row" key={project.id}>
             <div className="weekly-compact-main">
-              <span className={`badge severity-${project.insights.severity}`}>{ROADMAP_SEVERITY_LABELS[project.insights.severity]}</span>
+              <span className={`badge severity-${project.insights.severity}`}>
+                {ROADMAP_SEVERITY_LABELS[project.insights.severity]}
+              </span>
               <div>
                 <h3>{project.name}</h3>
-                <p>{project.insights.nextMilestone ? displayMilestoneName(project.insights.nextMilestone) : "Sin próximos hitos"}</p>
+                <p>
+                  {project.insights.nextMilestone
+                    ? displayMilestoneName(project.insights.nextMilestone)
+                    : "Sin próximos hitos"}
+                </p>
               </div>
             </div>
             <div className="weekly-compact-meta">
               <span>{ROADMAP_STATUS_LABELS[project.status]}</span>
               <span>{project.ownerName || "Sin responsable"}</span>
               <span>{project.insights.currentPhase.label}</span>
-              <Link className="text-button" href={`/roadmap/${project.id}`}>Ver proyecto</Link>
+              <Link className="text-button" href={`/roadmap/${project.id}`}>
+                Ver proyecto
+              </Link>
             </div>
           </article>
         ))}
@@ -218,24 +360,75 @@ export default async function WeeklyRoadmapPage({ searchParams }: PageProps) {
     insights: buildRoadmapProjectInsights(project.milestones, today),
   }));
 
-  const criticalProjects = weeklyProjects.filter((project) => project.insights.severity === "critical");
-  const warningProjects = weeklyProjects.filter((project) => project.insights.severity === "warning");
-  const blockedMilestones = collectMilestones(weeklyProjects, (project) => project.insights.blockedMilestones, "Bloqueado", "red");
-  const overdueMilestones = collectMilestones(weeklyProjects, (project) => project.insights.overdueMilestones, "Vencido", "red");
-  const upcomingMilestones = collectMilestones(weeklyProjects, (project) => project.insights.upcomingMilestones, "Próximo", "blue");
-  const milestonesWithoutOwner = collectMilestones(weeklyProjects, (project) => project.insights.milestonesWithoutOwner, "Sin responsable", "amber");
-  const pendingApprovalMilestones = collectMilestones(weeklyProjects, (project) => project.insights.pendingApprovalMilestones, "Aprobación", "amber");
-  const upcomingCampaignMilestones = collectMilestones(weeklyProjects, (project) => project.insights.upcomingMilestones.filter((milestone) => milestone.track === "marketing"), "Campaña", "blue");
-  const upcomingLogisticsMilestones = collectMilestones(weeklyProjects, (project) => project.insights.upcomingMilestones.filter((milestone) => milestone.track === "supply"), "Logística", "slate");
+  const criticalProjects = weeklyProjects.filter(
+    (project) => project.insights.severity === "critical",
+  );
+  const warningProjects = weeklyProjects.filter(
+    (project) => project.insights.severity === "warning",
+  );
+  const blockedMilestones = collectMilestones(
+    weeklyProjects,
+    (project) => project.insights.blockedMilestones,
+    "Bloqueado",
+    "red",
+  );
+  const overdueMilestones = collectMilestones(
+    weeklyProjects,
+    (project) => project.insights.overdueMilestones,
+    "Vencido",
+    "red",
+  );
+  const upcomingMilestones = collectMilestones(
+    weeklyProjects,
+    (project) => project.insights.upcomingMilestones,
+    "Próximo",
+    "blue",
+  );
+  const milestonesWithoutOwner = collectMilestones(
+    weeklyProjects,
+    (project) => project.insights.milestonesWithoutOwner,
+    "Sin responsable",
+    "amber",
+  );
+  const pendingApprovalMilestones = collectMilestones(
+    weeklyProjects,
+    (project) => project.insights.pendingApprovalMilestones,
+    "Aprobación",
+    "amber",
+  );
+  const upcomingCampaignMilestones = collectMilestones(
+    weeklyProjects,
+    (project) =>
+      project.insights.upcomingMilestones.filter(
+        (milestone) => milestone.track === "marketing",
+      ),
+    "Campaña",
+    "blue",
+  );
+  const upcomingLogisticsMilestones = collectMilestones(
+    weeklyProjects,
+    (project) =>
+      project.insights.upcomingMilestones.filter(
+        (milestone) => milestone.track === "supply",
+      ),
+    "Logística",
+    "slate",
+  );
   const commercialLogisticsMilestones: WeeklyMilestone[] = upcomingMilestones
-    .filter((milestone) => milestone.milestoneCode && COMMERCIAL_LOGISTICS_CODES.has(milestone.milestoneCode))
+    .filter(
+      (milestone) =>
+        milestone.milestoneCode &&
+        COMMERCIAL_LOGISTICS_CODES.has(milestone.milestoneCode),
+    )
     .map((milestone) => ({
       ...milestone,
       category: milestone.track === "marketing" ? "Comercial" : "Logística",
       tone: milestone.track === "marketing" ? "blue" : "slate",
     }));
   const weeklyPriorities = collectPriorities(weeklyProjects);
-  const priorityMilestoneIds = new Set(weeklyPriorities.map((milestone) => milestone.id));
+  const priorityMilestoneIds = new Set(
+    weeklyPriorities.map((milestone) => milestone.id),
+  );
 
   return (
     <AppShell active="reports">
@@ -243,7 +436,11 @@ export default async function WeeklyRoadmapPage({ searchParams }: PageProps) {
         eyebrow="REPORTES"
         title="Control semanal"
         subtitle={`Dashboard operativo para revisar proyectos e hitos que requieren seguimiento esta semana. Semana desde ${displayDate(today)}.`}
-        actions={<Link className="button secondary" href="/roadmap">Volver al roadmap</Link>}
+        actions={
+          <Link className="button secondary" href="/roadmap">
+            Volver al roadmap
+          </Link>
+        }
       />
 
       <form className="panel filter-panel weekly-filter">
@@ -253,22 +450,68 @@ export default async function WeeklyRoadmapPage({ searchParams }: PageProps) {
             <h2>Revisar año</h2>
           </div>
           <div className="filter-actions">
-            <Link className="button secondary" href="/roadmap/weekly">Año actual</Link>
-            <button className="button primary" type="submit">Aplicar</button>
+            <Link className="button secondary" href="/roadmap/weekly">
+              Año actual
+            </Link>
+            <button className="button primary" type="submit">
+              Aplicar
+            </button>
           </div>
         </div>
         <div className="filter-grid weekly-filter-grid">
-          <label className="field"><span>Año</span><input name="year" type="number" min="2000" max="2100" defaultValue={year} /></label>
+          <label className="field">
+            <span>Año</span>
+            <input
+              name="year"
+              type="number"
+              min="2000"
+              max="2100"
+              defaultValue={year}
+            />
+          </label>
         </div>
       </form>
 
-      <section className="kpi-grid weekly-kpis" aria-label="Indicadores del control semanal">
-        <KpiCard label="Proyectos críticos" value={criticalProjects.length} tone={criticalProjects.length > 0 ? "red" : "green"} detail={`${warningProjects.length} proyectos en atención`} />
-        <KpiCard label="Hitos vencidos" value={overdueMilestones.length} tone={overdueMilestones.length > 0 ? "red" : "green"} detail="Antes de hoy" />
-        <KpiCard label="Próximos 7 días" value={upcomingMilestones.length} tone="blue" detail={`${upcomingCampaignMilestones.length} campaña · ${upcomingLogisticsMilestones.length} logística`} />
-        <KpiCard label="Sin responsable" value={milestonesWithoutOwner.length} tone={milestonesWithoutOwner.length > 0 ? "amber" : "green"} detail="Hitos pendientes" />
-        <KpiCard label="Aprobaciones pendientes" value={pendingApprovalMilestones.length} tone={pendingApprovalMilestones.length > 0 ? "amber" : "green"} detail="Requieren decisión" />
-        <KpiCard label="Bloqueados" value={blockedMilestones.length} tone={blockedMilestones.length > 0 ? "red" : "green"} detail="Con impedimentos" />
+      <section
+        className="kpi-grid weekly-kpis"
+        aria-label="Indicadores del control semanal"
+      >
+        <KpiCard
+          label="Proyectos críticos"
+          value={criticalProjects.length}
+          tone={criticalProjects.length > 0 ? "red" : "green"}
+          detail={`${warningProjects.length} proyectos en atención`}
+        />
+        <KpiCard
+          label="Hitos vencidos"
+          value={overdueMilestones.length}
+          tone={overdueMilestones.length > 0 ? "red" : "green"}
+          detail="Antes de hoy"
+        />
+        <KpiCard
+          label="Próximos 7 días"
+          value={upcomingMilestones.length}
+          tone="blue"
+          detail={`${upcomingCampaignMilestones.length} campaña · ${upcomingLogisticsMilestones.length} logística`}
+        />
+        <KpiCard
+          label="Sin responsable"
+          value={milestonesWithoutOwner.length}
+          tone={milestonesWithoutOwner.length > 0 ? "amber" : "green"}
+          detail="Hitos pendientes"
+        />
+        <KpiCard
+          label="Aprobaciones pendientes"
+          value={pendingApprovalMilestones.length}
+          tone={pendingApprovalMilestones.length > 0 ? "amber" : "green"}
+          detail="Requieren decisión"
+        />
+        <KpiCard
+          label="Bloqueados"
+          value={blockedMilestones.length}
+          tone={blockedMilestones.length > 0 ? "red" : "green"}
+          detail="Con impedimentos"
+        />
       </section>
 
       <Section
@@ -280,29 +523,116 @@ export default async function WeeklyRoadmapPage({ searchParams }: PageProps) {
         <PriorityList milestones={weeklyPriorities} />
       </Section>
 
-      <div className="weekly-dashboard-grid">
-        <Section id="vencidos" eyebrow="Seguimiento" title="Hitos vencidos" description="Hitos con fecha planificada anterior a hoy y aún no completados.">
-          <CompactMilestoneList items={limitItems(excludePriorityMilestones(overdueMilestones, priorityMilestoneIds))} emptyMessage="Sin hitos vencidos." />
+      <div
+        className="weekly-dashboard-grid weekly-secondary-grid"
+        aria-label="Secciones secundarias del control semanal"
+      >
+        <Section
+          id="vencidos"
+          eyebrow="Seguimiento"
+          title="Hitos vencidos"
+          description="Hitos con fecha planificada anterior a hoy y aún no completados."
+        >
+          <CompactMilestoneList
+            items={limitItems(
+              excludePriorityMilestones(
+                overdueMilestones,
+                priorityMilestoneIds,
+              ),
+            )}
+            emptyMessage="Sin hitos vencidos."
+          />
         </Section>
-        <Section id="proximos" eyebrow="Planificación" title="Próximos 7 días" description="Hitos programados para esta semana.">
-          <CompactMilestoneList items={limitItems(excludePriorityMilestones(upcomingMilestones, priorityMilestoneIds))} emptyMessage="Sin hitos en los próximos 7 días." />
+        <Section
+          id="proximos"
+          eyebrow="Planificación"
+          title="Próximos 7 días"
+          description="Hitos programados para esta semana."
+        >
+          <CompactMilestoneList
+            items={limitItems(
+              excludePriorityMilestones(
+                upcomingMilestones,
+                priorityMilestoneIds,
+              ),
+            )}
+            emptyMessage="Sin hitos en los próximos 7 días."
+          />
         </Section>
-        <Section id="sin-responsable" eyebrow="Responsables" title="Sin responsable" description="Hitos pendientes que necesitan asignación.">
-          <CompactMilestoneList items={limitItems(excludePriorityMilestones(milestonesWithoutOwner, priorityMilestoneIds))} emptyMessage="Todos los hitos pendientes tienen responsable." />
+        <Section
+          id="sin-responsable"
+          eyebrow="Responsables"
+          title="Sin responsable"
+          description="Hitos pendientes que necesitan asignación."
+        >
+          <CompactMilestoneList
+            items={limitItems(
+              excludePriorityMilestones(
+                milestonesWithoutOwner,
+                priorityMilestoneIds,
+              ),
+            )}
+            emptyMessage="Todos los hitos pendientes tienen responsable."
+          />
         </Section>
-        <Section id="aprobaciones" eyebrow="Decisiones" title="Aprobaciones pendientes" description="Decisiones pendientes que pueden bloquear avance.">
-          <CompactMilestoneList items={limitItems(excludePriorityMilestones(pendingApprovalMilestones, priorityMilestoneIds))} emptyMessage="Sin aprobaciones pendientes." />
+        <Section
+          id="aprobaciones"
+          eyebrow="Decisiones"
+          title="Aprobaciones pendientes"
+          description="Decisiones pendientes que pueden bloquear avance."
+        >
+          <CompactMilestoneList
+            items={limitItems(
+              excludePriorityMilestones(
+                pendingApprovalMilestones,
+                priorityMilestoneIds,
+              ),
+            )}
+            emptyMessage="Sin aprobaciones pendientes."
+          />
         </Section>
-        <Section id="bloqueados" eyebrow="Impedimentos" title="Bloqueados" description="Hitos marcados como bloqueados.">
-          <CompactMilestoneList items={limitItems(excludePriorityMilestones(blockedMilestones, priorityMilestoneIds))} emptyMessage="Sin hitos bloqueados." />
+        <Section
+          id="bloqueados"
+          eyebrow="Impedimentos"
+          title="Bloqueados"
+          description="Hitos marcados como bloqueados."
+        >
+          <CompactMilestoneList
+            items={limitItems(
+              excludePriorityMilestones(
+                blockedMilestones,
+                priorityMilestoneIds,
+              ),
+            )}
+            emptyMessage="Sin hitos bloqueados."
+          />
         </Section>
-        <Section id="fechas-comerciales" eyebrow="Marketing y logística" title="Fechas comerciales y logísticas" description="Llegadas, activaciones y fechas comerciales próximas.">
-          <CompactMilestoneList items={limitItems(excludePriorityMilestones(commercialLogisticsMilestones, priorityMilestoneIds))} emptyMessage="Sin fechas comerciales o logísticas próximas." />
-        </Section>
-        <Section id="criticos" eyebrow="Riesgo operacional" title="Proyectos críticos" description="Proyectos con bloqueos o hitos vencidos.">
-          <CompactProjectList items={limitItems(criticalProjects)} />
+        <Section
+          id="fechas-comerciales"
+          eyebrow="Marketing y logística"
+          title="Fechas comerciales y logísticas"
+          description="Llegadas, activaciones y fechas comerciales próximas."
+        >
+          <CompactMilestoneList
+            items={limitItems(
+              excludePriorityMilestones(
+                commercialLogisticsMilestones,
+                priorityMilestoneIds,
+              ),
+            )}
+            emptyMessage="Sin fechas comerciales o logísticas próximas."
+          />
         </Section>
       </div>
+
+      <Section
+        id="criticos"
+        eyebrow="Riesgo operacional"
+        title="Proyectos críticos"
+        description="Proyectos con bloqueos o hitos vencidos."
+      >
+        <CompactProjectList items={limitItems(criticalProjects)} />
+      </Section>
     </AppShell>
   );
 }
