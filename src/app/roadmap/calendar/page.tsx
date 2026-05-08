@@ -388,7 +388,10 @@ export default async function CalendarRoadmapPage({ searchParams }: PageProps) {
         }
       />
 
-      <form className="panel filter-panel calendar-filter">
+      <form
+        className="panel filter-panel calendar-filter"
+        key={`calendar-filter-${year}-${month}-${selectedArea ?? "all"}-${selectedType ?? "all"}`}
+      >
         <div className="filter-heading">
           <div>
             <p className="eyebrow">Filtro simple</p>
@@ -406,13 +409,13 @@ export default async function CalendarRoadmapPage({ searchParams }: PageProps) {
         <div className="filter-grid calendar-filter-grid">
           <label className="field">
             <span>Año</span>
-            <input name="year" type="number" min="2000" max="2100" defaultValue={year} />
+            <input name="year" type="number" min="2000" max="2100" defaultValue={String(year)} />
           </label>
           <label className="field">
             <span>Mes</span>
-            <select name="month" defaultValue={month}>
+            <select name="month" defaultValue={String(month)} key={`month-${year}-${month}`}>
               {MONTH_NAMES.map((label, index) => (
-                <option value={index + 1} key={label}>{label}</option>
+                <option value={String(index + 1)} key={label}>{label}</option>
               ))}
             </select>
           </label>
