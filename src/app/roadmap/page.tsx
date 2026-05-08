@@ -1,19 +1,49 @@
 import Link from "next/link";
-import { ROADMAP_DEFAULT_COLORS, ROADMAP_PROJECT_TYPE_LABELS, ROADMAP_PROJECT_TYPES, ROADMAP_STATUSES, ROADMAP_STATUS_LABELS, ROADMAP_TRAFFIC_LIGHT_LABELS } from "@/modules/roadmap/constants";
+import {
+  ROADMAP_DEFAULT_COLORS,
+  ROADMAP_PROJECT_TYPE_LABELS,
+  ROADMAP_PROJECT_TYPES,
+  ROADMAP_STATUSES,
+  ROADMAP_STATUS_LABELS,
+  ROADMAP_TRAFFIC_LIGHT_LABELS,
+} from "@/modules/roadmap/constants";
 import { buildRoadmapProjectInsights } from "@/modules/roadmap/insights";
 import { searchRoadmapProjects } from "@/modules/roadmap/service";
-import { buildYearTimelineScale, clampYearPercent, displayDate, displayPlannedDate } from "@/modules/roadmap/ui/date";
-import { displayMilestoneName, displayMilestoneStatus } from "@/modules/roadmap/ui/labels";
+import {
+  buildYearTimelineScale,
+  clampYearPercent,
+  displayDate,
+  displayPlannedDate,
+} from "@/modules/roadmap/ui/date";
+import {
+  displayMilestoneName,
+  displayMilestoneStatus,
+} from "@/modules/roadmap/ui/labels";
 import { AppShell, KpiCard, PageHeader } from "@/modules/roadmap/ui/shell";
-import type { RoadmapProjectTypeValue, RoadmapStatusValue } from "@/modules/roadmap/types";
+import type {
+  RoadmapProjectTypeValue,
+  RoadmapStatusValue,
+} from "@/modules/roadmap/types";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+type PageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
 type Project = Awaited<ReturnType<typeof searchRoadmapProjects>>[number];
 type ProjectMilestone = Project["milestones"][number];
+type QuickFilterKey =
+  | "all"
+  | "q1"
+  | "q2"
+  | "q3"
+  | "q4"
+  | "risk"
+  | "blocked"
+  | "unassigned"
+  | "approvals";
 
 const TIMELINE_LABEL_PRIORITY_CODES = [
   "supply_estimated_arrival_santiago",
@@ -37,23 +67,42 @@ function first(value: string | string[] | undefined): string | undefined {
 }
 
 function pendingMilestones(projects: Project[]) {
-  return projects.reduce((total, project) => total + project.milestones.filter((milestone) => milestone.status !== "completed").length, 0);
+  return projects.reduce(
+    (total, project) =>
+      total +
+      project.milestones.filter((milestone) => milestone.status !== "completed")
+        .length,
+    0,
+  );
 }
 
 function plannedMilestones(project: Project, year: number) {
   return project.milestones
     .filter((milestone) => milestone.plannedDate)
     .sort((a, b) => Number(a.plannedDate) - Number(b.plannedDate))
-    .map((milestone) => ({ milestone, left: clampYearPercent(milestone.plannedDate!, year) }));
+    .map((milestone) => ({
+      milestone,
+      left: clampYearPercent(milestone.plannedDate!, year),
+    }));
 }
 
-function timelineLabelPriority(milestone: ProjectMilestone, context: { nextMilestone?: ProjectMilestone | null; earliestUpcomingId?: string; finalMilestoneId?: string }) {
+function timelineLabelPriority(
+  milestone: ProjectMilestone,
+  context: {
+    nextMilestone?: ProjectMilestone | null;
+    earliestUpcomingId?: string;
+    finalMilestoneId?: string;
+  },
+) {
   if (context.nextMilestone?.id === milestone.id) return 0;
 
-  const codePriority = TIMELINE_LABEL_PRIORITY_CODES.indexOf(milestone.milestoneCode as (typeof TIMELINE_LABEL_PRIORITY_CODES)[number]);
+  const codePriority = TIMELINE_LABEL_PRIORITY_CODES.indexOf(
+    milestone.milestoneCode as (typeof TIMELINE_LABEL_PRIORITY_CODES)[number],
+  );
   if (codePriority !== -1) return codePriority + 1;
 
-  if (milestone.isCritical || context.finalMilestoneId === milestone.id) return 4;
+  if (milestone.isCritical || context.finalMilestoneId === milestone.id)
+    return 4;
   if (context.earliestUpcomingId === milestone.id) return 5;
 
   return Number.POSITIVE_INFINITY;
@@ -69,16 +118,104 @@ function operationalChip(label: string, count: number) {
   return count > 0 ? { label, count } : null;
 }
 
-function timelineMilestones(project: Project, year: number, nextMilestone?: ProjectMilestone | null) {
+function projectOverlapsQuarter(
+  project: Project,
+  year: number,
+  quarter: number,
+) {
+  const quarterStart = new Date(Date.UTC(year, (quarter - 1) * 3, 1));
+  const quarterEnd = new Date(Date.UTC(year, quarter * 3, 0, 23, 59, 59, 999));
+  return project.startDate <= quarterEnd && project.targetDate >= quarterStart;
+}
+
+function filteredByQuick(
+  projects: Project[],
+  year: number,
+  quickFilter: QuickFilterKey,
+) {
+  if (quickFilter === "all") return projects;
+  if (["q1", "q2", "q3", "q4"].includes(quickFilter)) {
+    const quarter = Number(quickFilter.slice(1));
+    return projects.filter((project) =>
+      projectOverlapsQuarter(project, year, quarter),
+    );
+  }
+  return projects.filter((project) => {
+    const insights = buildRoadmapProjectInsights(project.milestones);
+    if (quickFilter === "risk")
+      return (
+        project.status === "en_riesgo" ||
+        insights.severity === "warning" ||
+        insights.severity === "critical"
+      );
+    if (quickFilter === "blocked")
+      return (
+        project.status === "bloqueado" || insights.blockedMilestones.length > 0
+      );
+    if (quickFilter === "unassigned")
+      return (
+        !project.ownerName?.trim() || insights.milestonesWithoutOwner.length > 0
+      );
+    if (quickFilter === "approvals") return insights.pendingApprovalCount > 0;
+    return true;
+  });
+}
+
+function safeQuickFilter(value: string | undefined): QuickFilterKey {
+  const allowed = new Set<QuickFilterKey>([
+    "all",
+    "q1",
+    "q2",
+    "q3",
+    "q4",
+    "risk",
+    "blocked",
+    "unassigned",
+    "approvals",
+  ]);
+  return value && allowed.has(value as QuickFilterKey)
+    ? (value as QuickFilterKey)
+    : "all";
+}
+
+function quickFilterHref(
+  params: Record<string, string | string[] | undefined>,
+  key: QuickFilterKey,
+) {
+  const query = new URLSearchParams();
+  for (const [name, value] of Object.entries(params)) {
+    if (name === "quick") continue;
+    const firstValue = first(value);
+    if (firstValue) query.set(name, firstValue);
+  }
+  if (key !== "all") query.set("quick", key);
+  const serialized = query.toString();
+  return serialized ? `/roadmap?${serialized}` : "/roadmap";
+}
+
+function timelineMilestones(
+  project: Project,
+  year: number,
+  nextMilestone?: ProjectMilestone | null,
+) {
   const milestones = plannedMilestones(project, year);
   const todayStart = startOfTodayUtc();
   const upcomingMilestones = milestones
     .map(({ milestone }) => milestone)
-    .filter((milestone) => milestone.status !== "completed" && milestone.plannedDate && new Date(milestone.plannedDate).getTime() >= todayStart)
+    .filter(
+      (milestone) =>
+        milestone.status !== "completed" &&
+        milestone.plannedDate &&
+        new Date(milestone.plannedDate).getTime() >= todayStart,
+    )
     .sort((a, b) => Number(a.plannedDate) - Number(b.plannedDate));
   const finalMilestone = milestones
     .map(({ milestone }) => milestone)
-    .sort((a, b) => milestoneWorkflowValue(a) - milestoneWorkflowValue(b) || Number(a.plannedDate) - Number(b.plannedDate))
+    .sort(
+      (a, b) =>
+        milestoneWorkflowValue(a) - milestoneWorkflowValue(b) ||
+        Number(a.plannedDate) - Number(b.plannedDate),
+    )
     .at(-1);
   const context = {
     nextMilestone,
@@ -86,17 +223,31 @@ function timelineMilestones(project: Project, year: number, nextMilestone?: Proj
     finalMilestoneId: finalMilestone?.id,
   };
   const labels = milestones
-    .map((item) => ({ ...item, priority: timelineLabelPriority(item.milestone, context) }))
+    .map((item) => ({
+      ...item,
+      priority: timelineLabelPriority(item.milestone, context),
+    }))
     .filter((item) => Number.isFinite(item.priority))
-    .sort((a, b) => a.priority - b.priority || Number(a.milestone.plannedDate) - Number(b.milestone.plannedDate));
+    .sort(
+      (a, b) =>
+        a.priority - b.priority ||
+        Number(a.milestone.plannedDate) - Number(b.milestone.plannedDate),
+    );
 
   const visibleLabels = labels.reduce<typeof labels>((selected, item) => {
     if (selected.length >= TIMELINE_LABEL_LIMIT) return selected;
-    const collides = selected.some((selectedItem) => Math.abs(selectedItem.left - item.left) < MIN_TIMELINE_LABEL_GAP);
+    const collides = selected.some(
+      (selectedItem) =>
+        Math.abs(selectedItem.left - item.left) < MIN_TIMELINE_LABEL_GAP,
+    );
     return collides ? selected : [...selected, item];
   }, []);
-  const visibleLabelIds = new Set(visibleLabels.map((item) => item.milestone.id));
-  const secondaryMilestoneCount = upcomingMilestones.filter((milestone) => !visibleLabelIds.has(milestone.id)).length;
+  const visibleLabelIds = new Set(
+    visibleLabels.map((item) => item.milestone.id),
+  );
+  const secondaryMilestoneCount = upcomingMilestones.filter(
+    (milestone) => !visibleLabelIds.has(milestone.id),
+  ).length;
 
   return {
     milestones,
@@ -109,8 +260,11 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const year = Number(first(params.year)) || new Date().getUTCFullYear();
   const status = first(params.status) as RoadmapStatusValue | undefined;
-  const projectType = first(params.projectType) as RoadmapProjectTypeValue | undefined;
-  const projects = await searchRoadmapProjects({
+  const projectType = first(params.projectType) as
+    | RoadmapProjectTypeValue
+    | undefined;
+  const quickFilter = safeQuickFilter(first(params.quick));
+  const allProjects = await searchRoadmapProjects({
     year,
     status: status || undefined,
     projectType: projectType || undefined,
@@ -121,10 +275,28 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
     channel: first(params.channel),
     q: first(params.q),
   });
+  const projects = filteredByQuick(allProjects, year, quickFilter);
+  const quickFilters: Array<{ key: QuickFilterKey; label: string }> = [
+    { key: "all", label: "Todo el año" },
+    { key: "q1", label: "Q1" },
+    { key: "q2", label: "Q2" },
+    { key: "q3", label: "Q3" },
+    { key: "q4", label: "Q4" },
+    { key: "risk", label: "En riesgo" },
+    { key: "blocked", label: "Bloqueados" },
+    { key: "unassigned", label: "Sin responsable" },
+    { key: "approvals", label: "Aprobaciones pendientes" },
+  ];
 
-  const projectsInProgress = projects.filter((project) => project.status === "en_curso").length;
-  const projectsAtRisk = projects.filter((project) => project.status === "en_riesgo").length;
-  const blockedProjects = projects.filter((project) => project.status === "bloqueado").length;
+  const projectsInProgress = projects.filter(
+    (project) => project.status === "en_curso",
+  ).length;
+  const projectsAtRisk = projects.filter(
+    (project) => project.status === "en_riesgo",
+  ).length;
+  const blockedProjects = projects.filter(
+    (project) => project.status === "bloqueado",
+  ).length;
   const timelineScale = buildYearTimelineScale(year);
 
   return (
@@ -133,125 +305,400 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
         eyebrow="ROADMAP DE MARKETING"
         title={`Roadmap anual ${year}`}
         subtitle="Vista transversal de proyectos de Marketing, por Q1, Q2, Q3 y Q4 con hitos clave."
-        actions={<Link className="button primary" href="/roadmap/new">+ Nuevo proyecto</Link>}
+        actions={
+          <Link className="button primary" href="/roadmap/new">
+            + Nuevo proyecto
+          </Link>
+        }
       />
 
       <section className="kpi-grid" aria-label="Indicadores del roadmap">
-        <KpiCard label="Total proyectos" value={projects.length} tone="blue" detail="En el año filtrado" />
-        <KpiCard label="En curso" value={projectsInProgress} tone="green" detail="Avanzando según plan" />
-        <KpiCard label="En riesgo" value={projectsAtRisk} tone="amber" detail="Requieren seguimiento" />
-        <KpiCard label="Bloqueados" value={blockedProjects} tone="red" detail="Con impedimentos" />
-        <KpiCard label="Hitos pendientes" value={pendingMilestones(projects)} tone="slate" detail="No completados" />
+        <KpiCard
+          label="Total proyectos"
+          value={projects.length}
+          tone="blue"
+          detail="En el año filtrado"
+        />
+        <KpiCard
+          label="En curso"
+          value={projectsInProgress}
+          tone="green"
+          detail="Avanzando según plan"
+        />
+        <KpiCard
+          label="En riesgo"
+          value={projectsAtRisk}
+          tone="amber"
+          detail="Requieren seguimiento"
+        />
+        <KpiCard
+          label="Bloqueados"
+          value={blockedProjects}
+          tone="red"
+          detail="Con impedimentos"
+        />
+        <KpiCard
+          label="Hitos pendientes"
+          value={pendingMilestones(projects)}
+          tone="slate"
+          detail="No completados"
+        />
       </section>
 
       <form className="panel filter-panel">
         <div className="filter-heading">
           <div>
             <p className="eyebrow">Filtros</p>
-            <h2>Segmenta el roadmap</h2>
+            <h2>Control y segmentación</h2>
+            <p className="muted filter-description">
+              Usa filtros rápidos para foco operativo o combina criterios
+              avanzados.
+            </p>
           </div>
-          <div className="filter-actions"><Link className="button secondary" href="/roadmap">Limpiar</Link><button className="button primary" type="submit">Aplicar filtros</button></div>
+          <div className="filter-actions">
+            <Link className="button secondary" href="/roadmap">
+              Limpiar
+            </Link>
+            <button className="button primary" type="submit">
+              Aplicar filtros
+            </button>
+          </div>
         </div>
-        <div className="filter-grid">
-          <label className="field"><span>Año</span><input name="year" type="number" min="2000" max="2100" defaultValue={year} /></label>
-          <label className="field"><span>Estado</span><select name="status" defaultValue={status ?? ""}><option value="">Todos</option>{ROADMAP_STATUSES.map((item) => <option key={item} value={item}>{ROADMAP_STATUS_LABELS[item]}</option>)}</select></label>
-          <label className="field"><span>Tipo de proyecto</span><select name="projectType" defaultValue={projectType ?? ""}><option value="">Todos</option>{ROADMAP_PROJECT_TYPES.map((item) => <option key={item} value={item}>{ROADMAP_PROJECT_TYPE_LABELS[item]}</option>)}</select></label>
-          <label className="field"><span>Responsable</span><input name="owner" defaultValue={first(params.owner) ?? ""} /></label>
-          <label className="field"><span>Marca</span><input name="brand" defaultValue={first(params.brand) ?? ""} /></label>
-          <label className="field"><span>Área</span><input name="area" defaultValue={first(params.area) ?? ""} /></label>
-          <label className="field"><span>Canal</span><input name="channel" defaultValue={first(params.channel) ?? ""} /></label>
-          <label className="field"><span>Categoría</span><input name="category" defaultValue={first(params.category) ?? ""} /></label>
-          <label className="field wide"><span>Buscar</span><input name="q" placeholder="Proyecto, código o comentario" defaultValue={first(params.q) ?? ""} /></label>
+        {quickFilter !== "all" ? (
+          <input type="hidden" name="quick" value={quickFilter} />
+        ) : null}
+        <div
+          className="quick-filter-group"
+          aria-label="Filtros rápidos del roadmap"
+        >
+          <span className="quick-filter-label">Filtros rápidos</span>
+          <div className="quick-filter-chips">
+            {quickFilters.map((item) => (
+              <Link
+                key={item.key}
+                className={`quick-filter-chip${quickFilter === item.key ? " active" : ""}`}
+                href={quickFilterHref(params, item.key)}
+                aria-current={quickFilter === item.key ? "page" : undefined}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
         </div>
+        <div className="filter-grid primary-filters">
+          <label className="field">
+            <span>Año</span>
+            <input
+              name="year"
+              type="number"
+              min="2000"
+              max="2100"
+              defaultValue={year}
+            />
+          </label>
+          <label className="field">
+            <span>Estado</span>
+            <select name="status" defaultValue={status ?? ""}>
+              <option value="">Todos</option>
+              {ROADMAP_STATUSES.map((item) => (
+                <option key={item} value={item}>
+                  {ROADMAP_STATUS_LABELS[item]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Tipo de proyecto</span>
+            <select name="projectType" defaultValue={projectType ?? ""}>
+              <option value="">Todos</option>
+              {ROADMAP_PROJECT_TYPES.map((item) => (
+                <option key={item} value={item}>
+                  {ROADMAP_PROJECT_TYPE_LABELS[item]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Buscar</span>
+            <input
+              name="q"
+              placeholder="Proyecto, código o comentario"
+              defaultValue={first(params.q) ?? ""}
+            />
+          </label>
+        </div>
+        <details className="advanced-filters">
+          <summary>
+            Filtros avanzados: responsable, marca, área, canal y categoría
+          </summary>
+          <div className="filter-grid advanced-filter-grid">
+            <label className="field">
+              <span>Responsable</span>
+              <input name="owner" defaultValue={first(params.owner) ?? ""} />
+            </label>
+            <label className="field">
+              <span>Marca</span>
+              <input name="brand" defaultValue={first(params.brand) ?? ""} />
+            </label>
+            <label className="field">
+              <span>Área</span>
+              <input name="area" defaultValue={first(params.area) ?? ""} />
+            </label>
+            <label className="field">
+              <span>Canal</span>
+              <input
+                name="channel"
+                defaultValue={first(params.channel) ?? ""}
+              />
+            </label>
+            <label className="field">
+              <span>Categoría</span>
+              <input
+                name="category"
+                defaultValue={first(params.category) ?? ""}
+              />
+            </label>
+          </div>
+        </details>
       </form>
 
-      <section className="roadmap-board" aria-label="Roadmap anual por trimestre y mes">
+      <details className="panel roadmap-legend">
+        <summary>Cómo leer el roadmap</summary>
+        <div className="legend-grid">
+          <span>
+            <i className="legend-dot green" />
+            Verde: completado / en orden
+          </span>
+          <span>
+            <i className="legend-dot yellow" />
+            Amarillo: requiere atención
+          </span>
+          <span>
+            <i className="legend-dot red" />
+            Rojo: crítico / bloqueado / vencido
+          </span>
+          <span>
+            <i className="legend-dot gray" />
+            Gris: no iniciado / sin información suficiente
+          </span>
+          <span>
+            <i className="legend-dot point" />
+            Punto en timeline: hito
+          </span>
+          <span>
+            <i className="legend-bar" />
+            Barra: duración estimada del proyecto
+          </span>
+          <span>
+            <strong>Próximo hito:</strong> siguiente acción operativa
+          </span>
+        </div>
+      </details>
+
+      <section
+        className="roadmap-board"
+        aria-label="Roadmap anual por trimestre y mes"
+      >
         <div className="roadmap-board-content">
           <div className="timeline-scale" aria-hidden="true">
             <div className="scale-spacer">Proyecto</div>
             <div className="scale-grid">
               <div className="quarter-header">
                 {timelineScale.quarters.map((quarter) => (
-                  <div key={quarter.label} style={{ width: `${quarter.width}%` }}><strong>{quarter.label}</strong><span>{quarter.range}</span></div>
+                  <div
+                    key={quarter.label}
+                    style={{ width: `${quarter.width}%` }}
+                  >
+                    <strong>{quarter.label}</strong>
+                    <span>{quarter.range}</span>
+                  </div>
                 ))}
               </div>
               <div className="month-header">
-                {timelineScale.months.map((month) => <span key={month.label} style={{ width: `${month.width}%` }}>{month.label}</span>)}
+                {timelineScale.months.map((month) => (
+                  <span key={month.label} style={{ width: `${month.width}%` }}>
+                    {month.label}
+                  </span>
+                ))}
               </div>
             </div>
             <div className="scale-spacer actions-spacer">Acción</div>
           </div>
           {projects.length === 0 ? (
             <div className="empty-state">
-              <span className="empty-icon" aria-hidden="true">+</span>
+              <span className="empty-icon" aria-hidden="true">
+                +
+              </span>
               <h2>No hay proyectos todavía</h2>
-              <p>Crea el primer proyecto para comenzar a construir el roadmap anual.</p>
-              <Link className="button primary" href="/roadmap/new">Nuevo proyecto</Link>
+              <p>
+                Crea el primer proyecto para comenzar a construir el roadmap
+                anual.
+              </p>
+              <Link className="button primary" href="/roadmap/new">
+                Nuevo proyecto
+              </Link>
             </div>
           ) : null}
           {projects.map((project) => {
-          const insights = buildRoadmapProjectInsights(project.milestones);
-          const nextMilestone = insights.nextMilestone;
-          const left = clampYearPercent(project.startDate, year);
-          const right = clampYearPercent(project.targetDate, year);
-          const width = Math.max(1, right - left);
-          const color = project.colorLabel || ROADMAP_DEFAULT_COLORS[project.trafficLight];
-          const timeline = timelineMilestones(project, year, nextMilestone);
-          const operationalChips = [
-            operationalChip("Vencidos", insights.overdueMilestones.length),
-            operationalChip("Próximos 7 días", insights.upcomingMilestones.length),
-            operationalChip("Bloqueados", insights.blockedMilestones.length),
-            operationalChip("Sin responsable", insights.milestonesWithoutOwner.length),
-            operationalChip("Aprobaciones", insights.pendingApprovalCount),
-          ].filter((chip): chip is { label: string; count: number } => Boolean(chip));
-          return (
-            <article className="timeline-project-row" key={project.id}>
-              <div className="project-summary">
-                <p className="muted project-code">{project.code}</p>
-                <h3><Link href={`/roadmap/${project.id}`}>{project.name}</Link></h3>
-                <div className="project-meta-line"><span>{project.ownerName || "Sin responsable"}</span><span>{ROADMAP_PROJECT_TYPE_LABELS[project.projectType]}</span><span>{project.area || "Sin área"}</span></div>
-                <div className="badges">
-                  <span className={`badge status-${project.status}`}>{ROADMAP_STATUS_LABELS[project.status]}</span>
-                  <span className={`badge ${project.trafficLight}`}>{ROADMAP_TRAFFIC_LIGHT_LABELS[project.trafficLight]}</span>
-                  <span className="badge phase">{insights.currentPhase.label}</span>
-                  <span className={`badge severity-${insights.severity}`}>{insights.severityLabel}</span>
-                </div>
-                {operationalChips.length > 0 ? (
-                  <div className="badges operational-chips" aria-label="Alertas operativas">
-                    {operationalChips.map((chip) => <span key={chip.label} className="badge alert-chip">{chip.label}: {chip.count}</span>)}
+            const insights = buildRoadmapProjectInsights(project.milestones);
+            const nextMilestone = insights.nextMilestone;
+            const left = clampYearPercent(project.startDate, year);
+            const right = clampYearPercent(project.targetDate, year);
+            const width = Math.max(1, right - left);
+            const color =
+              project.colorLabel ||
+              ROADMAP_DEFAULT_COLORS[project.trafficLight];
+            const timeline = timelineMilestones(project, year, nextMilestone);
+            const operationalChips = [
+              operationalChip("Vencidos", insights.overdueMilestones.length),
+              operationalChip(
+                "Próximos 7 días",
+                insights.upcomingMilestones.length,
+              ),
+              operationalChip("Bloqueados", insights.blockedMilestones.length),
+              operationalChip(
+                "Sin responsable",
+                insights.milestonesWithoutOwner.length,
+              ),
+              operationalChip("Aprobaciones", insights.pendingApprovalCount),
+            ].filter((chip): chip is { label: string; count: number } =>
+              Boolean(chip),
+            );
+            return (
+              <article className="timeline-project-row" key={project.id}>
+                <div className="project-summary">
+                  <p className="muted project-code">{project.code}</p>
+                  <h3>
+                    <Link href={`/roadmap/${project.id}`}>{project.name}</Link>
+                  </h3>
+                  <div className="project-meta-line">
+                    <span>{project.ownerName || "Sin responsable"}</span>
+                    <span>
+                      {ROADMAP_PROJECT_TYPE_LABELS[project.projectType]}
+                    </span>
+                    <span>{project.area || "Sin área"}</span>
                   </div>
-                ) : null}
-              </div>
-              <div className="timeline-content">
-                <div className="row-topline">
-                  <span>Progreso {insights.progressPercentage}%</span>
-                  <span>{displayDate(project.startDate)} → {displayDate(project.targetDate)}</span>
-                </div>
-                <div className="timeline" aria-label={`Línea de tiempo de ${project.name}`}>
-                  <span className="timeline-grid" aria-hidden="true">
-                    {timelineScale.months.slice(1).map((month) => <span key={`${project.id}-${month.label}-month`} className="timeline-month-line" style={{ left: `${month.start}%` }} />)}
-                    {timelineScale.months.filter((month) => month.isQuarterStart).map((month) => <span key={`${project.id}-${month.label}-quarter`} className="timeline-quarter-line" style={{ left: `${month.start}%` }} />)}
-                  </span>
-                  <span className="timeline-bar" style={{ left: `${left}%`, width: `${width}%`, background: color }} title={`${displayDate(project.startDate)} → ${displayDate(project.targetDate)}`} />
-                  {timeline.milestones.map(({ milestone, left: milestoneLeft }) => <span key={milestone.id} className={`milestone-dot milestone-${milestone.status}`} style={{ left: `${milestoneLeft}%` }} title={`${displayMilestoneName(milestone)}: ${displayDate(milestone.plannedDate)}`} />)}
-                  {timeline.visibleLabels.map(({ milestone, left: milestoneLeft }) => <span key={`${milestone.id}-label`} className={timelineLabelClass(milestoneLeft)} style={{ left: `${milestoneLeft}%` }}>{displayMilestoneName(milestone)}</span>)}
-                </div>
-                <div className={`next-action-card${nextMilestone && !nextMilestone.ownerName?.trim() ? " warning-card" : ""}`}>
-                  <p className="eyebrow">Próximo hito</p>
-                  {nextMilestone ? (
-                    <div>
-                      <strong>{displayMilestoneName(nextMilestone)}</strong>
-                      <p className="muted">{nextMilestone.ownerName || "Sin responsable"} · {displayPlannedDate(nextMilestone.plannedDate)} · {displayMilestoneStatus(nextMilestone.status)}</p>
+                  <div className="badges">
+                    <span className={`badge status-${project.status}`}>
+                      {ROADMAP_STATUS_LABELS[project.status]}
+                    </span>
+                    <span className={`badge ${project.trafficLight}`}>
+                      {ROADMAP_TRAFFIC_LIGHT_LABELS[project.trafficLight]}
+                    </span>
+                    <span className="badge phase">
+                      {insights.currentPhase.label}
+                    </span>
+                    <span className={`badge severity-${insights.severity}`}>
+                      {insights.severityLabel}
+                    </span>
+                  </div>
+                  {operationalChips.length > 0 ? (
+                    <div
+                      className="badges operational-chips"
+                      aria-label="Alertas operativas"
+                    >
+                      {operationalChips.map((chip) => (
+                        <span key={chip.label} className="badge alert-chip">
+                          {chip.label}: {chip.count}
+                        </span>
+                      ))}
                     </div>
-                  ) : <p className="muted">Sin acciones pendientes.</p>}
-                  {timeline.secondaryMilestoneCount > 0 ? (
-                    <p className="muted compact-milestone-summary">+ {timeline.secondaryMilestoneCount} hitos próximos</p>
                   ) : null}
                 </div>
-              </div>
-              <div className="row-actions"><Link className="button small" href={`/roadmap/${project.id}`}>Ver detalle</Link></div>
-            </article>
-          );
+                <div className="timeline-content">
+                  <div className="row-topline">
+                    <span>Progreso {insights.progressPercentage}%</span>
+                    <span>
+                      {displayDate(project.startDate)} →{" "}
+                      {displayDate(project.targetDate)}
+                    </span>
+                  </div>
+                  <div
+                    className="timeline"
+                    aria-label={`Línea de tiempo de ${project.name}`}
+                  >
+                    <span className="timeline-grid" aria-hidden="true">
+                      {timelineScale.months.slice(1).map((month) => (
+                        <span
+                          key={`${project.id}-${month.label}-month`}
+                          className="timeline-month-line"
+                          style={{ left: `${month.start}%` }}
+                        />
+                      ))}
+                      {timelineScale.months
+                        .filter((month) => month.isQuarterStart)
+                        .map((month) => (
+                          <span
+                            key={`${project.id}-${month.label}-quarter`}
+                            className="timeline-quarter-line"
+                            style={{ left: `${month.start}%` }}
+                          />
+                        ))}
+                    </span>
+                    <span
+                      className="timeline-bar"
+                      style={{
+                        left: `${left}%`,
+                        width: `${width}%`,
+                        background: color,
+                      }}
+                      title={`${displayDate(project.startDate)} → ${displayDate(project.targetDate)}`}
+                    />
+                    {timeline.milestones.map(
+                      ({ milestone, left: milestoneLeft }) => (
+                        <span
+                          key={milestone.id}
+                          className={`milestone-dot milestone-${milestone.status}`}
+                          style={{ left: `${milestoneLeft}%` }}
+                          title={`${displayMilestoneName(milestone)}: ${displayDate(milestone.plannedDate)}`}
+                        />
+                      ),
+                    )}
+                    {timeline.visibleLabels.map(
+                      ({ milestone, left: milestoneLeft }) => (
+                        <span
+                          key={`${milestone.id}-label`}
+                          className={timelineLabelClass(milestoneLeft)}
+                          style={{ left: `${milestoneLeft}%` }}
+                        >
+                          {displayMilestoneName(milestone)}
+                        </span>
+                      ),
+                    )}
+                  </div>
+                  <div
+                    className={`next-action-card${nextMilestone && !nextMilestone.ownerName?.trim() ? " warning-card" : ""}`}
+                  >
+                    <p className="eyebrow">Próximo hito</p>
+                    {nextMilestone ? (
+                      <div>
+                        <strong>{displayMilestoneName(nextMilestone)}</strong>
+                        <p className="muted">
+                          {nextMilestone.ownerName || "Sin responsable"} ·{" "}
+                          {displayPlannedDate(nextMilestone.plannedDate)} ·{" "}
+                          {displayMilestoneStatus(nextMilestone.status)}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="muted">Sin acciones pendientes.</p>
+                    )}
+                    {timeline.secondaryMilestoneCount > 0 ? (
+                      <p className="muted compact-milestone-summary">
+                        + {timeline.secondaryMilestoneCount} hitos próximos
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="row-actions">
+                  <Link
+                    className="button small"
+                    href={`/roadmap/${project.id}`}
+                  >
+                    Ver detalle
+                  </Link>
+                </div>
+              </article>
+            );
           })}
         </div>
       </section>
