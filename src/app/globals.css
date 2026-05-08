@@ -2370,34 +2370,32 @@ textarea {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.project-admin-table th:first-child,
-.project-admin-table td:first-child,
-.project-admin-table th:last-child,
-.project-admin-table td:last-child {
+.project-table-sticky-left,
+.project-table-sticky-right {
   position: sticky;
-  background: white;
+  z-index: 3;
+  background: #fff;
+  background-clip: padding-box;
 }
-.project-admin-table th:first-child,
-.project-admin-table td:first-child {
+.project-table-sticky-left {
   left: 0;
-  z-index: 2;
   width: 260px;
+  min-width: 260px;
   box-shadow: 10px 0 18px rgba(15, 23, 42, 0.08);
 }
-.project-admin-table th:last-child,
-.project-admin-table td:last-child {
+.project-table-sticky-right {
   right: 0;
-  z-index: 2;
   width: 132px;
+  min-width: 132px;
   box-shadow: -10px 0 18px rgba(15, 23, 42, 0.08);
 }
-.project-admin-table th:first-child,
-.project-admin-table th:last-child {
-  z-index: 4;
+.project-admin-table th.project-table-sticky-left,
+.project-admin-table th.project-table-sticky-right {
+  z-index: 5;
   background: #f8fafc;
 }
-.project-admin-table tbody tr:hover td:first-child,
-.project-admin-table tbody tr:hover td:last-child {
+.project-admin-table tbody tr:hover .project-table-sticky-left,
+.project-admin-table tbody tr:hover .project-table-sticky-right {
   background: #fffdf2;
 }
 .project-admin-table tbody tr:hover td {
@@ -2476,13 +2474,13 @@ textarea {
   .project-admin-table {
     min-width: 1420px;
   }
-  .project-admin-table th:first-child,
-  .project-admin-table td:first-child {
+  .project-table-sticky-left {
     width: 220px;
+    min-width: 220px;
   }
-  .project-admin-table th:last-child,
-  .project-admin-table td:last-child {
+  .project-table-sticky-right {
     width: 116px;
+    min-width: 116px;
   }
   .project-table-project-cell {
     min-width: 210px;

@@ -129,7 +129,7 @@ function ProjectRow({ project, returnTo }: { project: ProjectWithInsights; retur
 
   return (
     <tr>
-      <td className="project-table-project-cell">
+      <td className="project-table-project-cell project-table-sticky-left">
         <span className="admin-code">{project.code}</span>
         <strong>{project.name}</strong>
         <div className="project-table-display-badges">
@@ -181,7 +181,7 @@ function ProjectRow({ project, returnTo }: { project: ProjectWithInsights; retur
             : "Sin fecha"}
         </small>
       </td>
-      <td>
+      <td className="project-table-sticky-right">
         <form id={formId} className="project-row-actions" action={action}>
           <HiddenProjectFields project={project} />
           <button className="button primary small" type="submit">Guardar</button>
@@ -321,7 +321,7 @@ export default async function RoadmapProjectsPage({ searchParams }: PageProps) {
             <table className="project-admin-table">
               <thead>
                 <tr>
-                  <th>Proyecto</th>
+                  <th className="project-table-sticky-left">Proyecto</th>
                   <th>Estado</th>
                   <th>Prioridad</th>
                   <th>Semáforo</th>
@@ -334,7 +334,7 @@ export default async function RoadmapProjectsPage({ searchParams }: PageProps) {
                   <th>Fecha objetivo</th>
                   <th>Riesgo</th>
                   <th>Próximo hito</th>
-                  <th>Acción</th>
+                  <th className="project-table-sticky-right">Acción</th>
                 </tr>
               </thead>
               <tbody>
