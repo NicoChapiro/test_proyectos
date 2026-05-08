@@ -1488,19 +1488,37 @@ textarea {
 .weekly-dashboard-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: 14px;
   align-items: start;
+}
+.weekly-secondary-grid {
+  grid-auto-flow: row;
 }
 .weekly-section {
   display: grid;
-  gap: 12px;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+}
+.weekly-secondary-grid .weekly-section {
+  padding: 16px;
 }
 .weekly-section-description {
   max-width: 680px;
   margin: 4px 0 0;
   color: var(--muted);
-  font-size: 0.92rem;
-  line-height: 1.4;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+.weekly-secondary-grid .section-title {
+  margin-bottom: 2px;
+}
+.weekly-secondary-grid .section-title h2 {
+  margin-bottom: 2px;
+  font-size: 1.05rem;
+}
+.weekly-secondary-grid .eyebrow {
+  margin-bottom: 5px;
 }
 .weekly-priority-grid {
   display: grid;
@@ -1510,6 +1528,7 @@ textarea {
 .weekly-priority-card {
   display: grid;
   gap: 10px;
+  min-width: 0;
   padding: 15px;
   border: 1px solid var(--line-soft);
   border-radius: 16px;
@@ -1559,14 +1578,15 @@ textarea {
 }
 .weekly-compact-list {
   display: grid;
-  gap: 8px;
+  gap: 7px;
 }
 .weekly-compact-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
-  gap: 12px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+  gap: 10px;
   align-items: center;
-  padding: 10px 12px;
+  min-width: 0;
+  padding: 9px 10px;
   border: 1px solid var(--line-soft);
   border-radius: 14px;
   background: #f8fafc;
@@ -1609,9 +1629,9 @@ textarea {
 .weekly-empty,
 .weekly-more {
   margin: 0;
-  padding: 10px 12px;
+  padding: 9px 11px;
   border-radius: 13px;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 900;
 }
 .weekly-empty {
