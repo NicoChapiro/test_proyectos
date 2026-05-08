@@ -2317,3 +2317,136 @@ textarea {
     min-height: 128px;
   }
 }
+
+.project-table-kpis {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.project-table-filter-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: end;
+}
+.project-table-panel {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+.project-table-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+.project-table-heading h2 {
+  margin: 0 0 4px;
+}
+.project-table-heading p {
+  margin: 0;
+}
+.project-table-wrap {
+  border: 1px solid var(--line-soft);
+  border-radius: 18px;
+  background: white;
+}
+.project-admin-table {
+  width: 100%;
+  min-width: 1680px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.project-admin-table th,
+.project-admin-table td {
+  border-bottom: 1px solid var(--line-soft);
+  padding: 12px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.project-admin-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8fafc;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.project-admin-table tbody tr:hover td {
+  background: #fffdf2;
+}
+.project-admin-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.project-admin-table td small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+.project-table-project-cell {
+  min-width: 230px;
+  max-width: 280px;
+}
+.project-table-project-cell strong,
+.project-table-next-cell strong {
+  display: block;
+  color: var(--black);
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+.project-table-display-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+.project-table-input {
+  min-width: 128px;
+  max-width: 170px;
+  border-radius: 10px;
+  padding: 8px 9px;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+.project-table-input.date {
+  min-width: 140px;
+}
+.project-table-next-cell {
+  min-width: 220px;
+  max-width: 260px;
+}
+.project-row-actions {
+  display: grid;
+  min-width: 112px;
+  gap: 8px;
+}
+.project-row-actions .button,
+.project-row-actions .text-button {
+  width: 100%;
+}
+.project-table-empty {
+  display: grid;
+  justify-items: center;
+}
+
+@media (max-width: 1180px) {
+  .project-table-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 860px) {
+  .project-table-kpis,
+  .project-table-filter-grid {
+    grid-template-columns: 1fr;
+  }
+  .project-table-panel {
+    padding: 14px;
+  }
+  .project-admin-table {
+    min-width: 1420px;
+  }
+  .project-table-project-cell {
+    min-width: 210px;
+  }
+}
