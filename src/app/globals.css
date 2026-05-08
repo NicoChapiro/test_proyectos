@@ -2370,6 +2370,36 @@ textarea {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+.project-admin-table th:first-child,
+.project-admin-table td:first-child,
+.project-admin-table th:last-child,
+.project-admin-table td:last-child {
+  position: sticky;
+  background: white;
+}
+.project-admin-table th:first-child,
+.project-admin-table td:first-child {
+  left: 0;
+  z-index: 2;
+  width: 260px;
+  box-shadow: 10px 0 18px rgba(15, 23, 42, 0.08);
+}
+.project-admin-table th:last-child,
+.project-admin-table td:last-child {
+  right: 0;
+  z-index: 2;
+  width: 132px;
+  box-shadow: -10px 0 18px rgba(15, 23, 42, 0.08);
+}
+.project-admin-table th:first-child,
+.project-admin-table th:last-child {
+  z-index: 4;
+  background: #f8fafc;
+}
+.project-admin-table tbody tr:hover td:first-child,
+.project-admin-table tbody tr:hover td:last-child {
+  background: #fffdf2;
+}
 .project-admin-table tbody tr:hover td {
   background: #fffdf2;
 }
@@ -2445,6 +2475,14 @@ textarea {
   }
   .project-admin-table {
     min-width: 1420px;
+  }
+  .project-admin-table th:first-child,
+  .project-admin-table td:first-child {
+    width: 220px;
+  }
+  .project-admin-table th:last-child,
+  .project-admin-table td:last-child {
+    width: 116px;
   }
   .project-table-project-cell {
     min-width: 210px;
