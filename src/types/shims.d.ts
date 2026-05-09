@@ -43,6 +43,21 @@ declare module "@prisma/client" {
   export type RoadmapApprovalStatus = "pending" | "approved" | "rejected";
   export type RoadmapProjectType = "packaging" | "product_launch" | "campaign" | "trade_marketing" | "ecommerce" | "content_design" | "event" | "innovation" | "regulatory_compliance" | "internal_process" | "other";
 
+  export type RoadmapActivityLog = {
+    id: string;
+    projectId: string;
+    milestoneId: string | null;
+    entityType: string;
+    action: string;
+    fieldName: string | null;
+    beforeValue: string | null;
+    afterValue: string | null;
+    summary: string;
+    actorName: string | null;
+    metadata: unknown;
+    createdAt: Date;
+  };
+
   export type PackagingRequest = {
     id: string;
     code: string;
@@ -129,6 +144,7 @@ declare module "@prisma/client" {
       OR?: RoadmapProjectWhereInput[];
     };
     export type RoadmapMilestoneCreateWithoutProjectInput = Record<string, unknown>;
+    export type InputJsonValue = unknown;
     export type RoadmapMilestoneWhereInput = {
       id?: string | StringListFilter;
       projectId?: string;
@@ -142,10 +158,12 @@ declare module "@prisma/client" {
     export class PrismaClientKnownRequestError extends Error {
       code: string;
     }
+    export type TransactionClient = PrismaClient;
   }
 
   type ProjectWithMilestones = RoadmapProject & { milestones: RoadmapMilestone[]; packagingRequest?: PackagingRequest | null };
   type PackagingWithRoadmapProjects = PackagingRequest & { roadmapProjects: ProjectWithMilestones[] };
+  type ActivityLogWithMilestone = RoadmapActivityLog & { milestone?: RoadmapMilestone | null };
   type OrderBy = Record<string, "asc" | "desc">;
 
   export class PrismaClient {
@@ -171,6 +189,7 @@ declare module "@prisma/client" {
         select?: unknown;
         orderBy?: OrderBy[];
       }): Promise<RoadmapMilestone[]>;
+      findFirst(args?: { where?: Prisma.RoadmapMilestoneWhereInput }): Promise<RoadmapMilestone | null>;
       update(args: { where: { id: string }; data: unknown }): Promise<RoadmapMilestone>;
       updateMany(args: {
         where: Prisma.RoadmapMilestoneWhereInput;
@@ -178,6 +197,17 @@ declare module "@prisma/client" {
       }): Promise<{ count: number }>;
       count(args?: { where?: unknown }): Promise<number>;
     };
+    roadmapActivityLog: {
+      create(args: { data: unknown }): Promise<RoadmapActivityLog>;
+      createMany(args: { data: unknown[] }): Promise<{ count: number }>;
+      findMany(args?: {
+        where?: { projectId?: string };
+        include?: unknown;
+        orderBy?: OrderBy;
+        take?: number;
+      }): Promise<ActivityLogWithMilestone[]>;
+    };
+    $transaction<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T>;
     $queryRaw(query: TemplateStringsArray, ...values: unknown[]): Promise<unknown>;
     $disconnect(): Promise<void>;
   }

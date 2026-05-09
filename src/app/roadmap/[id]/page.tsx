@@ -15,7 +15,7 @@ import {
   buildRoadmapProjectInsights,
   type RoadmapProjectInsights,
 } from "@/modules/roadmap/insights";
-import { findRoadmapProject } from "@/modules/roadmap/service";
+import { findRoadmapProject, getRoadmapProjectActivity } from "@/modules/roadmap/service";
 import {
   displayDate,
   displayPlannedDate,
@@ -48,6 +48,7 @@ export const revalidate = 0;
 type PageProps = { params: Promise<{ id: string }> };
 type Project = Awaited<ReturnType<typeof findRoadmapProject>>;
 type Milestone = Project["milestones"][number];
+type ActivityLog = Awaited<ReturnType<typeof getRoadmapProjectActivity>>[number];
 
 const BULK_ASSIGNMENT_SCOPE_OPTIONS: Array<{
   value: RoadmapBulkOwnerAssignmentScope;
@@ -215,6 +216,122 @@ function approvalClass(status: Milestone["approvalStatus"]) {
 
 function todayInputDate(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+
+function displayActivityTimestamp(date: Date | string): string {
+  return new Intl.DateTimeFormat("es-CL", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(new Date(date));
+}
+
+function displayActivityEntity(entityType: string): string {
+  if (entityType === "project") return "Proyecto";
+  if (entityType === "milestone") return "Hito";
+  return entityType;
+}
+
+function activityActionLabel(action: string): string {
+  const labels: Record<string, string> = {
+    project_created: "Creación",
+    project_updated: "Actualización",
+    milestone_created: "Hito creado",
+    milestone_updated: "Hito actualizado",
+    bulk_owner_assignment: "Asignación rápida",
+  };
+  return labels[action] ?? action.replaceAll("_", " ");
+}
+
+function activityFieldLabel(fieldName: string | null): string | null {
+  if (!fieldName) return null;
+  const labels: Record<string, string> = {
+    name: "Nombre",
+    description: "Descripción",
+    projectType: "Tipo",
+    category: "Categoría",
+    area: "Área",
+    channel: "Canal",
+    brand: "Marca",
+    ownerName: "Responsable",
+    priority: "Prioridad",
+    status: "Estado",
+    startDate: "Fecha inicio",
+    targetDate: "Fecha objetivo",
+    completedAt: "Fecha completado",
+    trafficLight: "Semáforo",
+    sharepointUrl: "SharePoint",
+    sharepointFolderUrl: "Carpeta SharePoint",
+    colorLabel: "Color",
+    track: "Track",
+    sequence: "Secuencia",
+    dueDate: "Fecha vencimiento",
+    plannedDate: "Fecha planificada",
+    actualDate: "Fecha real",
+    approvalStatus: "Aprobación",
+    linkUrl: "Enlace",
+    documentUrl: "Documento",
+    notes: "Notas",
+    isCritical: "Crítico",
+    sortOrder: "Orden",
+  };
+  return labels[fieldName] ?? fieldName;
+}
+
+function ActivityHistory({ activityLogs }: { activityLogs: ActivityLog[] }) {
+  return (
+    <section className="panel activity-history" id="historial">
+      <div className="section-title compact">
+        <div>
+          <p className="eyebrow">Historial</p>
+          <h2>Historial de cambios</h2>
+          <p className="muted">Últimos 30 cambios registrados en el proyecto.</p>
+        </div>
+        <span className="badge slate">{activityLogs.length} eventos</span>
+      </div>
+      {activityLogs.length === 0 ? (
+        <p className="muted">No hay cambios registrados todavía.</p>
+      ) : (
+        <ol className="activity-list" aria-label="Historial de cambios del proyecto">
+          {activityLogs.map((log) => {
+            const fieldLabel = activityFieldLabel(log.fieldName);
+            return (
+              <li key={log.id} className="activity-item">
+                <div className="activity-marker" aria-hidden="true" />
+                <div className="activity-content">
+                  <div className="activity-header">
+                    <time dateTime={new Date(log.createdAt).toISOString()}>
+                      {displayActivityTimestamp(log.createdAt)}
+                    </time>
+                    <span className="badge activity-badge">
+                      {activityActionLabel(log.action)}
+                    </span>
+                  </div>
+                  <p className="activity-summary">{log.summary}</p>
+                  <div className="activity-meta">
+                    <span>{displayActivityEntity(log.entityType)}</span>
+                    {fieldLabel ? <span>{fieldLabel}</span> : null}
+                    <span>{log.actorName || "Sistema Roadmap"}</span>
+                    {log.milestone ? (
+                      <span>Hito: {displayMilestoneName(log.milestone)}</span>
+                    ) : null}
+                  </div>
+                  {log.beforeValue || log.afterValue ? (
+                    <p className="activity-diff">
+                      <span>{log.beforeValue || "—"}</span>
+                      <strong>→</strong>
+                      <span>{log.afterValue || "—"}</span>
+                    </p>
+                  ) : null}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </section>
+  );
 }
 
 function startOfUtcToday(): number {
@@ -717,6 +834,7 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
     "marketing_activation_date",
   );
   const bulkAssignmentCounts = buildBulkAssignmentCounts(project.milestones);
+  const activityLogs = await getRoadmapProjectActivity(project.id);
 
   return (
     <AppShell active="roadmap">
@@ -924,6 +1042,7 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
         <a href="#operaciones">Operaciones / Proveedor</a>
         <a href="#marketing">Marketing / Campaña</a>
         <a href="#resumen-proyecto">Resumen del proyecto</a>
+        <a href="#historial">Historial</a>
       </nav>
 
       <section className="panel" id="resumen-proyecto">
@@ -989,6 +1108,8 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
           </div>
         </dl>
       </section>
+
+      <ActivityHistory activityLogs={activityLogs} />
 
       <MilestoneTable
         milestones={supplyMilestones}
