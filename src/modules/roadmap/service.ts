@@ -28,6 +28,7 @@ import type {
   RoadmapFilters,
   RoadmapMilestoneInput,
   RoadmapMilestoneUpdateInput,
+  RoadmapPlannerDateInput,
   RoadmapProjectInput,
   RoadmapProjectUpdateInput,
 } from "./types";
@@ -379,6 +380,67 @@ export async function editRoadmapMilestone(projectId: string, milestoneId: strin
       });
       await createManyRoadmapActivityLogs(logs, tx);
       return milestone;
+    });
+  } catch (error) {
+    mapPrismaNotFound(error);
+  }
+}
+
+export async function updateRoadmapMilestonePlannerDates(
+  projectId: string,
+  input: RoadmapPlannerDateInput & { actorName?: string | null },
+) {
+  const { actorName: submittedActorName, ...plannerInput } = input;
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const project = await getRoadmapProject(projectId, tx);
+      if (!project) throw new RoadmapNotFoundError();
+
+      const milestonesById = new Map(
+        project.milestones.map((milestone) => [milestone.id, milestone]),
+      );
+      const changes = plannerInput.dates.filter(({ milestoneId, plannedDate }) => {
+        const milestone = milestonesById.get(milestoneId);
+        if (!milestone) return false;
+        return !isSameActivityValue(milestone.plannedDate, plannedDate);
+      });
+
+      for (const change of changes) {
+        await updateRoadmapMilestone(
+          projectId,
+          change.milestoneId,
+          {
+            plannedDate: change.plannedDate,
+            ...(change.plannedDate ? { dueDate: change.plannedDate } : {}),
+          },
+          tx,
+        );
+      }
+
+      if (changes.length > 0) {
+        const firstMilestone = milestonesById.get(changes[0].milestoneId);
+        await createRoadmapActivityLog(
+          {
+            projectId,
+            milestoneId: changes.length === 1 ? changes[0].milestoneId : null,
+            entityType: changes.length === 1 ? "milestone" : "project",
+            action: "milestone_dates_updated",
+            fieldName: "plannedDate",
+            summary:
+              changes.length === 1 && firstMilestone
+                ? `Fecha actualizada: ${displayMilestoneName(firstMilestone)}`
+                : `Fechas actualizadas en ${plannerInput.flowLabel}`,
+            actorName: actorName({ actorName: submittedActorName }),
+            metadata: {
+              flowLabel: plannerInput.flowLabel,
+              updatedCount: changes.length,
+            },
+          },
+          tx,
+        );
+      }
+
+      return { count: changes.length };
     });
   } catch (error) {
     mapPrismaNotFound(error);
