@@ -5,6 +5,7 @@ import {
   validateBulkOwnerAssignmentInput,
   validateMilestoneInput,
   validateMilestoneUpdateInput,
+  validateRoadmapPlannerDateInput,
   validateRoadmapProjectInput,
   validateRoadmapProjectUpdateInput,
 } from "@/modules/roadmap/validators";
@@ -70,6 +71,20 @@ export async function bulkAssignMilestoneOwnersAction(
   await bulkAssignMilestoneOwners(
     projectId,
     validateBulkOwnerAssignmentInput(formToObject(formData)),
+  );
+  redirect(`/roadmap/${projectId}`);
+}
+
+export async function updateMilestonePlannerDatesAction(
+  projectId: string,
+  formData: FormData,
+) {
+  const { updateRoadmapMilestonePlannerDates } = await import(
+    "@/modules/roadmap/service"
+  );
+  await updateRoadmapMilestonePlannerDates(
+    projectId,
+    validateRoadmapPlannerDateInput(formData),
   );
   redirect(`/roadmap/${projectId}`);
 }

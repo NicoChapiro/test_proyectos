@@ -79,6 +79,12 @@ export type RoadmapBulkOwnerAssignmentInput = {
   ownerName: string;
   scope: RoadmapBulkOwnerAssignmentScope;
 };
+
+export type RoadmapPlannerDateInput = {
+  flowLabel: string;
+  dates: Array<{ milestoneId: string; plannedDate: Date | null }>;
+};
+
 export type RoadmapActivityLogInput = {
   projectId: string;
   milestoneId?: string | null;

@@ -1,6 +1,6 @@
 import { ROADMAP_APPROVAL_STATUSES, ROADMAP_MILESTONE_STATUSES, ROADMAP_MILESTONE_TRACKS, ROADMAP_PRIORITIES, ROADMAP_PROJECT_TYPES, ROADMAP_STATUSES, ROADMAP_TRAFFIC_LIGHTS } from "./constants";
 import { RoadmapError } from "./errors";
-import type { RoadmapApprovalStatusValue, RoadmapBulkOwnerAssignmentInput, RoadmapBulkOwnerAssignmentScope, RoadmapFilters, RoadmapMilestoneInput, RoadmapMilestoneStatusValue, RoadmapMilestoneTrackValue, RoadmapMilestoneUpdateInput, RoadmapPriorityValue, RoadmapProjectInput, RoadmapProjectTypeValue, RoadmapProjectUpdateInput, RoadmapStatusValue, RoadmapTrafficLightValue } from "./types";
+import type { RoadmapApprovalStatusValue, RoadmapBulkOwnerAssignmentInput, RoadmapBulkOwnerAssignmentScope, RoadmapFilters, RoadmapMilestoneInput, RoadmapMilestoneStatusValue, RoadmapMilestoneTrackValue, RoadmapMilestoneUpdateInput, RoadmapPlannerDateInput, RoadmapPriorityValue, RoadmapProjectInput, RoadmapProjectTypeValue, RoadmapProjectUpdateInput, RoadmapStatusValue, RoadmapTrafficLightValue } from "./types";
 
 const ROADMAP_BULK_OWNER_ASSIGNMENT_SCOPES = [
   "all_unassigned",
@@ -222,4 +222,24 @@ export function validateBulkOwnerAssignmentInput(
       "Alcance",
     ) as RoadmapBulkOwnerAssignmentScope,
   };
+}
+
+export function validateRoadmapPlannerDateInput(
+  formData: FormData,
+): RoadmapPlannerDateInput {
+  const flowLabel = requiredString(formData.get("flowLabel"), "Flujo");
+  const dates: RoadmapPlannerDateInput["dates"] = [];
+  formData.forEach((value, key) => {
+    if (!key.startsWith("plannedDate:")) return;
+    const milestoneId = key.slice("plannedDate:".length).trim();
+    if (!milestoneId) throw new RoadmapError("Hito inválido");
+    dates.push({
+      milestoneId,
+      plannedDate: optionalDate(value, "Fecha planificada") ?? null,
+    });
+  });
+  if (dates.length === 0) {
+    throw new RoadmapError("No hay fechas para actualizar");
+  }
+  return { flowLabel, dates };
 }
