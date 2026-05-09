@@ -71,8 +71,10 @@ export function KpiCard({ label, value, tone = "blue", detail }: { label: string
 }
 
 export function SummaryMetricCard({ label, value, detail, tone }: { label: string; value: string | number; detail?: string; tone?: "success" | "warning" | "danger" }) {
+  const isQuietZero = value === 0 || value === "0";
+
   return (
-    <article className={`summary-card${tone ? ` ${tone}` : ""}`}>
+    <article className={`summary-card${tone ? ` ${tone}` : ""}${isQuietZero ? " quiet-zero" : ""}`}>
       <span>{label}</span>
       <strong>{value}</strong>
       {detail ? <p>{detail}</p> : null}
