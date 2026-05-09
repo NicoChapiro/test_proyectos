@@ -40,6 +40,16 @@ type FlowDatePlannerProps = {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 type DatePrecision = "day" | "fortnight" | "month";
+type DayOffsetReference = "previous" | "saved" | "start" | "target";
+
+const DAY_OFFSET_REFERENCE_LABELS: Record<DayOffsetReference, string> = {
+  previous: "Hito anterior",
+  saved: "Fecha guardada actual",
+  start: "Inicio del proyecto",
+  target: "Fecha objetivo",
+};
+
+const QUICK_DAY_OFFSETS = [7, 15, 30, 45];
 
 const MONTH_LABELS = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
 
@@ -315,6 +325,11 @@ export function FlowDatePlanner({
   );
   const maxDays = Math.max(0, Math.round((projectTarget.getTime() - projectStart.getTime()) / DAY_MS));
   const [draftDates, setDraftDates] = useState<Record<string, string>>({});
+  const [quickAdjustment, setQuickAdjustment] = useState<{ days: string; reference: DayOffsetReference }>({
+    days: "15",
+    reference: "previous",
+  });
+  const [quickAdjustmentMessages, setQuickAdjustmentMessages] = useState<Record<string, string>>({});
   const [precision, setPrecision] = useState<DatePrecision>("day");
   const timelineMonths = useMemo(() => buildTimelineMonths(projectStart, projectTarget), [projectStart, projectTarget]);
 
@@ -383,13 +398,37 @@ export function FlowDatePlanner({
         const rangeValue = Math.min(maxDays, Math.max(0, dayOffset(projectStart, selectedDate)));
         const inputId = `slider-planner-date-${flow.track}-${selectedMilestone.id}`;
         const selectedPreviewDate = parseDate(selectedDate) ?? projectStart;
-        const applyPreviewDate = (value: string) =>
-          setDraftDates((current) => ({
-            ...current,
-            [selectedMilestone.id]: snapDate(value, precision, projectStart, projectTarget),
-          }));
-        const setExactPreviewDate = (value: string) =>
+        const previousDate = previous ? milestoneDate(previous) : null;
+        const quickReferences: Array<{ value: DayOffsetReference; label: string; date: string | null }> = [
+          { value: "previous", label: DAY_OFFSET_REFERENCE_LABELS.previous, date: previousDate },
+          { value: "saved", label: DAY_OFFSET_REFERENCE_LABELS.saved, date: savedDate },
+          { value: "start", label: DAY_OFFSET_REFERENCE_LABELS.start, date: projectStartDate },
+          { value: "target", label: DAY_OFFSET_REFERENCE_LABELS.target, date: projectTargetDate },
+        ];
+        const activeQuickReference =
+          quickReferences.find((reference) => reference.value === quickAdjustment.reference && reference.date) ??
+          quickReferences.find((reference) => reference.date);
+        const activeQuickReferenceDate = activeQuickReference?.date ?? projectStartDate;
+        const activeQuickReferenceLabel = activeQuickReference?.label ?? DAY_OFFSET_REFERENCE_LABELS.start;
+        const setPreviewDate = (value: string, quickMessage?: string) => {
           setDraftDates((current) => ({ ...current, [selectedMilestone.id]: value }));
+          setQuickAdjustmentMessages((current) => {
+            if (quickMessage) return { ...current, [selectedMilestone.id]: quickMessage };
+            const { [selectedMilestone.id]: _removed, ...remaining } = current;
+            return remaining;
+          });
+        };
+        const applyPreviewDate = (value: string) =>
+          setPreviewDate(snapDate(value, precision, projectStart, projectTarget));
+        const setExactPreviewDate = (value: string) => setPreviewDate(value);
+        const applyDayOffset = (daysValue = quickAdjustment.days) => {
+          const parsedDays = Number.parseInt(daysValue, 10);
+          const safeDays = Number.isNaN(parsedDays) ? 0 : Math.min(365, Math.max(0, parsedDays));
+          const referenceDate = parseDate(activeQuickReferenceDate) ?? projectStart;
+          const previewDate = addDays(referenceDate, safeDays);
+          setQuickAdjustment((current) => ({ ...current, days: String(safeDays) }));
+          setPreviewDate(previewDate, `Vista previa: ${safeDays} días después de ${activeQuickReferenceLabel}.`);
+        };
 
         return (
           <article key={flow.track} className="date-planner-flow-card slider-planner-flow">
@@ -521,13 +560,50 @@ export function FlowDatePlanner({
                 </label>
               </div>
               <p className={`slider-impact-line${warnings.length > 0 ? " warning" : ""}`}>
-                <strong>Impacto:</strong> {impact.slice(0, 3).join(" · ")}
+                <strong>Impacto:</strong> {[quickAdjustmentMessages[selectedMilestone.id], ...impact].filter(Boolean).slice(0, 3).join(" · ")}
               </p>
               {warnings.length > 0 ? (
                 <ul className="date-planner-warnings slider-warnings">
                   {warnings.map((warning) => <li key={warning}>{warning}</li>)}
                 </ul>
               ) : null}
+              <div className="slider-day-adjust" aria-label={`Ajuste rápido por días para ${selectedMilestone.name}`}>
+                <strong>Ajuste rápido</strong>
+                <label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={365}
+                    step={1}
+                    value={quickAdjustment.days}
+                    onChange={(event) => setQuickAdjustment((current) => ({ ...current, days: event.target.value }))}
+                  />
+                  días después de
+                </label>
+                <select
+                  value={activeQuickReference?.value ?? quickAdjustment.reference}
+                  onChange={(event) =>
+                    setQuickAdjustment((current) => ({
+                      ...current,
+                      reference: event.target.value as DayOffsetReference,
+                    }))
+                  }
+                >
+                  {quickReferences.map((reference) => (
+                    <option key={reference.value} value={reference.value} disabled={!reference.date}>
+                      {reference.label}{reference.date ? "" : " (no disponible)"}
+                    </option>
+                  ))}
+                </select>
+                <button type="button" onClick={() => applyDayOffset()}>Aplicar</button>
+                <div className="slider-day-chips" aria-label="Atajos de días">
+                  {QUICK_DAY_OFFSETS.map((days) => (
+                    <button key={days} type="button" onClick={() => applyDayOffset(String(days))}>
+                      +{days} días
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="date-planner-actions slider-editor-actions">
                 <div className="slider-quick-actions" aria-label={`Acciones rápidas para ${selectedMilestone.name}`}>
                   <button className="date-planner-suggestion-button" type="button" onClick={() => setExactPreviewDate(suggestedPreviewDate)}>
