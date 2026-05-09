@@ -856,6 +856,9 @@ textarea {
 .milestone-dot.milestone-blocked {
   background: var(--danger);
 }
+.milestone-dot.milestone-not_started {
+  background: #9ca3af;
+}
 .milestone-label {
   position: absolute;
   z-index: 2;
@@ -1047,6 +1050,147 @@ textarea {
 .section-tabs a:hover {
   color: var(--black);
   background: var(--brand-yellow-soft);
+}
+
+.project-flow-roadmap {
+  display: grid;
+  gap: 10px;
+  background: white;
+}
+.project-flow-scroll {
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.project-flow-legend {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+.project-flow-board {
+  display: grid;
+  gap: 8px;
+  min-width: 940px;
+}
+.project-flow-scale,
+.project-flow-row {
+  display: grid;
+  grid-template-columns: minmax(230px, 290px) minmax(660px, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+.project-flow-spacer {
+  display: flex;
+  align-items: center;
+  padding: 10px 13px;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  background: #f8fafc;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.compact-scale {
+  border-radius: 14px;
+  box-shadow: none;
+}
+.compact-scale .quarter-header div {
+  padding: 8px 8px;
+}
+.compact-scale .quarter-header strong {
+  font-size: 0.82rem;
+}
+.compact-scale .quarter-header span,
+.compact-scale .month-header span {
+  font-size: 0.68rem;
+}
+.compact-scale .month-header span {
+  padding: 7px 3px;
+}
+.project-flow-row {
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  border-left: 4px solid var(--brand-yellow);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+.project-flow-summary {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+}
+.project-flow-titleline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.project-flow-titleline h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.mini-progress {
+  height: 6px;
+}
+.project-flow-next {
+  display: grid;
+  gap: 2px;
+  color: var(--muted-strong);
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+.project-flow-next p {
+  margin-bottom: 0;
+}
+.project-flow-next strong {
+  color: var(--black);
+}
+.project-flow-timeline-wrap {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.project-flow-timeline {
+  min-height: 76px;
+  background: #f8fafc;
+}
+.project-flow-bar {
+  top: 18px;
+  height: 12px;
+  background: #334155;
+  box-shadow: 0 6px 12px rgba(15, 23, 42, 0.16);
+}
+.project-flow-timeline .milestone-dot {
+  top: 40px;
+}
+.project-flow-timeline .milestone-label {
+  top: 56px;
+  max-width: 104px;
+}
+.project-flow-timeline .milestone-cluster {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  color: white;
+  font-size: 0.62rem;
+  font-weight: 900;
+}
+.project-flow-no-dates,
+.project-flow-empty {
+  display: grid;
+  place-items: center;
+  min-height: 76px;
+  margin: 0;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  background: #f8fafc;
+  color: var(--muted);
+  font-weight: 900;
 }
 .section-title {
   display: flex;
