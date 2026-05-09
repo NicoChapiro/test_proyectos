@@ -196,6 +196,16 @@ function normalizeMilestoneLabel(value: string): string {
     .toLowerCase();
 }
 
+function displayCompactDate(date: Date | string | null | undefined): string {
+  if (!date) return "—";
+  return new Intl.DateTimeFormat("es-CL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(date));
+}
+
 function startOfTodayUtc(): number {
   const now = new Date();
   return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
@@ -495,7 +505,7 @@ export default async function SwimlaneRoadmapPage({ searchParams }: PageProps) {
         <KpiCard label="Aprobaciones pendientes" value={pendingApprovals} tone="amber" detail={`${countPendingMilestones(projects)} hitos pendientes`} />
       </section>
 
-      <form className="panel filter-panel">
+      <form className="panel filter-panel swimlane-filter-panel">
         <div className="filter-heading">
           <div>
             <p className="eyebrow">Filtros</p>
@@ -606,7 +616,6 @@ export default async function SwimlaneRoadmapPage({ searchParams }: PageProps) {
                 ))}
               </div>
             </div>
-            <div className="scale-spacer actions-spacer">Acción</div>
           </div>
 
           {swimlanes.length === 0 ? (
@@ -622,10 +631,10 @@ export default async function SwimlaneRoadmapPage({ searchParams }: PageProps) {
             <details className="swimlane-lane" key={lane.area} open>
               <summary className="swimlane-lane-summary">
                 <span className="swimlane-lane-title">
-                  {lane.area} · {lane.projects.length} {lane.projects.length === 1 ? "proyecto" : "proyectos"} · {lane.inProgressCount} en curso · {lane.criticalOrBlockedCount} crítico{lane.criticalOrBlockedCount === 1 ? "" : "s"} · {lane.pendingMilestoneCount} hitos pendientes
+                  {lane.area} · {lane.projects.length} {lane.projects.length === 1 ? "proyecto" : "proyectos"} · {lane.inProgressCount} en curso · {lane.pendingMilestoneCount} hitos pendientes
                 </span>
                 {lane.nextImportantDate ? (
-                  <span className="swimlane-next-date">Próxima fecha: {displayDate(lane.nextImportantDate)}</span>
+                  <span className="swimlane-next-date">Próxima fecha: {displayCompactDate(lane.nextImportantDate)}</span>
                 ) : null}
               </summary>
               <div className="swimlane-projects">

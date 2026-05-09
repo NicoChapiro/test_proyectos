@@ -2808,3 +2808,277 @@ textarea {
     justify-content: flex-start;
   }
 }
+
+/* Compact executive density overrides for the experimental swimlane roadmap. */
+.content-shell:has(.swimlane-board) {
+  gap: 12px;
+}
+.page-header:has(+ .swimlane-kpi-grid) {
+  min-height: auto;
+  padding: 18px 22px;
+}
+.page-header:has(+ .swimlane-kpi-grid) h1 {
+  margin-bottom: 6px;
+  font-size: clamp(1.65rem, 3vw, 2.35rem);
+}
+.page-header:has(+ .swimlane-kpi-grid) .header-subtitle {
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+.swimlane-kpi-grid {
+  gap: 8px;
+}
+.swimlane-kpi-grid .kpi-card {
+  min-height: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  gap: 9px;
+}
+.swimlane-kpi-grid .kpi-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+}
+.swimlane-kpi-grid .kpi-card p {
+  margin-bottom: 2px;
+  font-size: 0.72rem;
+}
+.swimlane-kpi-grid .kpi-card strong {
+  font-size: 1.28rem;
+}
+.swimlane-kpi-grid .kpi-card small {
+  margin-top: 3px;
+  font-size: 0.72rem;
+  line-height: 1.15;
+}
+.swimlane-filter-panel {
+  padding: 12px;
+}
+.swimlane-filter-panel .filter-heading {
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 9px;
+}
+.swimlane-filter-panel .eyebrow {
+  margin-bottom: 4px;
+}
+.swimlane-filter-panel h2 {
+  font-size: 1rem;
+}
+.swimlane-filter-panel .filter-description {
+  margin-top: 2px;
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+.swimlane-filter-panel .quick-filter-group {
+  gap: 6px;
+  margin-bottom: 9px;
+  padding: 8px;
+  border-radius: 12px;
+}
+.swimlane-filter-panel .quick-filter-label {
+  font-size: 0.68rem;
+}
+.swimlane-filter-panel .quick-filter-chips {
+  gap: 5px;
+}
+.swimlane-filter-panel .quick-filter-chip {
+  min-height: 25px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+.swimlane-filter-panel .filter-grid {
+  gap: 8px;
+}
+.swimlane-filter-panel input,
+.swimlane-filter-panel select {
+  min-height: 34px;
+  padding: 7px 9px;
+  border-radius: 10px;
+  font-size: 0.86rem;
+}
+.swimlane-filter-panel .field span {
+  margin-bottom: 4px;
+  font-size: 0.7rem;
+}
+.swimlane-filter-panel .primary-filters {
+  margin-bottom: 8px;
+}
+.swimlane-filter-panel .advanced-filters {
+  padding-top: 8px;
+}
+.swimlane-filter-panel .advanced-filters summary {
+  font-size: 0.76rem;
+}
+.swimlane-filter-panel .advanced-filter-grid {
+  margin-top: 8px;
+}
+.swimlane-legend {
+  padding: 8px 12px;
+  border-radius: 14px;
+}
+.swimlane-legend summary {
+  font-size: 0.82rem;
+  line-height: 1.1;
+}
+.swimlane-legend .legend-grid {
+  gap: 5px 10px;
+  margin-top: 7px;
+  font-size: 0.75rem;
+  line-height: 1.15;
+}
+.swimlane-legend .legend-grid span {
+  gap: 5px;
+}
+.swimlane-legend .legend-dot {
+  width: 8px;
+  height: 8px;
+}
+.swimlane-legend .legend-bar {
+  width: 26px;
+  height: 7px;
+}
+.swimlane-legend .today-legend-line {
+  height: 14px;
+}
+.swimlane-board {
+  padding-bottom: 2px;
+}
+.swimlane-board-content {
+  gap: 8px;
+  min-width: 1120px;
+}
+.swimlane-scale {
+  position: static;
+  grid-template-columns: minmax(235px, 300px) minmax(720px, 1fr);
+  gap: 10px;
+}
+.swimlane-scale .scale-spacer {
+  min-width: 0;
+  padding: 8px 11px;
+  border-radius: 12px;
+  font-size: 0.66rem;
+}
+.swimlane-scale .quarter-header div {
+  padding: 7px 8px;
+}
+.swimlane-scale .quarter-header strong {
+  font-size: 0.82rem;
+}
+.swimlane-scale .quarter-header span {
+  font-size: 0.68rem;
+}
+.swimlane-scale .month-header span {
+  padding: 5px 3px;
+  font-size: 0.64rem;
+}
+.scale-today-line span {
+  top: 2px;
+  padding: 2px 6px;
+  font-size: 0.58rem;
+}
+.swimlane-lane-summary {
+  min-height: 34px;
+  padding: 8px 12px;
+  border-left-width: 5px;
+  font-size: 0.84rem;
+  line-height: 1.15;
+}
+.swimlane-next-date {
+  padding: 3px 7px;
+  font-size: 0.68rem;
+}
+.swimlane-projects {
+  gap: 6px;
+  padding: 7px;
+}
+.swimlane-project-row {
+  grid-template-columns: minmax(235px, 300px) minmax(690px, 1fr) max-content;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 14px;
+}
+.swimlane-project-summary {
+  gap: 4px;
+}
+.swimlane-project-summary .project-code {
+  margin-bottom: 0;
+  font-size: 0.68rem;
+}
+.swimlane-project-summary h3 {
+  font-size: 0.88rem;
+  line-height: 1.15;
+}
+.swimlane-meta-line {
+  gap: 6px;
+  font-size: 0.68rem;
+  line-height: 1.15;
+}
+.swimlane-badges {
+  gap: 4px;
+}
+.swimlane-badges .badge {
+  padding: 2px 5px;
+  font-size: 0.58rem;
+  line-height: 1.2;
+}
+.swimlane-timeline-content {
+  gap: 4px;
+}
+.swimlane-row-topline {
+  font-size: 0.68rem;
+  line-height: 1.1;
+}
+.swimlane-timeline {
+  min-height: 58px;
+  border-radius: 12px;
+}
+.swimlane-duration-bar {
+  top: 18px;
+  height: 10px;
+}
+.swimlane-timeline .milestone-dot {
+  top: 17px;
+  width: 11px;
+  height: 11px;
+}
+.swimlane-timeline .milestone-label {
+  top: 34px;
+  max-width: 110px;
+  font-size: 0.55rem;
+  line-height: 1.1;
+}
+.swimlane-more-milestones {
+  right: 7px;
+  bottom: 5px;
+  padding: 2px 6px;
+  font-size: 0.58rem;
+}
+.swimlane-row-actions {
+  min-width: 0;
+  align-self: center;
+}
+.swimlane-row-actions .button.small {
+  min-height: 28px;
+  padding: 5px 8px;
+  border-radius: 9px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+.swimlane-empty-state {
+  min-height: 180px;
+  padding: 28px 18px;
+}
+
+@media (max-width: 860px) {
+  .swimlane-board-content {
+    min-width: 1000px;
+  }
+  .swimlane-project-row,
+  .swimlane-scale {
+    grid-template-columns: minmax(220px, 270px) minmax(620px, 1fr) max-content;
+  }
+  .swimlane-scale {
+    grid-template-columns: minmax(220px, 270px) minmax(620px, 1fr);
+  }
+}
