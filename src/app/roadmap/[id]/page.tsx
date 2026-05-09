@@ -26,8 +26,8 @@ import {
   displayPlannedDate,
   inputDate,
 } from "@/modules/roadmap/ui/date";
+import { FlowDatePlanner, type PlannerFlow } from "@/modules/roadmap/ui/FlowDatePlanner";
 import { ProjectForm } from "@/modules/roadmap/ui/ProjectForm";
-import { SuggestedDateButton } from "@/modules/roadmap/ui/SuggestedDateButton";
 import {
   displayApprovalStatus,
   displayMilestoneName,
@@ -753,8 +753,12 @@ function activityFieldLabel(fieldName: string | null): string | null {
 
 function ActivityHistory({ activityLogs }: { activityLogs: ActivityLog[] }) {
   return (
-    <section className="panel activity-history" id="historial">
-      <div className="section-title compact">
+    <details className="panel activity-history collapsible-panel" id="historial">
+      <summary className="collapsible-summary">
+        <span>Historial de cambios · {activityLogs.length} eventos</span>
+        <span className="badge slate">Abrir</span>
+      </summary>
+      <div className="section-title compact collapsible-content-title">
         <div>
           <p className="eyebrow">Historial</p>
           <h2>Historial de cambios</h2>
@@ -762,7 +766,6 @@ function ActivityHistory({ activityLogs }: { activityLogs: ActivityLog[] }) {
             Últimos 30 cambios registrados en el proyecto.
           </p>
         </div>
-        <span className="badge slate">{activityLogs.length} eventos</span>
       </div>
       {activityLogs.length === 0 ? (
         <p className="muted">No hay cambios registrados todavía.</p>
@@ -807,9 +810,10 @@ function ActivityHistory({ activityLogs }: { activityLogs: ActivityLog[] }) {
           })}
         </ol>
       )}
-    </section>
+    </details>
   );
 }
+
 
 function startOfUtcToday(): number {
   return startOfUtcDay(new Date());
@@ -1013,6 +1017,34 @@ function DatePlannerContextBlock({
   );
 }
 
+function toPlannerDate(value: Date | string | null | undefined): string | null {
+  return value ? inputDate(value) : null;
+}
+
+function buildPlannerFlows(project: Project): PlannerFlow[] {
+  return buildProjectFlows(project.milestones).map((flow) => ({
+    track: flow.track,
+    label: flow.label,
+    milestones: flow.milestones.map((milestone) => ({
+      id: milestone.id,
+      name: displayMilestoneName(milestone),
+      ownerName: milestone.ownerName,
+      status: milestone.status,
+      statusLabel: displayMilestoneStatus(milestone.status),
+      approvalStatus: milestone.approvalStatus,
+      approvalLabel: milestone.approvalStatus
+        ? displayApprovalStatus(milestone.approvalStatus)
+        : null,
+      plannedDate: toPlannerDate(milestone.plannedDate),
+      dueDate: toPlannerDate(milestone.dueDate),
+      actualDate: toPlannerDate(milestone.actualDate ?? milestone.completedAt),
+      isCritical: milestone.isCritical,
+      sequence: milestone.sequence ?? 0,
+      sortOrder: milestone.sortOrder ?? 0,
+    })),
+  }));
+}
+
 function DatePlannerSection({
   project,
   action,
@@ -1020,7 +1052,7 @@ function DatePlannerSection({
   project: Project;
   action: (formData: FormData) => Promise<void>;
 }) {
-  const flows = buildProjectFlows(project.milestones);
+  const flows = buildPlannerFlows(project);
   return (
     <section className="panel date-planner" id="planificador-fechas">
       <div className="section-title compact">
@@ -1028,122 +1060,20 @@ function DatePlannerSection({
           <p className="eyebrow">Planificación</p>
           <h2>Planificador de fechas</h2>
           <p className="muted">
-            Revisa fechas definidas, completa hitos pendientes y valida la
-            secuencia por flujo.
+            Ajusta fechas por flujo viendo el hito anterior, actual y siguiente.
           </p>
         </div>
       </div>
-      <div className="date-planner-grid">
-        {flows.map((flow) => {
-          const total = flow.milestones.length;
-          const withDate = flow.milestones.filter(milestoneHasPlannerDate);
-          const withoutDate = flow.milestones.filter(
-            (milestone) => !milestoneHasPlannerDate(milestone),
-          );
-          const completeness = total > 0 ? Math.round((withDate.length / total) * 100) : 0;
-          const nextMilestone = nextFlowMilestone(flow.milestones);
-          const criticalMilestones = flow.milestones.filter((milestone, index) => {
-            const warnings = buildDatePlannerWarnings({
-              milestone,
-              milestones: flow.milestones,
-              context: datePlannerContext(flow.milestones, index),
-              targetDate: new Date(project.targetDate),
-            });
-            return (
-              isFinalFlowMilestone(milestone, flow.milestones) ||
-              milestone.status === "blocked" ||
-              milestone.approvalStatus === "pending" ||
-              warnings.length > 0
-            );
-          });
-
-          return (
-            <form key={flow.track} action={action} className="date-planner-flow-card">
-              <input type="hidden" name="flowLabel" value={flow.label} />
-              <div className="date-planner-flow-header">
-                <div>
-                  <h3>{flow.label}</h3>
-                  <p className="muted">
-                    Próximo hito: {nextMilestone ? displayMilestoneName(nextMilestone) : "Sin pendientes"}
-                  </p>
-                </div>
-                <span className="date-planner-percent">{completeness}%</span>
-              </div>
-              <div className="date-planner-stats" aria-label={`Resumen de fechas de ${flow.label}`}>
-                <span>Total <strong>{total}</strong></span>
-                <span>Con fecha <strong>{withDate.length}</strong></span>
-                <span>Sin fecha <strong>{withoutDate.length}</strong></span>
-              </div>
-              <div className="date-planner-previews">
-                <DatePlannerPreviewList title="Fechas definidas" milestones={withDate} />
-                <DatePlannerPreviewList title="Próximos sin fecha" milestones={withoutDate.filter((milestone) => milestone.status !== "completed")} />
-                <DatePlannerPreviewList title="Fechas críticas" milestones={criticalMilestones} />
-              </div>
-              <div className="date-planner-edit-list">
-                {flow.milestones.map((milestone, index) => {
-                  const context = datePlannerContext(flow.milestones, index);
-                  const warnings = buildDatePlannerWarnings({
-                    milestone,
-                    milestones: flow.milestones,
-                    context,
-                    targetDate: new Date(project.targetDate),
-                  });
-                  const suggestedDate = suggestedPlannerDate({
-                    milestones: flow.milestones,
-                    index,
-                    project,
-                  });
-                  const inputId = `planned-date-${flow.track}-${milestone.id}`;
-                  const hasDate = milestoneHasPlannerDate(milestone);
-                  return (
-                    <div key={milestone.id} className={plannerRowClass(warnings, hasDate)}>
-                      <div className="date-planner-row-main">
-                        <div>
-                          <strong>{displayMilestoneName(milestone)}</strong>
-                          <span>
-                            {milestone.ownerName || "Sin responsable"} · {displayMilestoneStatus(milestone.status)}
-                          </span>
-                        </div>
-                        <label className="date-planner-input">
-                          <span>Fecha planificada</span>
-                          <input
-                            id={inputId}
-                            type="date"
-                            name={`plannedDate:${milestone.id}`}
-                            defaultValue={inputDate(milestone.plannedDate ?? milestone.dueDate)}
-                          />
-                        </label>
-                      </div>
-                      <DatePlannerContextBlock milestone={milestone} context={context} />
-                      {suggestedDate ? (
-                        <div className="date-planner-suggestion">
-                          <span>Sugerida: {displayDate(suggestedDate)}</span>
-                          <SuggestedDateButton inputId={inputId} value={inputDate(suggestedDate)} />
-                        </div>
-                      ) : null}
-                      {warnings.length > 0 ? (
-                        <ul className="date-planner-warnings">
-                          {warnings.map((warning) => (
-                            <li key={warning}>{warning}</li>
-                          ))}
-                        </ul>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="date-planner-actions">
-                <button className="button primary small" type="submit">
-                  Guardar fechas
-                </button>
-              </div>
-            </form>
-          );
-        })}
-      </div>
+      <FlowDatePlanner
+        flows={flows}
+        projectStartDate={inputDate(project.startDate)}
+        projectTargetDate={inputDate(project.targetDate)}
+        action={action}
+      />
     </section>
   );
 }
+
 
 function isMilestoneOverdue(milestone: Milestone): boolean {
   if (!milestone.plannedDate || milestone.status === "completed") return false;
@@ -1625,12 +1555,7 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
     null,
     project.id,
   );
-  const supplyMilestones = project.milestones.filter(
-    (milestone) => milestone.track === "supply",
-  );
-  const marketingMilestones = project.milestones.filter(
-    (milestone) => milestone.track === "marketing",
-  );
+  const projectFlows = buildProjectFlows(project.milestones);
   const sharepointUrl = project.sharepointUrl ?? project.sharepointFolderUrl;
   const summary = buildProjectSummary(project.milestones);
   const insights = buildRoadmapProjectInsights(project.milestones);
@@ -1654,8 +1579,8 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
           <Link className="back-link" href="/roadmap">
             ← Volver al roadmap
           </Link>
-          <Link className="button secondary" href="#editar-proyecto">
-            Editar proyecto
+          <Link className="button secondary" href="#administracion">
+            Administración
           </Link>
         </div>
         <p className="eyebrow">{project.code}</p>
@@ -1846,18 +1771,12 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
         </div>
       </section>
 
-      <BulkAssignmentPanel
-        action={bulkAssignMilestoneOwners}
-        counts={bulkAssignmentCounts}
-      />
-
       <nav className="section-tabs" aria-label="Secciones del proyecto">
         <a href="#roadmap-proyecto">Roadmap del proyecto</a>
         <a href="#planificador-fechas">Planificador de fechas</a>
         <a href="#control-proyecto-title">Control del proyecto</a>
-        <a href="#asignacion-rapida">Asignación rápida</a>
-        <a href="#operaciones">Operaciones / Proveedor</a>
-        <a href="#marketing">Marketing / Campaña</a>
+        <a href="#detalle-operativo">Detalle operativo</a>
+        <a href="#administracion">Administración</a>
         <a href="#resumen-proyecto">Resumen del proyecto</a>
         <a href="#historial">Historial</a>
       </nav>
@@ -1928,40 +1847,55 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
 
       <ActivityHistory activityLogs={activityLogs} />
 
-      <MilestoneTable
-        milestones={supplyMilestones}
-        projectId={project.id}
-        track="supply"
-      />
-      <MilestoneTable
-        milestones={marketingMilestones}
-        projectId={project.id}
-        track="marketing"
-      />
+      <details className="panel collapsible-panel" id="detalle-operativo">
+        <summary className="collapsible-summary">
+          <span>Detalle operativo</span>
+          <span className="badge slate">{project.milestones.length} hitos</span>
+        </summary>
+        <div className="collapsible-stack">
+          {projectFlows.map((flow) => (
+            <MilestoneTable
+              key={flow.track}
+              milestones={flow.milestones}
+              projectId={project.id}
+              track={flow.track}
+            />
+          ))}
+        </div>
+      </details>
 
-      <section className="detail-grid forms-grid">
-        <article id="editar-proyecto">
-          <div className="section-title compact">
-            <div>
-              <p className="eyebrow">Administración</p>
-              <h2>Editar proyecto</h2>
+      <details className="panel collapsible-panel administration-panel" id="administracion">
+        <summary className="collapsible-summary">
+          <span>Administración</span>
+          <span className="badge slate">Editar / crear</span>
+        </summary>
+        <BulkAssignmentPanel
+          action={bulkAssignMilestoneOwners}
+          counts={bulkAssignmentCounts}
+        />
+        <section className="detail-grid forms-grid">
+          <article id="editar-proyecto">
+            <div className="section-title compact">
+              <div>
+                <p className="eyebrow">Administración</p>
+                <h2>Editar proyecto</h2>
+              </div>
             </div>
-          </div>
-          <ProjectForm
-            project={project}
-            action={updateProject}
-            submitLabel="Guardar cambios"
-          />
-        </article>
+            <ProjectForm
+              project={project}
+              action={updateProject}
+              submitLabel="Guardar cambios"
+            />
+          </article>
 
-        <section className="panel add-milestone-card">
-          <div className="section-title compact">
-            <div>
-              <p className="eyebrow">Nuevo hito</p>
-              <h2>Crear hito adicional</h2>
+          <section className="panel add-milestone-card">
+            <div className="section-title compact">
+              <div>
+                <p className="eyebrow">Nuevo hito</p>
+                <h2>Crear hito adicional</h2>
+              </div>
             </div>
-          </div>
-          <form action={createMilestone} className="grid">
+            <form action={createMilestone} className="grid">
             <label className="field">
               <span>
                 Nombre <em>*</em>
@@ -2020,12 +1954,13 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
               <span>Notas</span>
               <textarea name="notes" />
             </label>
-            <button className="button primary" type="submit">
-              Agregar hito
-            </button>
-          </form>
+              <button className="button primary" type="submit">
+                Agregar hito
+              </button>
+            </form>
+          </section>
         </section>
-      </section>
+      </details>
     </AppShell>
   );
 }
