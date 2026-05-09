@@ -1,4 +1,4 @@
-import type { PackagingRequest, RoadmapMilestone, RoadmapProject } from "@prisma/client";
+import type { PackagingRequest, Prisma, RoadmapMilestone, RoadmapProject } from "@prisma/client";
 import type { ROADMAP_APPROVAL_STATUSES, ROADMAP_MILESTONE_STATUSES, ROADMAP_MILESTONE_TRACKS, ROADMAP_PRIORITIES, ROADMAP_PROJECT_TYPES, ROADMAP_STATUSES, ROADMAP_TRAFFIC_LIGHTS } from "./constants";
 
 export type RoadmapPriorityValue = (typeof ROADMAP_PRIORITIES)[number];
@@ -78,4 +78,16 @@ export type RoadmapMilestoneUpdateInput = Partial<RoadmapMilestoneInput>;
 export type RoadmapBulkOwnerAssignmentInput = {
   ownerName: string;
   scope: RoadmapBulkOwnerAssignmentScope;
+};
+export type RoadmapActivityLogInput = {
+  projectId: string;
+  milestoneId?: string | null;
+  entityType: string;
+  action: string;
+  fieldName?: string | null;
+  beforeValue?: string | null;
+  afterValue?: string | null;
+  summary: string;
+  actorName?: string | null;
+  metadata?: Prisma.InputJsonValue | null;
 };

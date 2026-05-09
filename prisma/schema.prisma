@@ -108,6 +108,7 @@ model RoadmapProject {
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
   milestones          RoadmapMilestone[]
+  activityLogs        RoadmapActivityLog[]
   packagingRequest    PackagingRequest?   @relation(fields: [sourcePackagingId], references: [id], onDelete: SetNull)
 
   @@index([startDate, targetDate])
@@ -144,6 +145,7 @@ model RoadmapMilestone {
   createdAt      DateTime                @default(now())
   updatedAt      DateTime                @updatedAt
   project        RoadmapProject          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  activityLogs   RoadmapActivityLog[]
 
   @@unique([projectId, milestoneCode])
   @@index([projectId])
@@ -151,4 +153,25 @@ model RoadmapMilestone {
   @@index([plannedDate])
   @@index([status])
   @@index([track, sequence])
+}
+
+model RoadmapActivityLog {
+  id          String            @id @default(cuid())
+  projectId   String
+  milestoneId String?
+  entityType  String
+  action      String
+  fieldName   String?
+  beforeValue String?
+  afterValue  String?
+  summary     String
+  actorName   String?
+  metadata    Json?
+  createdAt   DateTime          @default(now())
+  project     RoadmapProject    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone   RoadmapMilestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt])
+  @@index([milestoneId])
+  @@index([action])
 }

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ROADMAP_STANDARD_MILESTONE_TEMPLATES } from "./constants";
 import { calculateUpcomingMilestoneDateWindow } from "./insights";
 import type {
+  RoadmapActivityLogInput,
   RoadmapBulkOwnerAssignmentInput,
   RoadmapFilters,
   RoadmapMilestoneInput,
@@ -10,6 +11,8 @@ import type {
   RoadmapProjectInput,
   RoadmapProjectUpdateInput,
 } from "./types";
+
+type RoadmapDatabase = typeof prisma | Prisma.TransactionClient;
 
 function buildDateOverlap(year?: number): Prisma.RoadmapProjectWhereInput {
   if (!year) return {};
@@ -108,16 +111,16 @@ export async function listRoadmapProjects(filters: RoadmapFilters) {
   });
 }
 
-export async function getRoadmapProject(id: string) {
-  return prisma.roadmapProject.findUnique({
+export async function getRoadmapProject(id: string, db: RoadmapDatabase = prisma) {
+  return db.roadmapProject.findUnique({
     where: { id },
     include: { milestones: { orderBy: milestoneOrder }, packagingRequest: true },
   });
 }
 
-export async function createRoadmapProject(input: RoadmapProjectInput & { code: string }) {
+export async function createRoadmapProject(input: RoadmapProjectInput & { code: string }, db: RoadmapDatabase = prisma) {
   const { code, ...projectInput } = input;
-  return prisma.roadmapProject.create({
+  return db.roadmapProject.create({
     data: {
       ...projectInput,
       code,
@@ -127,22 +130,22 @@ export async function createRoadmapProject(input: RoadmapProjectInput & { code: 
   });
 }
 
-export async function updateRoadmapProject(id: string, input: RoadmapProjectUpdateInput) {
-  return prisma.roadmapProject.update({
+export async function updateRoadmapProject(id: string, input: RoadmapProjectUpdateInput, db: RoadmapDatabase = prisma) {
+  return db.roadmapProject.update({
     where: { id },
     data: input,
     include: { milestones: { orderBy: milestoneOrder }, packagingRequest: true },
   });
 }
 
-export async function createRoadmapMilestone(projectId: string, input: RoadmapMilestoneInput) {
-  return prisma.roadmapMilestone.create({
+export async function createRoadmapMilestone(projectId: string, input: RoadmapMilestoneInput, db: RoadmapDatabase = prisma) {
+  return db.roadmapMilestone.create({
     data: { ...input, projectId },
   });
 }
 
-export async function updateRoadmapMilestone(projectId: string, milestoneId: string, input: RoadmapMilestoneUpdateInput) {
-  return prisma.roadmapMilestone.update({
+export async function updateRoadmapMilestone(projectId: string, milestoneId: string, input: RoadmapMilestoneUpdateInput, db: RoadmapDatabase = prisma) {
+  return db.roadmapMilestone.update({
     where: { id: milestoneId },
     data: input,
   });
@@ -151,8 +154,9 @@ export async function updateRoadmapMilestone(projectId: string, milestoneId: str
 export async function bulkUpdateMilestoneOwners(
   projectId: string,
   input: RoadmapBulkOwnerAssignmentInput,
+  db: RoadmapDatabase = prisma,
 ) {
-  const candidates = await prisma.roadmapMilestone.findMany({
+  const candidates = await db.roadmapMilestone.findMany({
     where: {
       projectId,
       ...buildBulkOwnerScopeWhere(input),
@@ -175,7 +179,7 @@ export async function bulkUpdateMilestoneOwners(
     ),
   ];
 
-  return prisma.roadmapMilestone.updateMany({
+  return db.roadmapMilestone.updateMany({
     where: {
       projectId,
       id: { in: milestoneIds },
@@ -186,5 +190,44 @@ export async function bulkUpdateMilestoneOwners(
       ],
     },
     data: { ownerName: input.ownerName },
+  });
+}
+
+
+export async function getRoadmapMilestone(
+  projectId: string,
+  milestoneId: string,
+  db: RoadmapDatabase = prisma,
+) {
+  return db.roadmapMilestone.findFirst({
+    where: { id: milestoneId, projectId },
+  });
+}
+
+export async function createRoadmapActivityLog(
+  input: RoadmapActivityLogInput,
+  db: RoadmapDatabase = prisma,
+) {
+  return db.roadmapActivityLog.create({
+    data: input,
+  });
+}
+
+export async function createManyRoadmapActivityLogs(
+  inputs: RoadmapActivityLogInput[],
+  db: RoadmapDatabase = prisma,
+) {
+  if (inputs.length === 0) return { count: 0 };
+  return db.roadmapActivityLog.createMany({
+    data: inputs,
+  });
+}
+
+export async function listRoadmapActivityLogs(projectId: string, limit = 30) {
+  return prisma.roadmapActivityLog.findMany({
+    where: { projectId },
+    include: { milestone: true },
+    orderBy: { createdAt: "desc" },
+    take: limit,
   });
 }
