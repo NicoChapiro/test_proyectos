@@ -3167,3 +3167,190 @@ textarea {
     min-width: 620px;
   }
 }
+
+.date-planner-shell {
+  display: grid;
+  gap: 10px;
+}
+.date-planner-toolbar {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-self: start;
+  padding: 5px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: #fffdf5;
+  color: var(--muted-strong);
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+.date-planner-toolbar button,
+.slider-quick-actions button {
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: white;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 950;
+  cursor: pointer;
+}
+.date-planner-toolbar button {
+  padding: 5px 9px;
+}
+.date-planner-toolbar button.active,
+.slider-quick-actions button:hover,
+.slider-quick-actions button:focus-visible {
+  border-color: var(--brand-yellow-dark);
+  background: var(--brand-yellow);
+  color: var(--black);
+}
+.slider-time-scale {
+  position: absolute;
+  inset: 8px 18px auto;
+  height: 28px;
+  color: #334155;
+  font-weight: 950;
+  pointer-events: none;
+}
+.slider-month-row,
+.slider-fortnight-row {
+  position: relative;
+  height: 14px;
+}
+.slider-month-label,
+.slider-fortnight-row span {
+  position: absolute;
+  transform: translateX(-50%);
+  text-align: center;
+  white-space: nowrap;
+}
+.slider-month-label {
+  transform: none;
+  overflow: hidden;
+  border-left: 1px solid rgba(148, 163, 184, 0.4);
+  padding-left: 3px;
+  color: var(--black);
+  font-size: 0.66rem;
+  letter-spacing: 0.07em;
+}
+.slider-fortnight-row span {
+  color: var(--muted);
+  font-size: 0.62rem;
+}
+.slider-milestone-handle.preview {
+  z-index: 3;
+  border: 3px solid currentColor;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 0 0 4px rgba(246, 196, 0, 0.18), 0 5px 14px rgba(15, 23, 42, 0.16);
+}
+.slider-milestone-handle.preview.milestone-completed {
+  color: var(--success);
+}
+.slider-milestone-handle.preview.milestone-in_progress {
+  color: var(--warning);
+}
+.slider-milestone-handle.preview.milestone-blocked {
+  color: var(--danger);
+}
+.slider-milestone-handle.preview.milestone-not_started {
+  color: #64748b;
+}
+.slider-impact-line {
+  margin: 0;
+  padding: 7px 9px;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  background: #fff7d6;
+  color: #4b5563;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+.slider-impact-line strong {
+  color: var(--black);
+}
+.slider-impact-line.warning {
+  border-color: #fecaca;
+  background: var(--danger-soft);
+}
+.slider-quick-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.slider-quick-actions button {
+  padding: 6px 9px;
+}
+.slider-day-adjust {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 8px 9px;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  background: #f8fafc;
+  color: var(--muted-strong);
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+.slider-day-adjust strong {
+  color: var(--black);
+  font-size: 0.78rem;
+}
+.slider-day-adjust label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+.slider-day-adjust input,
+.slider-day-adjust select {
+  min-height: 32px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: white;
+  color: var(--black);
+  font-weight: 900;
+}
+.slider-day-adjust input {
+  width: 72px;
+  padding: 5px 7px;
+}
+.slider-day-adjust select {
+  max-width: 190px;
+  padding: 5px 8px;
+}
+.slider-day-adjust > button,
+.slider-day-chips button {
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: white;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 950;
+  cursor: pointer;
+}
+.slider-day-adjust > button {
+  padding: 7px 11px;
+  border-color: var(--brand-yellow-dark);
+  background: var(--brand-yellow);
+  color: var(--black);
+}
+.slider-day-chips {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.slider-day-chips button {
+  padding: 6px 8px;
+}
+.slider-day-chips button:hover,
+.slider-day-chips button:focus-visible {
+  border-color: var(--brand-yellow-dark);
+  background: #fff7d6;
+  color: var(--black);
+}
