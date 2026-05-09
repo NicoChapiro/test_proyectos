@@ -306,9 +306,14 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
         title={`Roadmap anual ${year}`}
         subtitle="Vista transversal de proyectos de Marketing, por Q1, Q2, Q3 y Q4 con hitos clave."
         actions={
-          <Link className="button primary" href="/roadmap/new">
-            + Nuevo proyecto
-          </Link>
+          <>
+            <Link className="button secondary" href="/roadmap/swimlane">
+              Vista swimlane
+            </Link>
+            <Link className="button primary" href="/roadmap/new">
+              + Nuevo proyecto
+            </Link>
+          </>
         }
       />
 
