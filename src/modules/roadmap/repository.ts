@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { ROADMAP_STANDARD_MILESTONE_TEMPLATES } from "./constants";
+import { ROADMAP_PROJECT_TYPE_MILESTONE_TEMPLATES, ROADMAP_STANDARD_MILESTONE_TEMPLATES } from "./constants";
+import type { RoadmapMilestoneTemplate } from "./constants";
 import { calculateUpcomingMilestoneDateWindow } from "./insights";
 import type {
   RoadmapActivityLogInput,
@@ -82,10 +83,36 @@ function hasMissingOwner(ownerName: string | null): boolean {
 
 const milestoneOrder = [{ track: "asc" as const }, { sequence: "asc" as const }, { sortOrder: "asc" as const }, { dueDate: "asc" as const }];
 
+function selectedMilestoneTemplates(project: RoadmapProjectInput): readonly RoadmapMilestoneTemplate[] {
+  const projectTypeTemplate = ROADMAP_PROJECT_TYPE_MILESTONE_TEMPLATES[project.projectType];
+  if (projectTypeTemplate?.length) return projectTypeTemplate;
+  if (ROADMAP_PROJECT_TYPE_MILESTONE_TEMPLATES.other.length) return ROADMAP_PROJECT_TYPE_MILESTONE_TEMPLATES.other;
+  return ROADMAP_STANDARD_MILESTONE_TEMPLATES;
+}
+
+function interpolatePlannedDate(startDate: Date, targetDate: Date, index: number, total: number): Date {
+  if (index === 0) return new Date(startDate);
+  if (index === total - 1) return new Date(targetDate);
+
+  const duration = targetDate.getTime() - startDate.getTime();
+  const ratio = index / Math.max(total - 1, 1);
+  return new Date(startDate.getTime() + Math.round(duration * ratio));
+}
+
 function defaultMilestonesForProject(project: RoadmapProjectInput): Prisma.RoadmapMilestoneCreateWithoutProjectInput[] {
-  return ROADMAP_STANDARD_MILESTONE_TEMPLATES.map((template) => {
-    const usesTargetDate = template.code === "marketing_activation_date" || template.code === "supply_quilicura_warehouse_arrival";
-    const plannedDate = usesTargetDate ? project.targetDate : null;
+  const templates = selectedMilestoneTemplates(project);
+  const templatesByTrack = templates.reduce<Record<string, RoadmapMilestoneTemplate[]>>((accumulator, template) => {
+    accumulator[template.track] = [...(accumulator[template.track] ?? []), template];
+    return accumulator;
+  }, {});
+
+  return templates.map((template) => {
+    const trackTemplates = templatesByTrack[template.track] ?? [];
+    const trackIndex = trackTemplates.findIndex((trackTemplate) => trackTemplate.code === template.code);
+    const isFirstTrackMilestone = trackIndex === 0;
+    const isFinalTrackMilestone = trackIndex === trackTemplates.length - 1;
+    const plannedDate = interpolatePlannedDate(project.startDate, project.targetDate, trackIndex, trackTemplates.length);
+
     return {
       name: template.name,
       milestoneCode: template.code,
@@ -93,12 +120,12 @@ function defaultMilestonesForProject(project: RoadmapProjectInput): Prisma.Roadm
       sequence: template.sequence,
       sortOrder: template.sequence,
       status: "not_started",
-      ownerName: template.sequence === 1 ? project.ownerName : null,
+      ownerName: isFirstTrackMilestone ? project.ownerName : null,
       plannedDate,
-      dueDate: plannedDate ?? project.targetDate,
+      dueDate: plannedDate,
       approvalStatus: "approvalStatus" in template ? template.approvalStatus : null,
       notes: "notes" in template ? template.notes : null,
-      isCritical: usesTargetDate,
+      isCritical: isFinalTrackMilestone,
     };
   });
 }
