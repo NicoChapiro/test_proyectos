@@ -296,8 +296,9 @@ export async function addRoadmapProject(input: RoadmapProjectInput & { actorName
         projectId: project.id,
         entityType: "project",
         action: "project_created",
-        summary: "Proyecto creado",
+        summary: `Proyecto creado con plantilla: ${projectTypeValue(project.projectType)}`,
         actorName: actorName({ actorName: submittedActorName }),
+        metadata: { projectType: project.projectType, templateLabel: projectTypeValue(project.projectType) },
       },
       tx,
     );
