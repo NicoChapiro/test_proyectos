@@ -26,7 +26,10 @@ import {
   displayPlannedDate,
   inputDate,
 } from "@/modules/roadmap/ui/date";
-import { FlowDatePlanner, type PlannerFlow } from "@/modules/roadmap/ui/FlowDatePlanner";
+import {
+  FlowDatePlanner,
+  type PlannerFlow,
+} from "@/modules/roadmap/ui/FlowDatePlanner";
 import { ProjectForm } from "@/modules/roadmap/ui/ProjectForm";
 import {
   displayApprovalStatus,
@@ -495,17 +498,13 @@ function ProjectFlowRoadmap({ project }: { project: Project }) {
         <div>
           <p className="eyebrow">Roadmap anual {year}</p>
           <h2 id="roadmap-proyecto-title">Roadmap del proyecto</h2>
-          <p className="muted">
-            Visualiza cómo avanzan Producto / Operaciones y Marketing en
-            paralelo durante el año.
-          </p>
+          <p className="muted">Flujos Producto / Operaciones y Marketing.</p>
         </div>
         <span className="badge priority">{flows.length} flujos</span>
       </div>
       <p className="project-flow-legend">
-        Barra = duración del flujo · Punto = hito · Verde = completado ·
-        Amarillo = en curso/atención · Rojo = crítico/bloqueado · Gris = no
-        iniciado
+        Cómo leerlo: barra = flujo · punto = hito · verde completado · amarillo
+        atención · rojo crítico · gris pendiente
       </p>
       <div className="project-flow-scroll">
         <div className="project-flow-board">
@@ -753,7 +752,10 @@ function activityFieldLabel(fieldName: string | null): string | null {
 
 function ActivityHistory({ activityLogs }: { activityLogs: ActivityLog[] }) {
   return (
-    <details className="panel activity-history collapsible-panel" id="historial">
+    <details
+      className="panel activity-history collapsible-panel"
+      id="historial"
+    >
       <summary className="collapsible-summary">
         <span>Historial de cambios · {activityLogs.length} eventos</span>
         <span className="badge slate">Abrir</span>
@@ -814,7 +816,6 @@ function ActivityHistory({ activityLogs }: { activityLogs: ActivityLog[] }) {
   );
 }
 
-
 function startOfUtcToday(): number {
   return startOfUtcDay(new Date());
 }
@@ -837,7 +838,10 @@ function comparePlannerDate(a: Date | null, b: Date | null): number {
   return startOfUtcDay(a) - startOfUtcDay(b);
 }
 
-function isFinalFlowMilestone(milestone: Milestone, milestones: Milestone[]): boolean {
+function isFinalFlowMilestone(
+  milestone: Milestone,
+  milestones: Milestone[],
+): boolean {
   return milestones.at(-1)?.id === milestone.id;
 }
 
@@ -903,7 +907,9 @@ function nearestDatedMilestone(
 }
 
 function midpointDate(start: Date, end: Date): Date {
-  return new Date(start.getTime() + Math.round((end.getTime() - start.getTime()) / 2));
+  return new Date(
+    start.getTime() + Math.round((end.getTime() - start.getTime()) / 2),
+  );
 }
 
 function interpolatedProjectDate(
@@ -916,7 +922,8 @@ function interpolatedProjectDate(
   if (total === 1) return midpointDate(startDate, targetDate);
   const ratio = index / Math.max(total - 1, 1);
   return new Date(
-    startDate.getTime() + Math.round((targetDate.getTime() - startDate.getTime()) * ratio),
+    startDate.getTime() +
+      Math.round((targetDate.getTime() - startDate.getTime()) * ratio),
   );
 }
 
@@ -1059,9 +1066,7 @@ function DatePlannerSection({
         <div>
           <p className="eyebrow">Planificación</p>
           <h2>Planificador de fechas</h2>
-          <p className="muted">
-            Ajusta fechas por flujo viendo el hito anterior, actual y siguiente.
-          </p>
+          <p className="muted">Ajusta fechas por flujo con vista previa.</p>
         </div>
       </div>
       <FlowDatePlanner
@@ -1073,7 +1078,6 @@ function DatePlannerSection({
     </section>
   );
 }
-
 
 function isMilestoneOverdue(milestone: Milestone): boolean {
   if (!milestone.plannedDate || milestone.status === "completed") return false;
@@ -1452,7 +1456,9 @@ function MilestoneTable({
                           <input
                             type="date"
                             name="plannedDate"
-                            defaultValue={inputDate(milestone.plannedDate ?? milestone.dueDate)}
+                            defaultValue={inputDate(
+                              milestone.plannedDate ?? milestone.dueDate,
+                            )}
                           />
                         </label>
                         <label className="field">
@@ -1574,393 +1580,412 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
 
   return (
     <AppShell active="roadmap">
-      <header className="project-hero">
-        <div className="project-hero-top">
-          <Link className="back-link" href="/roadmap">
-            ← Volver al roadmap
-          </Link>
-          <Link className="button secondary" href="#administracion">
-            Administración
-          </Link>
-        </div>
-        <p className="eyebrow">{project.code}</p>
-        <h1>{project.name}</h1>
-        <p className="header-subtitle">
-          {displayDate(project.startDate)} → {displayDate(project.targetDate)}
-        </p>
-        <div className="badges hero-badges">
-          <span className="badge slate">
-            {ROADMAP_PROJECT_TYPE_LABELS[project.projectType]}
-          </span>
-          <span className="badge slate">{project.area || "Sin área"}</span>
-          <span className="badge slate">{project.ownerName}</span>
-          <span className={`badge status-${project.status}`}>
-            {ROADMAP_STATUS_LABELS[project.status]}
-          </span>
-          <span className={`badge ${project.trafficLight}`}>
-            {ROADMAP_TRAFFIC_LIGHT_LABELS[project.trafficLight]}
-          </span>
-          <span className="badge priority">
-            {ROADMAP_PRIORITY_LABELS[project.priority]}
-          </span>
-        </div>
-      </header>
-
-      <ProjectFlowRoadmap project={project} />
-
-      <DatePlannerSection project={project} action={updatePlannerDates} />
-
-      <section className="executive-summary">
-        <article className="progress-card">
-          <p className="eyebrow">Progreso general</p>
-          <strong>{summary.progress}%</strong>
-          <span className="progress-track">
-            <span style={{ width: `${summary.progress}%` }} />
-          </span>
-          <p className="muted">
-            {summary.completed} de {summary.total} hitos completados.
-          </p>
-        </article>
-        <SummaryMetricCard label="Total hitos" value={summary.total} />
-        <SummaryMetricCard
-          label="Completados"
-          value={summary.completed}
-          tone="success"
-        />
-        <SummaryMetricCard
-          label="Pendientes"
-          value={summary.pending}
-          tone="warning"
-        />
-        <SummaryMetricCard
-          label="Bloqueados"
-          value={summary.blocked}
-          tone="danger"
-        />
-        <SummaryMetricCard
-          label="Próximo hito"
-          value={
-            nextMilestone
-              ? displayMilestoneName(nextMilestone)
-              : "Sin pendientes"
-          }
-          detail={
-            nextMilestone
-              ? milestoneSummary(nextMilestone)
-              : "No hay acciones pendientes."
-          }
-        />
-        <SummaryMetricCard
-          label="Llegada estimada a Santiago"
-          value={displayPlannedDate(santiagoArrival?.plannedDate)}
-        />
-        <SummaryMetricCard
-          label="Activación de campaña"
-          value={displayPlannedDate(campaignActivation?.plannedDate)}
-        />
-      </section>
-
-      <section
-        className="panel project-control"
-        aria-labelledby="control-proyecto-title"
-      >
-        <div className="section-title">
-          <div>
-            <p className="eyebrow">Control operativo</p>
-            <h2 id="control-proyecto-title">Control del proyecto</h2>
+      <div className="roadmap-detail-compact">
+        <header className="project-hero">
+          <div className="project-hero-top">
+            <Link className="back-link" href="/roadmap">
+              ← Volver al roadmap
+            </Link>
+            <Link className="button secondary" href="#administracion">
+              Administración
+            </Link>
           </div>
-          <span className={`badge severity-${insights.severity}`}>
-            {insights.severityLabel}
-          </span>
-        </div>
-        <div className="control-grid">
+          <p className="eyebrow">{project.code}</p>
+          <h1>{project.name}</h1>
+          <p className="header-subtitle">
+            {displayDate(project.startDate)} → {displayDate(project.targetDate)}
+          </p>
+          <div className="badges hero-badges">
+            <span className="badge slate">
+              {ROADMAP_PROJECT_TYPE_LABELS[project.projectType]}
+            </span>
+            <span className="badge slate">{project.area || "Sin área"}</span>
+            <span className="badge slate">{project.ownerName}</span>
+            <span className={`badge status-${project.status}`}>
+              {ROADMAP_STATUS_LABELS[project.status]}
+            </span>
+            <span className={`badge ${project.trafficLight}`}>
+              {ROADMAP_TRAFFIC_LIGHT_LABELS[project.trafficLight]}
+            </span>
+            <span className="badge priority">
+              {ROADMAP_PRIORITY_LABELS[project.priority]}
+            </span>
+          </div>
+        </header>
+
+        <ProjectFlowRoadmap project={project} />
+
+        <DatePlannerSection project={project} action={updatePlannerDates} />
+
+        <section
+          className="executive-summary compact-summary-band"
+          aria-label="Resumen de progreso"
+        >
+          <article className="progress-card">
+            <p className="eyebrow">Progreso general</p>
+            <strong>{summary.progress}%</strong>
+            <span className="progress-track">
+              <span style={{ width: `${summary.progress}%` }} />
+            </span>
+            <p className="muted">
+              {summary.completed} de {summary.total} hitos completados.
+            </p>
+          </article>
+          <SummaryMetricCard label="Total hitos" value={summary.total} />
           <SummaryMetricCard
-            label="Fase actual"
-            value={insights.currentPhase.label}
+            label="Completados"
+            value={summary.completed}
+            tone="success"
           />
           <SummaryMetricCard
-            label="Severidad"
-            value={insights.severityLabel}
-            tone={severityTone(insights.severity)}
+            label="Pendientes"
+            value={summary.pending}
+            tone="warning"
           />
           <SummaryMetricCard
-            label="Próxima acción"
+            label="Bloqueados"
+            value={summary.blocked}
+            tone={summary.blocked > 0 ? "danger" : undefined}
+          />
+          <SummaryMetricCard
+            label="Próximo hito"
             value={
               nextMilestone
                 ? displayMilestoneName(nextMilestone)
                 : "Sin pendientes"
             }
-            detail={
-              nextMilestone
-                ? displayPlannedDate(nextMilestone.plannedDate)
-                : "No hay acciones pendientes."
-            }
+            detail={nextMilestone ? milestoneSummary(nextMilestone) : undefined}
           />
           <SummaryMetricCard
-            label="Responsable(s) próxima acción"
-            value={nextMilestone?.ownerName || "Sin responsable"}
-            tone={
-              nextMilestone && !nextMilestone.ownerName?.trim()
-                ? "warning"
-                : undefined
-            }
+            label="Llegada estimada a Santiago"
+            value={displayPlannedDate(santiagoArrival?.plannedDate)}
           />
           <SummaryMetricCard
-            label="Hitos vencidos"
-            value={insights.overdueMilestones.length}
-            detail={
-              insights.overdueMilestones[0]
-                ? milestoneSummary(insights.overdueMilestones[0])
-                : "Sin hitos vencidos."
-            }
-            tone={insights.overdueMilestones.length > 0 ? "danger" : undefined}
+            label="Activación de campaña"
+            value={displayPlannedDate(campaignActivation?.plannedDate)}
           />
-          <SummaryMetricCard
-            label="Próximos 7 días"
-            value={insights.upcomingMilestones.length}
-            detail={
-              insights.upcomingMilestones[0]
-                ? milestoneSummary(insights.upcomingMilestones[0])
-                : "Sin hitos en los próximos 7 días."
-            }
-          />
-          <SummaryMetricCard
-            label="Bloqueados"
-            value={insights.blockedMilestones.length}
-            detail={
-              insights.blockedMilestones[0]
-                ? milestoneSummary(insights.blockedMilestones[0])
-                : "Sin hitos bloqueados."
-            }
-            tone={insights.blockedMilestones.length > 0 ? "danger" : undefined}
-          />
-          <SummaryMetricCard
-            label="Sin responsable"
-            value={insights.milestonesWithoutOwner.length}
-            detail={
-              insights.milestonesWithoutOwner[0]
-                ? milestoneSummary(insights.milestonesWithoutOwner[0])
-                : "Todos los hitos pendientes tienen responsable."
-            }
-            tone={
-              insights.milestonesWithoutOwner.length > 0 ? "warning" : undefined
-            }
-          />
-          <SummaryMetricCard
-            label="Aprobaciones pendientes"
-            value={insights.pendingApprovalCount}
-            detail={
-              insights.pendingApprovalMilestones[0]
-                ? milestoneSummary(insights.pendingApprovalMilestones[0])
-                : "Sin aprobaciones pendientes."
-            }
-            tone={insights.pendingApprovalCount > 0 ? "warning" : undefined}
-          />
-        </div>
-        <div className={`operational-alert-list ${insights.severity}`}>
-          <strong>Alertas operativas</strong>
-          {operationalAlerts.length === 0 ? (
-            <p className="muted">Sin alertas operativas.</p>
-          ) : (
-            <ul>
-              {operationalAlerts.map((alert) => (
-                <li key={alert}>{alert}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
-
-      <nav className="section-tabs" aria-label="Secciones del proyecto">
-        <a href="#roadmap-proyecto">Roadmap del proyecto</a>
-        <a href="#planificador-fechas">Planificador de fechas</a>
-        <a href="#control-proyecto-title">Control del proyecto</a>
-        <a href="#detalle-operativo">Detalle operativo</a>
-        <a href="#administracion">Administración</a>
-        <a href="#resumen-proyecto">Resumen del proyecto</a>
-        <a href="#historial">Historial</a>
-      </nav>
-
-      <section className="panel" id="resumen-proyecto">
-        <div className="section-title">
-          <div>
-            <p className="eyebrow">Resumen del proyecto</p>
-            <h2>Contexto ejecutivo</h2>
-          </div>
-          <div className="actions">
-            {project.packagingRequest ? (
-              <Link
-                className="button secondary"
-                href={`/packaging/${project.packagingRequest.id}`}
-              >
-                Solicitud packaging {project.packagingRequest.code}
-              </Link>
-            ) : null}
-            {sharepointUrl ? (
-              <a
-                className="button secondary"
-                href={sharepointUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Abrir SharePoint
-              </a>
-            ) : null}
-          </div>
-        </div>
-        <p>{project.description || "Sin comentarios."}</p>
-        <dl className="metadata-grid">
-          <div>
-            <dt>Responsable</dt>
-            <dd>{project.ownerName}</dd>
-          </div>
-          <div>
-            <dt>Área</dt>
-            <dd>{project.area || "—"}</dd>
-          </div>
-          <div>
-            <dt>Canal</dt>
-            <dd>{project.channel || "—"}</dd>
-          </div>
-          <div>
-            <dt>Marca</dt>
-            <dd>{project.brand || "—"}</dd>
-          </div>
-          <div>
-            <dt>Categoría</dt>
-            <dd>{project.category || "—"}</dd>
-          </div>
-          <div>
-            <dt>Fase actual</dt>
-            <dd>{insights.currentPhase.label}</dd>
-          </div>
-          <div>
-            <dt>Inicio</dt>
-            <dd>{displayDate(project.startDate)}</dd>
-          </div>
-          <div>
-            <dt>Fecha objetivo</dt>
-            <dd>{displayDate(project.targetDate)}</dd>
-          </div>
-        </dl>
-      </section>
-
-      <ActivityHistory activityLogs={activityLogs} />
-
-      <details className="panel collapsible-panel" id="detalle-operativo">
-        <summary className="collapsible-summary">
-          <span>Detalle operativo</span>
-          <span className="badge slate">{project.milestones.length} hitos</span>
-        </summary>
-        <div className="collapsible-stack">
-          {projectFlows.map((flow) => (
-            <MilestoneTable
-              key={flow.track}
-              milestones={flow.milestones}
-              projectId={project.id}
-              track={flow.track}
-            />
-          ))}
-        </div>
-      </details>
-
-      <details className="panel collapsible-panel administration-panel" id="administracion">
-        <summary className="collapsible-summary">
-          <span>Administración</span>
-          <span className="badge slate">Editar / crear</span>
-        </summary>
-        <BulkAssignmentPanel
-          action={bulkAssignMilestoneOwners}
-          counts={bulkAssignmentCounts}
-        />
-        <section className="detail-grid forms-grid">
-          <article id="editar-proyecto">
-            <div className="section-title compact">
-              <div>
-                <p className="eyebrow">Administración</p>
-                <h2>Editar proyecto</h2>
-              </div>
-            </div>
-            <ProjectForm
-              project={project}
-              action={updateProject}
-              submitLabel="Guardar cambios"
-            />
-          </article>
-
-          <section className="panel add-milestone-card">
-            <div className="section-title compact">
-              <div>
-                <p className="eyebrow">Nuevo hito</p>
-                <h2>Crear hito adicional</h2>
-              </div>
-            </div>
-            <form action={createMilestone} className="grid">
-            <label className="field">
-              <span>
-                Nombre <em>*</em>
-              </span>
-              <input name="name" required />
-            </label>
-            <label className="field">
-              <span>Track</span>
-              <select name="track" defaultValue="supply">
-                <option value="supply">{displayTrackLabel("supply")}</option>
-                <option value="marketing">
-                  {displayTrackLabel("marketing")}
-                </option>
-              </select>
-            </label>
-            <label className="field">
-              <span>Responsable(s)</span>
-              <input name="ownerName" placeholder="Ej: Mario, Rodolfo" />
-            </label>
-            <label className="field">
-              <span>
-                Fecha planificada <em>*</em>
-              </span>
-              <input type="date" name="plannedDate" required />
-            </label>
-            <label className="field">
-              <span>Estado</span>
-              <select name="status" defaultValue="not_started">
-                {ROADMAP_MILESTONE_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {ROADMAP_MILESTONE_STATUS_LABELS[status]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Orden</span>
-              <input type="number" name="sequence" defaultValue="99" />
-            </label>
-            <label className="field">
-              <span>Aprobación</span>
-              <select name="approvalStatus" defaultValue="">
-                <option value="">No aplica</option>
-                {ROADMAP_APPROVAL_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {ROADMAP_APPROVAL_STATUS_LABELS[status]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Documento</span>
-              <input type="url" name="documentUrl" />
-            </label>
-            <label className="field full">
-              <span>Notas</span>
-              <textarea name="notes" />
-            </label>
-              <button className="button primary" type="submit">
-                Agregar hito
-              </button>
-            </form>
-          </section>
         </section>
-      </details>
+
+        <section
+          className="panel project-control"
+          aria-labelledby="control-proyecto-title"
+        >
+          <div className="section-title">
+            <div>
+              <p className="eyebrow">Control operativo</p>
+              <h2 id="control-proyecto-title">Control del proyecto</h2>
+            </div>
+            <span className={`badge severity-${insights.severity}`}>
+              {insights.severityLabel}
+            </span>
+          </div>
+          <div className="control-grid">
+            <SummaryMetricCard
+              label="Fase actual"
+              value={insights.currentPhase.label}
+            />
+            <SummaryMetricCard
+              label="Severidad"
+              value={insights.severityLabel}
+              tone={severityTone(insights.severity)}
+            />
+            <SummaryMetricCard
+              label="Próxima acción"
+              value={
+                nextMilestone
+                  ? displayMilestoneName(nextMilestone)
+                  : "Sin pendientes"
+              }
+              detail={
+                nextMilestone
+                  ? displayPlannedDate(nextMilestone.plannedDate)
+                  : undefined
+              }
+            />
+            <SummaryMetricCard
+              label="Responsable(s) próxima acción"
+              value={nextMilestone?.ownerName || "Sin responsable"}
+              tone={
+                nextMilestone && !nextMilestone.ownerName?.trim()
+                  ? "warning"
+                  : undefined
+              }
+            />
+            <SummaryMetricCard
+              label="Hitos vencidos"
+              value={insights.overdueMilestones.length}
+              detail={
+                insights.overdueMilestones[0]
+                  ? milestoneSummary(insights.overdueMilestones[0])
+                  : undefined
+              }
+              tone={
+                insights.overdueMilestones.length > 0 ? "danger" : undefined
+              }
+            />
+            <SummaryMetricCard
+              label="Próximos 7 días"
+              value={insights.upcomingMilestones.length}
+              detail={
+                insights.upcomingMilestones[0]
+                  ? milestoneSummary(insights.upcomingMilestones[0])
+                  : undefined
+              }
+            />
+            <SummaryMetricCard
+              label="Bloqueados"
+              value={insights.blockedMilestones.length}
+              detail={
+                insights.blockedMilestones[0]
+                  ? milestoneSummary(insights.blockedMilestones[0])
+                  : undefined
+              }
+              tone={
+                insights.blockedMilestones.length > 0 ? "danger" : undefined
+              }
+            />
+            <SummaryMetricCard
+              label="Sin responsable"
+              value={insights.milestonesWithoutOwner.length}
+              detail={
+                insights.milestonesWithoutOwner[0]
+                  ? milestoneSummary(insights.milestonesWithoutOwner[0])
+                  : undefined
+              }
+              tone={
+                insights.milestonesWithoutOwner.length > 0
+                  ? "warning"
+                  : undefined
+              }
+            />
+            <SummaryMetricCard
+              label="Aprobaciones pendientes"
+              value={insights.pendingApprovalCount}
+              detail={
+                insights.pendingApprovalMilestones[0]
+                  ? milestoneSummary(insights.pendingApprovalMilestones[0])
+                  : undefined
+              }
+              tone={insights.pendingApprovalCount > 0 ? "warning" : undefined}
+            />
+          </div>
+          <div className={`operational-alert-list ${insights.severity}`}>
+            <strong>Alertas operativas</strong>
+            {operationalAlerts.length === 0 ? (
+              <p className="muted">Sin alertas operativas.</p>
+            ) : (
+              <ul>
+                {operationalAlerts.map((alert) => (
+                  <li key={alert}>{alert}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+
+        <nav className="section-tabs" aria-label="Secciones del proyecto">
+          <a href="#roadmap-proyecto">Roadmap del proyecto</a>
+          <a href="#planificador-fechas">Planificador de fechas</a>
+          <a href="#control-proyecto-title">Control del proyecto</a>
+          <a href="#detalle-operativo">Detalle operativo</a>
+          <a href="#administracion">Administración</a>
+          <a href="#resumen-proyecto">Resumen del proyecto</a>
+          <a href="#historial">Historial</a>
+        </nav>
+
+        <section
+          className="panel compact-project-summary"
+          id="resumen-proyecto"
+        >
+          <div className="section-title">
+            <div>
+              <p className="eyebrow">Resumen del proyecto</p>
+              <h2>Contexto ejecutivo</h2>
+            </div>
+            <div className="actions">
+              {project.packagingRequest ? (
+                <Link
+                  className="button secondary"
+                  href={`/packaging/${project.packagingRequest.id}`}
+                >
+                  Solicitud packaging {project.packagingRequest.code}
+                </Link>
+              ) : null}
+              {sharepointUrl ? (
+                <a
+                  className="button secondary"
+                  href={sharepointUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Abrir SharePoint
+                </a>
+              ) : null}
+            </div>
+          </div>
+          <p className="compact-summary-description">
+            {project.description || "Sin comentarios."}
+          </p>
+          <dl className="metadata-grid compact-metadata-grid">
+            <div>
+              <dt>Responsable</dt>
+              <dd>{project.ownerName}</dd>
+            </div>
+            <div>
+              <dt>Área</dt>
+              <dd>{project.area || "—"}</dd>
+            </div>
+            <div>
+              <dt>Canal</dt>
+              <dd>{project.channel || "—"}</dd>
+            </div>
+            <div>
+              <dt>Marca</dt>
+              <dd>{project.brand || "—"}</dd>
+            </div>
+            <div>
+              <dt>Categoría</dt>
+              <dd>{project.category || "—"}</dd>
+            </div>
+            <div>
+              <dt>Fase actual</dt>
+              <dd>{insights.currentPhase.label}</dd>
+            </div>
+            <div>
+              <dt>Inicio</dt>
+              <dd>{displayDate(project.startDate)}</dd>
+            </div>
+            <div>
+              <dt>Fecha objetivo</dt>
+              <dd>{displayDate(project.targetDate)}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <ActivityHistory activityLogs={activityLogs} />
+
+        <details className="panel collapsible-panel" id="detalle-operativo">
+          <summary className="collapsible-summary">
+            <span>Detalle operativo</span>
+            <span className="badge slate">
+              {project.milestones.length} hitos
+            </span>
+          </summary>
+          <div className="collapsible-stack">
+            {projectFlows.map((flow) => (
+              <MilestoneTable
+                key={flow.track}
+                milestones={flow.milestones}
+                projectId={project.id}
+                track={flow.track}
+              />
+            ))}
+          </div>
+        </details>
+
+        <details
+          className="panel collapsible-panel administration-panel"
+          id="administracion"
+        >
+          <summary className="collapsible-summary">
+            <span>Administración</span>
+            <span className="badge slate">Editar / crear</span>
+          </summary>
+          <BulkAssignmentPanel
+            action={bulkAssignMilestoneOwners}
+            counts={bulkAssignmentCounts}
+          />
+          <section className="detail-grid forms-grid">
+            <article id="editar-proyecto">
+              <div className="section-title compact">
+                <div>
+                  <p className="eyebrow">Administración</p>
+                  <h2>Editar proyecto</h2>
+                </div>
+              </div>
+              <ProjectForm
+                project={project}
+                action={updateProject}
+                submitLabel="Guardar cambios"
+              />
+            </article>
+
+            <section className="panel add-milestone-card">
+              <div className="section-title compact">
+                <div>
+                  <p className="eyebrow">Nuevo hito</p>
+                  <h2>Crear hito adicional</h2>
+                </div>
+              </div>
+              <form action={createMilestone} className="grid">
+                <label className="field">
+                  <span>
+                    Nombre <em>*</em>
+                  </span>
+                  <input name="name" required />
+                </label>
+                <label className="field">
+                  <span>Track</span>
+                  <select name="track" defaultValue="supply">
+                    <option value="supply">
+                      {displayTrackLabel("supply")}
+                    </option>
+                    <option value="marketing">
+                      {displayTrackLabel("marketing")}
+                    </option>
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Responsable(s)</span>
+                  <input name="ownerName" placeholder="Ej: Mario, Rodolfo" />
+                </label>
+                <label className="field">
+                  <span>
+                    Fecha planificada <em>*</em>
+                  </span>
+                  <input type="date" name="plannedDate" required />
+                </label>
+                <label className="field">
+                  <span>Estado</span>
+                  <select name="status" defaultValue="not_started">
+                    {ROADMAP_MILESTONE_STATUSES.map((status) => (
+                      <option key={status} value={status}>
+                        {ROADMAP_MILESTONE_STATUS_LABELS[status]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Orden</span>
+                  <input type="number" name="sequence" defaultValue="99" />
+                </label>
+                <label className="field">
+                  <span>Aprobación</span>
+                  <select name="approvalStatus" defaultValue="">
+                    <option value="">No aplica</option>
+                    {ROADMAP_APPROVAL_STATUSES.map((status) => (
+                      <option key={status} value={status}>
+                        {ROADMAP_APPROVAL_STATUS_LABELS[status]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Documento</span>
+                  <input type="url" name="documentUrl" />
+                </label>
+                <label className="field full">
+                  <span>Notas</span>
+                  <textarea name="notes" />
+                </label>
+                <button className="button primary" type="submit">
+                  Agregar hito
+                </button>
+              </form>
+            </section>
+          </section>
+        </details>
+      </div>
     </AppShell>
   );
 }

@@ -1831,7 +1831,10 @@ textarea {
 }
 
 .area-filter-grid {
-  grid-template-columns: minmax(160px, 220px) minmax(220px, 320px) minmax(140px, 180px);
+  grid-template-columns: minmax(160px, 220px) minmax(220px, 320px) minmax(
+      140px,
+      180px
+    );
   align-items: end;
 }
 .area-filter-current {
@@ -1924,7 +1927,10 @@ textarea {
 }
 .area-project-item {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(180px, auto) minmax(210px, 0.75fr);
+  grid-template-columns: minmax(0, 1fr) minmax(180px, auto) minmax(
+      210px,
+      0.75fr
+    );
   gap: 12px;
   align-items: center;
   min-width: 0;
@@ -1934,7 +1940,10 @@ textarea {
   background: #fff;
   color: inherit;
   text-decoration: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 .area-project-item:hover {
   border-color: #facc15;
@@ -2043,7 +2052,9 @@ textarea {
 }
 
 .calendar-filter-grid {
-  grid-template-columns: minmax(120px, 160px) minmax(160px, 220px) minmax(200px, 1fr) minmax(220px, 1fr);
+  grid-template-columns:
+    minmax(120px, 160px) minmax(160px, 220px) minmax(200px, 1fr)
+    minmax(220px, 1fr);
   align-items: end;
 }
 .calendar-kpis {
@@ -3002,7 +3013,13 @@ textarea {
   border: 1px solid var(--line-soft);
   border-radius: 16px;
   background:
-    linear-gradient(90deg, rgba(246, 196, 0, 0.16), transparent 22%, transparent 78%, rgba(31, 31, 31, 0.08)),
+    linear-gradient(
+      90deg,
+      rgba(246, 196, 0, 0.16),
+      transparent 22%,
+      transparent 78%,
+      rgba(31, 31, 31, 0.08)
+    ),
     #f8fafc;
 }
 .slider-date-rail-line {
@@ -3243,7 +3260,9 @@ textarea {
   z-index: 3;
   border: 3px solid currentColor;
   background: rgba(255, 255, 255, 0.76);
-  box-shadow: 0 0 0 4px rgba(246, 196, 0, 0.18), 0 5px 14px rgba(15, 23, 42, 0.16);
+  box-shadow:
+    0 0 0 4px rgba(246, 196, 0, 0.18),
+    0 5px 14px rgba(15, 23, 42, 0.16);
 }
 .slider-milestone-handle.preview.milestone-completed {
   color: var(--success);
@@ -3353,4 +3372,357 @@ textarea {
   border-color: var(--brand-yellow-dark);
   background: #fff7d6;
   color: var(--black);
+}
+
+/* Scoped density pass for the project detail route. */
+.roadmap-detail-compact {
+  display: grid;
+  gap: 14px;
+}
+.roadmap-detail-compact .panel,
+.roadmap-detail-compact .hero-card {
+  padding: 16px;
+  border-radius: 18px;
+}
+.roadmap-detail-compact .section-title {
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.roadmap-detail-compact .section-title.compact {
+  margin-bottom: 6px;
+}
+.roadmap-detail-compact .section-title h2 {
+  margin-bottom: 2px;
+  font-size: 1.08rem;
+}
+.roadmap-detail-compact .section-title .muted {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+.roadmap-detail-compact .eyebrow {
+  margin-bottom: 4px;
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+}
+.roadmap-detail-compact .badge {
+  padding: 4px 8px;
+  font-size: 0.68rem;
+}
+.roadmap-detail-compact .button {
+  min-height: 34px;
+  padding: 7px 11px;
+  border-radius: 10px;
+  font-size: 0.84rem;
+}
+.roadmap-detail-compact .project-hero {
+  padding: 18px 20px;
+}
+.roadmap-detail-compact .project-hero-top {
+  align-items: center;
+  margin-bottom: 12px;
+}
+.roadmap-detail-compact .project-hero h1 {
+  max-width: 980px;
+  margin-bottom: 6px;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+}
+.roadmap-detail-compact .project-hero .header-subtitle {
+  font-size: 0.94rem;
+  line-height: 1.3;
+}
+.roadmap-detail-compact .hero-badges {
+  margin-top: 10px;
+  gap: 6px;
+}
+.roadmap-detail-compact .project-flow-roadmap {
+  gap: 7px;
+}
+.roadmap-detail-compact .project-flow-legend {
+  padding: 5px 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: #f8fafc;
+  font-size: 0.7rem;
+  line-height: 1.2;
+}
+.roadmap-detail-compact .project-flow-board {
+  gap: 6px;
+}
+.roadmap-detail-compact .project-flow-scale,
+.roadmap-detail-compact .project-flow-row {
+  grid-template-columns: minmax(210px, 260px) minmax(660px, 1fr);
+  gap: 8px;
+}
+.roadmap-detail-compact .project-flow-spacer {
+  padding: 7px 10px;
+  border-radius: 12px;
+}
+.roadmap-detail-compact .compact-scale .quarter-header div {
+  padding: 5px 6px;
+}
+.roadmap-detail-compact .compact-scale .month-header span {
+  padding: 5px 2px;
+}
+.roadmap-detail-compact .project-flow-row {
+  padding: 8px 10px;
+  border-radius: 14px;
+}
+.roadmap-detail-compact .project-flow-summary {
+  gap: 4px;
+}
+.roadmap-detail-compact .project-flow-titleline h3 {
+  font-size: 0.92rem;
+}
+.roadmap-detail-compact .project-flow-next {
+  font-size: 0.72rem;
+}
+.roadmap-detail-compact .project-flow-timeline,
+.roadmap-detail-compact .project-flow-no-dates,
+.roadmap-detail-compact .project-flow-empty {
+  min-height: 58px;
+}
+.roadmap-detail-compact .project-flow-bar {
+  top: 14px;
+  height: 10px;
+}
+.roadmap-detail-compact .project-flow-timeline .milestone-dot {
+  top: 32px;
+}
+.roadmap-detail-compact .project-flow-timeline .milestone-label {
+  top: 45px;
+  font-size: 0.64rem;
+}
+.roadmap-detail-compact .date-planner {
+  display: grid;
+  gap: 8px;
+}
+.roadmap-detail-compact .date-planner-shell {
+  gap: 8px;
+}
+.roadmap-detail-compact .date-planner-toolbar {
+  gap: 4px;
+  padding: 3px;
+  font-size: 0.68rem;
+}
+.roadmap-detail-compact .date-planner-toolbar button {
+  padding: 4px 7px;
+}
+.roadmap-detail-compact .slider-planner-flow,
+.roadmap-detail-compact .date-planner-flow-card {
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+}
+.roadmap-detail-compact .date-planner-flow-header h3 {
+  font-size: 0.94rem;
+}
+.roadmap-detail-compact .date-planner-flow-header p,
+.roadmap-detail-compact .slider-selected-heading p:not(.eyebrow) {
+  font-size: 0.72rem;
+}
+.roadmap-detail-compact .date-planner-percent {
+  min-width: 38px;
+  height: 38px;
+  font-size: 0.78rem;
+}
+.roadmap-detail-compact .date-planner-stats {
+  gap: 5px;
+}
+.roadmap-detail-compact .date-planner-stats span,
+.roadmap-detail-compact .slider-context-grid span {
+  padding: 6px 7px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+}
+.roadmap-detail-compact .slider-planner-scroll {
+  padding: 3px 2px 8px;
+}
+.roadmap-detail-compact .slider-date-rail {
+  height: 62px;
+  border-radius: 14px;
+}
+.roadmap-detail-compact .slider-date-rail-line {
+  top: 29px;
+}
+.roadmap-detail-compact .slider-time-scale {
+  top: 6px;
+}
+.roadmap-detail-compact .slider-milestone-handle {
+  top: 24px;
+  width: 18px;
+  height: 18px;
+}
+.roadmap-detail-compact .slider-selected-editor {
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+}
+.roadmap-detail-compact .slider-selected-heading h4 {
+  margin-bottom: 2px;
+  font-size: 0.94rem;
+}
+.roadmap-detail-compact .slider-context-grid {
+  gap: 6px;
+}
+.roadmap-detail-compact .slider-editor-controls,
+.roadmap-detail-compact .slider-editor-actions,
+.roadmap-detail-compact .slider-day-adjust {
+  gap: 6px;
+}
+.roadmap-detail-compact .slider-impact-line {
+  padding: 5px 7px;
+  font-size: 0.7rem;
+}
+.roadmap-detail-compact .slider-quick-actions {
+  gap: 4px;
+}
+.roadmap-detail-compact .slider-quick-actions button,
+.roadmap-detail-compact .slider-day-chips button,
+.roadmap-detail-compact .slider-day-adjust > button {
+  padding: 5px 7px;
+  font-size: 0.68rem;
+}
+.roadmap-detail-compact .slider-day-adjust {
+  padding: 6px 7px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+}
+.roadmap-detail-compact .slider-day-adjust input,
+.roadmap-detail-compact .slider-day-adjust select {
+  min-height: 28px;
+}
+.roadmap-detail-compact .compact-summary-band {
+  grid-template-columns:
+    minmax(210px, 1.3fr) repeat(4, minmax(112px, 0.75fr))
+    repeat(3, minmax(150px, 1fr));
+  gap: 8px;
+}
+.roadmap-detail-compact .progress-card,
+.roadmap-detail-compact .summary-card {
+  min-height: 0;
+  padding: 11px;
+  border-radius: 14px;
+}
+.roadmap-detail-compact .progress-card strong {
+  margin-bottom: 7px;
+  font-size: 1.45rem;
+}
+.roadmap-detail-compact .progress-card p,
+.roadmap-detail-compact .summary-card p {
+  margin-top: 5px;
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+.roadmap-detail-compact .summary-card span {
+  font-size: 0.66rem;
+}
+.roadmap-detail-compact .summary-card strong {
+  margin-top: 5px;
+  font-size: 1.12rem;
+  line-height: 1.15;
+}
+.roadmap-detail-compact .summary-card.quiet-zero:not(.danger):not(.warning) {
+  background: #f8fafc;
+  color: var(--muted);
+}
+.roadmap-detail-compact .summary-card.quiet-zero strong {
+  color: #64748b;
+}
+.roadmap-detail-compact .project-control {
+  gap: 10px;
+}
+.roadmap-detail-compact .control-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.roadmap-detail-compact .control-grid .summary-card {
+  padding: 10px;
+}
+.roadmap-detail-compact .operational-alert-list {
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-size: 0.82rem;
+}
+.roadmap-detail-compact .operational-alert-list p,
+.roadmap-detail-compact .operational-alert-list ul {
+  margin: 4px 0 0;
+}
+.roadmap-detail-compact .section-tabs {
+  top: 8px;
+  gap: 5px;
+  padding: 5px;
+  border-radius: 13px;
+}
+.roadmap-detail-compact .section-tabs a {
+  padding: 6px 8px;
+  border-radius: 9px;
+  font-size: 0.74rem;
+}
+.roadmap-detail-compact .compact-project-summary {
+  display: grid;
+  gap: 8px;
+}
+.roadmap-detail-compact .compact-summary-description {
+  margin: 0;
+  color: var(--muted-strong);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+.roadmap-detail-compact .compact-metadata-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.roadmap-detail-compact .metadata-grid div {
+  padding: 9px;
+  border-radius: 12px;
+}
+.roadmap-detail-compact .metadata-grid dt {
+  font-size: 0.66rem;
+}
+.roadmap-detail-compact .metadata-grid dd {
+  margin-top: 3px;
+  font-size: 0.88rem;
+}
+.roadmap-detail-compact .collapsible-panel {
+  padding: 10px 12px;
+  border-radius: 16px;
+}
+.roadmap-detail-compact .collapsible-summary {
+  gap: 8px;
+  min-height: 30px;
+  font-size: 0.9rem;
+}
+.roadmap-detail-compact .collapsible-summary::before {
+  width: 22px;
+  height: 22px;
+  font-size: 0.8rem;
+}
+.roadmap-detail-compact .collapsible-panel[open] > .collapsible-summary {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+}
+.roadmap-detail-compact .collapsible-stack,
+.roadmap-detail-compact .administration-panel[open] {
+  gap: 10px;
+}
+
+@media (max-width: 1180px) {
+  .roadmap-detail-compact .compact-summary-band,
+  .roadmap-detail-compact .control-grid,
+  .roadmap-detail-compact .compact-metadata-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 860px) {
+  .roadmap-detail-compact .project-hero,
+  .roadmap-detail-compact .panel {
+    padding: 14px;
+  }
+  .roadmap-detail-compact .compact-summary-band,
+  .roadmap-detail-compact .control-grid,
+  .roadmap-detail-compact .compact-metadata-grid {
+    grid-template-columns: 1fr;
+  }
 }
