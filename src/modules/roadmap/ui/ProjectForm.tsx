@@ -1,6 +1,7 @@
-import { ROADMAP_PRIORITIES, ROADMAP_PRIORITY_LABELS, ROADMAP_PROJECT_TYPE_LABELS, ROADMAP_PROJECT_TYPES, ROADMAP_STATUSES, ROADMAP_STATUS_LABELS, ROADMAP_TRAFFIC_LIGHT_LABELS, ROADMAP_TRAFFIC_LIGHTS } from "../constants";
+import { ROADMAP_PRIORITIES, ROADMAP_PRIORITY_LABELS, ROADMAP_STATUSES, ROADMAP_STATUS_LABELS, ROADMAP_TRAFFIC_LIGHT_LABELS, ROADMAP_TRAFFIC_LIGHTS } from "../constants";
 import type { RoadmapProjectWithMilestones } from "../types";
 import { inputDate } from "./date";
+import { ProjectTemplatePreviewField } from "./ProjectTemplatePreviewField";
 import { FormSectionCard } from "./shell";
 
 type Props = {
@@ -18,7 +19,7 @@ export function ProjectForm({ project, action, submitLabel }: Props) {
       </FormSectionCard>
 
       <FormSectionCard title="Clasificación" description="Agrupa el proyecto para filtrar el roadmap anual.">
-        <label className="field"><span>Tipo de proyecto</span><select name="projectType" defaultValue={project?.projectType ?? "other"}>{ROADMAP_PROJECT_TYPES.map((item) => <option key={item} value={item}>{ROADMAP_PROJECT_TYPE_LABELS[item]}</option>)}</select></label>
+        <ProjectTemplatePreviewField defaultValue={project?.projectType} showPreview={!project} />
         <label className="field"><span>Área</span><input name="area" defaultValue={project?.area ?? ""} /></label>
         <label className="field"><span>Canal</span><input name="channel" defaultValue={project?.channel ?? ""} /></label>
         <label className="field"><span>Marca</span><input name="brand" defaultValue={project?.brand ?? ""} /></label>
