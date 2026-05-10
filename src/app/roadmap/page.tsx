@@ -269,6 +269,7 @@ function projectRequiresAction(
   insights = buildRoadmapProjectInsights(project.milestones),
 ): boolean {
   return (
+    !project.ownerName?.trim() ||
     project.status === "en_riesgo" ||
     project.status === "bloqueado" ||
     insights.severity === "warning" ||
