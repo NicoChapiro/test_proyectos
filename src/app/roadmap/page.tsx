@@ -42,6 +42,7 @@ type ProjectSummaryField = {
 
 type QuickFilterKey =
   | "all"
+  | "action"
   | "q1"
   | "q2"
   | "q3"
@@ -263,12 +264,33 @@ function projectOverlapsQuarter(
   return project.startDate <= quarterEnd && project.targetDate >= quarterStart;
 }
 
+function projectRequiresAction(
+  project: Project,
+  insights = buildRoadmapProjectInsights(project.milestones),
+): boolean {
+  return (
+    !project.ownerName?.trim() ||
+    project.status === "en_riesgo" ||
+    project.status === "bloqueado" ||
+    insights.severity === "warning" ||
+    insights.severity === "critical" ||
+    insights.blockedMilestones.length > 0 ||
+    insights.overdueMilestones.length > 0 ||
+    insights.milestonesWithoutOwner.length > 0 ||
+    insights.pendingApprovalCount > 0 ||
+    insights.pendingApprovalMilestones.length > 0
+  );
+}
+
 function filteredByQuick(
   projects: Project[],
   year: number,
   quickFilter: QuickFilterKey,
 ) {
   if (quickFilter === "all") return projects;
+  if (quickFilter === "action") {
+    return projects.filter((project) => projectRequiresAction(project));
+  }
   if (["q1", "q2", "q3", "q4"].includes(quickFilter)) {
     const quarter = Number(quickFilter.slice(1));
     return projects.filter((project) =>
@@ -299,6 +321,7 @@ function filteredByQuick(
 function safeQuickFilter(value: string | undefined): QuickFilterKey {
   const allowed = new Set<QuickFilterKey>([
     "all",
+    "action",
     "q1",
     "q2",
     "q3",
@@ -438,6 +461,7 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
   const projects = filteredByQuick(allProjects, year, quickFilter);
   const quickFilters: Array<{ key: QuickFilterKey; label: string }> = [
     { key: "all", label: "Todo el año" },
+    { key: "action", label: "Requiere acción" },
     { key: "q1", label: "Q1" },
     { key: "q2", label: "Q2" },
     { key: "q3", label: "Q3" },
@@ -451,8 +475,8 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
   const projectsInProgress = projects.filter(
     (project) => project.status === "en_curso",
   ).length;
-  const projectsAtRisk = projects.filter(
-    (project) => project.status === "en_riesgo",
+  const projectsRequiringAction = projects.filter((project) =>
+    projectRequiresAction(project),
   ).length;
   const blockedProjects = projects.filter(
     (project) => project.status === "bloqueado",
@@ -486,10 +510,10 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
           detail="Avanzando según plan"
         />
         <KpiCard
-          label="En riesgo"
-          value={projectsAtRisk}
+          label="Requieren acción"
+          value={projectsRequiringAction}
           tone="amber"
-          detail="Requieren seguimiento"
+          detail="Con alertas operativas"
         />
         <KpiCard
           label="Bloqueados"
@@ -512,7 +536,8 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
             <h2>Control y segmentación</h2>
             <p className="muted filter-description">
               Usa filtros rápidos para foco operativo o combina criterios
-              avanzados.
+              avanzados. Roadmap = vista anual. Proyectos = edición masiva.
+              Calendario = fechas mensuales. Reportes = seguimiento semanal.
             </p>
           </div>
           <div className="filter-actions">
@@ -625,8 +650,10 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
       <details className="panel roadmap-legend compact-legend">
         <summary>Cómo leerlo</summary>
         <p className="muted">
-          Barra = duración · Punto = hito · Color = estado · Ver detalle =
-          edición completa
+          Cada fila es un proyecto. Cada línea muestra un flujo: Producto/Ops o
+          Marketing. Los puntos son hitos ubicados por fecha. Amarillo y rojo
+          requieren revisión. Usa Ver detalle para editar fechas, responsables e
+          hitos.
         </p>
         <div className="legend-grid compact-legend-grid">
           <span>
