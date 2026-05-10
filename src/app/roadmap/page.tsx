@@ -18,6 +18,7 @@ import {
   displayMilestoneStatus,
   displayApprovalStatus,
 } from "@/modules/roadmap/ui/labels";
+import { AnnualRoadmapSummaryToggle } from "@/modules/roadmap/ui/AnnualRoadmapSummaryToggle";
 import { AppShell, KpiCard, PageHeader } from "@/modules/roadmap/ui/shell";
 import type {
   RoadmapProjectTypeValue,
@@ -33,6 +34,12 @@ type PageProps = {
 
 type Project = Awaited<ReturnType<typeof searchRoadmapProjects>>[number];
 type ProjectMilestone = Project["milestones"][number];
+type ProjectSummaryField = {
+  label: string;
+  value: string;
+  tone?: "default" | "warning" | "critical";
+};
+
 type QuickFilterKey =
   | "all"
   | "q1"
@@ -321,6 +328,93 @@ function quickFilterHref(
   return serialized ? `/roadmap?${serialized}` : "/roadmap";
 }
 
+function pluralize(count: number, singular: string, plural: string): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function projectOperationalAlerts(
+  insights: ReturnType<typeof buildRoadmapProjectInsights>,
+): Array<{ label: string; tone: "warning" | "critical" }> {
+  const alerts: Array<{ label: string; tone: "warning" | "critical" }> = [];
+  if (insights.milestonesWithoutOwner.length > 0) {
+    alerts.push({
+      label: pluralize(
+        insights.milestonesWithoutOwner.length,
+        "hito sin responsable",
+        "hitos sin responsable",
+      ),
+      tone: "warning",
+    });
+  }
+  if (insights.pendingApprovalMilestones.length > 0) {
+    alerts.push({
+      label: pluralize(
+        insights.pendingApprovalMilestones.length,
+        "aprobación pendiente",
+        "aprobaciones pendientes",
+      ),
+      tone: "warning",
+    });
+  }
+  if (insights.blockedMilestones.length > 0) {
+    alerts.push({
+      label: pluralize(
+        insights.blockedMilestones.length,
+        "hito bloqueado",
+        "hitos bloqueados",
+      ),
+      tone: "critical",
+    });
+  }
+  if (insights.overdueMilestones.length > 0) {
+    alerts.push({
+      label: pluralize(
+        insights.overdueMilestones.length,
+        "hito vencido",
+        "hitos vencidos",
+      ),
+      tone: "critical",
+    });
+  }
+  return alerts;
+}
+
+function projectSummaryFields(
+  project: Project,
+  insights: ReturnType<typeof buildRoadmapProjectInsights>,
+): ProjectSummaryField[] {
+  const nextMilestone = insights.nextMilestone;
+  return [
+    {
+      label: "Próximo hito",
+      value: nextMilestone
+        ? displayMilestoneName(nextMilestone)
+        : "Sin acciones pendientes",
+    },
+    {
+      label: "Fecha próximo hito",
+      value: displayPlannedDate(nextMilestone?.plannedDate),
+    },
+    {
+      label: "Responsable próximo hito",
+      value: nextMilestone?.ownerName?.trim() || "Sin responsable",
+      tone: nextMilestone?.ownerName?.trim() ? "default" : "warning",
+    },
+    { label: "Fecha objetivo", value: displayDate(project.targetDate) },
+    { label: "Avance %", value: `${insights.progressPercentage}%` },
+    { label: "Estado", value: ROADMAP_STATUS_LABELS[project.status] },
+    {
+      label: "Severidad / riesgo",
+      value: insights.severityLabel,
+      tone:
+        insights.severity === "critical"
+          ? "critical"
+          : insights.severity === "warning"
+            ? "warning"
+            : "default",
+    },
+  ];
+}
 
 export default async function RoadmapPage({ searchParams }: PageProps) {
   const params = await searchParams;
@@ -711,14 +805,13 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
                     ))}
                   </div>
                 </div>
-                <div className="row-actions annual-row-actions">
-                  <Link
-                    className="annual-detail-link"
-                    href={`/roadmap/${project.id}`}
-                  >
-                    Ver detalle
-                  </Link>
-                </div>
+                <AnnualRoadmapSummaryToggle
+                  projectId={project.id}
+                  projectName={project.name}
+                  detailHref={`/roadmap/${project.id}`}
+                  fields={projectSummaryFields(project, insights)}
+                  alerts={projectOperationalAlerts(insights)}
+                />
               </article>
             );
           })}
