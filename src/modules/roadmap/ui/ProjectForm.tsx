@@ -19,7 +19,7 @@ export function ProjectForm({ project, action, submitLabel }: Props) {
       </FormSectionCard>
 
       <FormSectionCard title="Clasificación" description="Agrupa el proyecto para filtrar el roadmap anual.">
-        <ProjectTemplatePreviewField defaultValue={project?.projectType ?? "other"} showPreview={!project} />
+        <ProjectTemplatePreviewField defaultValue={project?.projectType} showPreview={!project} />
         <label className="field"><span>Área</span><input name="area" defaultValue={project?.area ?? ""} /></label>
         <label className="field"><span>Canal</span><input name="channel" defaultValue={project?.channel ?? ""} /></label>
         <label className="field"><span>Marca</span><input name="brand" defaultValue={project?.brand ?? ""} /></label>

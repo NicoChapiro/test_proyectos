@@ -1411,7 +1411,7 @@ textarea {
 
 .template-preview {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   padding: 14px;
   border: 1px solid #dbeafe;
   border-radius: 16px;
@@ -1439,13 +1439,22 @@ textarea {
   font-size: 0.98rem;
 }
 .template-preview-heading p,
-.template-preview-empty {
-  max-width: 560px;
+.template-preview-empty,
+.template-preview-settings-hint {
+  max-width: 620px;
   margin: 0;
   color: var(--muted);
   font-size: 0.82rem;
   font-weight: 750;
   line-height: 1.35;
+}
+.template-preview-settings-hint {
+  opacity: 0.72;
+}
+.template-preview-settings-hint::before {
+  content: "Próximamente · ";
+  color: #a16207;
+  font-weight: 950;
 }
 .template-preview-flows {
   display: grid;
@@ -1463,19 +1472,29 @@ textarea {
 .template-preview-milestones {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 5px 0;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 .template-preview-milestones li {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: #475569;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+.template-preview-milestones li span:first-child {
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 4px 8px;
-  color: #475569;
   background: rgba(255, 255, 255, 0.76);
-  font-size: 0.74rem;
-  font-weight: 850;
+}
+.template-preview-arrow {
+  margin-inline: 2px 6px;
+  color: #ca8a04;
+  font-weight: 950;
 }
 @media (max-width: 860px) {
   .template-preview-heading {

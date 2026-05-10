@@ -17,7 +17,7 @@ const PREVIEW_TRACK_LABELS: Record<RoadmapMilestoneTrackValue, string> = {
 const PREVIEW_TRACK_ORDER: RoadmapMilestoneTrackValue[] = ["supply", "marketing"];
 
 type ProjectTemplatePreviewFieldProps = {
-  defaultValue: RoadmapProjectTypeValue;
+  defaultValue?: RoadmapProjectTypeValue;
   showPreview?: boolean;
 };
 
@@ -48,9 +48,11 @@ export function ProjectTemplatePreviewField({
   defaultValue,
   showPreview = true,
 }: ProjectTemplatePreviewFieldProps) {
-  const [selectedProjectType, setSelectedProjectType] = useState(defaultValue);
-  const previewFlows = useMemo(() => buildPreviewFlows(selectedProjectType), [selectedProjectType]);
-  const selectedProjectTypeLabel = ROADMAP_PROJECT_TYPE_LABELS[selectedProjectType];
+  const [selectedProjectType, setSelectedProjectType] = useState<RoadmapProjectTypeValue | "">(defaultValue ?? "");
+  const previewProjectType: RoadmapProjectTypeValue = selectedProjectType || "other";
+  const previewFlows = useMemo(() => buildPreviewFlows(previewProjectType), [previewProjectType]);
+  const selectedProjectTypeLabel = selectedProjectType ? ROADMAP_PROJECT_TYPE_LABELS[selectedProjectType] : "Selecciona tipo de proyecto";
+  const isGenericPreview = previewProjectType === "other";
 
   return (
     <>
@@ -60,7 +62,9 @@ export function ProjectTemplatePreviewField({
           name="projectType"
           value={selectedProjectType}
           onChange={(event) => setSelectedProjectType(event.currentTarget.value as RoadmapProjectTypeValue)}
+          required
         >
+          <option value="" disabled>Selecciona tipo de proyecto</option>
           {ROADMAP_PROJECT_TYPES.map((item) => (
             <option key={item} value={item}>{ROADMAP_PROJECT_TYPE_LABELS[item]}</option>
           ))}
@@ -74,27 +78,34 @@ export function ProjectTemplatePreviewField({
               <span>Vista previa de plantilla</span>
               <strong>{selectedProjectTypeLabel}</strong>
             </div>
-            <p>Estos flujos se crearán al guardar el proyecto. Luego podrás ajustar fechas, responsables e hitos desde el detalle.</p>
+            <p>Esta plantilla se aplicará al crear el proyecto. Luego podrás ajustar fechas, responsables e hitos desde el detalle. Cambiar el tipo después no regenerará hitos automáticamente.</p>
           </div>
 
-          {previewFlows.length > 0 ? (
+          {isGenericPreview ? (
+            <p className="template-preview-empty">La plantilla exacta se definirá al crear el proyecto.</p>
+          ) : previewFlows.length > 0 ? (
             <div className="template-preview-flows">
               {previewFlows.map((flow) => (
                 <section className="template-preview-flow" key={flow.track}>
                   <span className="badge template-preview-badge">
                     {flow.label} · {flow.milestones.length} {flow.milestones.length === 1 ? "hito" : "hitos"}
                   </span>
-                  <ul className="template-preview-milestones" aria-label={`Hitos de ${flow.label}`}>
-                    {flow.milestones.map((milestone) => (
-                      <li key={milestone.code}>{milestone.name}</li>
+                  <ol className="template-preview-milestones" aria-label={`Secuencia de hitos de ${flow.label}`}>
+                    {flow.milestones.map((milestone, index) => (
+                      <li key={milestone.code}>
+                        <span>{milestone.name}</span>
+                        {index < flow.milestones.length - 1 ? <span className="template-preview-arrow" aria-hidden="true">→</span> : null}
+                      </li>
                     ))}
-                  </ul>
+                  </ol>
                 </section>
               ))}
             </div>
           ) : (
             <p className="template-preview-empty">La plantilla exacta se definirá al crear el proyecto.</p>
           )}
+
+          <p className="template-preview-settings-hint" aria-disabled="true">Las plantillas podrán administrarse desde Configuración.</p>
         </aside>
       ) : null}
     </>
