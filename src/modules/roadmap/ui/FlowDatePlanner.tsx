@@ -51,7 +51,20 @@ const DAY_OFFSET_REFERENCE_LABELS: Record<DayOffsetReference, string> = {
 
 const QUICK_DAY_OFFSETS = [7, 15, 30, 45];
 
-const MONTH_LABELS = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+const MONTH_LABELS = [
+  "ENE",
+  "FEB",
+  "MAR",
+  "ABR",
+  "MAY",
+  "JUN",
+  "JUL",
+  "AGO",
+  "SEP",
+  "OCT",
+  "NOV",
+  "DIC",
+];
 
 const PRECISION_OPTIONS: Array<{ value: DatePrecision; label: string }> = [
   { value: "day", label: "Día exacto" },
@@ -105,21 +118,42 @@ function lastDayOfMonth(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0));
 }
 
-function snapDate(value: string, precision: DatePrecision, startDate: Date, targetDate: Date): string {
+function snapDate(
+  value: string,
+  precision: DatePrecision,
+  startDate: Date,
+  targetDate: Date,
+): string {
   const date = parseDate(value);
   if (!date) return value;
   if (precision === "fortnight") {
     const day = date.getUTCDate() < 15 ? 1 : 15;
-    return toInputDate(clampDate(new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), day)), startDate, targetDate));
+    return toInputDate(
+      clampDate(
+        new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), day)),
+        startDate,
+        targetDate,
+      ),
+    );
   }
   if (precision === "month") {
-    return toInputDate(clampDate(new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1)), startDate, targetDate));
+    return toInputDate(
+      clampDate(
+        new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1)),
+        startDate,
+        targetDate,
+      ),
+    );
   }
   return toInputDate(clampDate(date, startDate, targetDate));
 }
 
 function midpointDate(start: Date, end: Date): string {
-  return toInputDate(new Date(start.getTime() + Math.round((end.getTime() - start.getTime()) / 2)));
+  return toInputDate(
+    new Date(
+      start.getTime() + Math.round((end.getTime() - start.getTime()) / 2),
+    ),
+  );
 }
 
 function nearestDatedMilestone(
@@ -155,17 +189,24 @@ function suggestedDate(args: {
   if (previousDate) return midpointDate(previousDate, projectTargetDate);
   if (nextDate) return midpointDate(projectStartDate, nextDate);
 
-  if (milestones.length === 1) return midpointDate(projectStartDate, projectTargetDate);
+  if (milestones.length === 1)
+    return midpointDate(projectStartDate, projectTargetDate);
   const ratio = index / Math.max(milestones.length - 1, 1);
   return toInputDate(
     new Date(
       projectStartDate.getTime() +
-        Math.round((projectTargetDate.getTime() - projectStartDate.getTime()) * ratio),
+        Math.round(
+          (projectTargetDate.getTime() - projectStartDate.getTime()) * ratio,
+        ),
     ),
   );
 }
 
-function datePosition(startDate: Date, targetDate: Date, value: string): number {
+function datePosition(
+  startDate: Date,
+  targetDate: Date,
+  value: string,
+): number {
   const start = startDate.getTime();
   const end = targetDate.getTime();
   const current = parseDate(value)?.getTime() ?? start;
@@ -182,10 +223,17 @@ type TimelineMonth = {
   secondLeft: number;
 };
 
-function buildTimelineMonths(startDate: Date, targetDate: Date): TimelineMonth[] {
+function buildTimelineMonths(
+  startDate: Date,
+  targetDate: Date,
+): TimelineMonth[] {
   const months: TimelineMonth[] = [];
-  const cursor = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1));
-  const endMonth = new Date(Date.UTC(targetDate.getUTCFullYear(), targetDate.getUTCMonth(), 1));
+  const cursor = new Date(
+    Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1),
+  );
+  const endMonth = new Date(
+    Date.UTC(targetDate.getUTCFullYear(), targetDate.getUTCMonth(), 1),
+  );
 
   while (cursor.getTime() <= endMonth.getTime()) {
     const monthStart = new Date(cursor);
@@ -194,11 +242,23 @@ function buildTimelineMonths(startDate: Date, targetDate: Date): TimelineMonth[]
     const visibleEnd = clampDate(monthEnd, startDate, targetDate);
     const left = datePosition(startDate, targetDate, toInputDate(visibleStart));
     const right = datePosition(startDate, targetDate, toInputDate(visibleEnd));
-    const firstLeft = datePosition(startDate, targetDate, toInputDate(clampDate(monthStart, startDate, targetDate)));
+    const firstLeft = datePosition(
+      startDate,
+      targetDate,
+      toInputDate(clampDate(monthStart, startDate, targetDate)),
+    );
     const secondLeft = datePosition(
       startDate,
       targetDate,
-      toInputDate(clampDate(new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), 15)), startDate, targetDate)),
+      toInputDate(
+        clampDate(
+          new Date(
+            Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), 15),
+          ),
+          startDate,
+          targetDate,
+        ),
+      ),
     );
 
     months.push({
@@ -224,7 +284,10 @@ function handleClass(milestone: PlannerMilestone): string {
   ) {
     return "milestone-blocked";
   }
-  if (milestone.status === "in_progress" || milestone.approvalStatus === "pending") {
+  if (
+    milestone.status === "in_progress" ||
+    milestone.approvalStatus === "pending"
+  ) {
     return "milestone-in_progress";
   }
   return "milestone-not_started";
@@ -253,13 +316,24 @@ function warningsFor(args: {
   const previousDate = args.previous ? milestoneDate(args.previous) : null;
   const nextDate = args.next ? milestoneDate(args.next) : null;
 
-  if (args.selectedDate && previousDate && dateCompare(args.selectedDate, previousDate) < 0) {
+  if (
+    args.selectedDate &&
+    previousDate &&
+    dateCompare(args.selectedDate, previousDate) < 0
+  ) {
     warnings.push("Esta fecha queda antes del hito anterior.");
   }
-  if (args.selectedDate && nextDate && dateCompare(args.selectedDate, nextDate) > 0) {
+  if (
+    args.selectedDate &&
+    nextDate &&
+    dateCompare(args.selectedDate, nextDate) > 0
+  ) {
     warnings.push("Esta fecha queda después del hito siguiente.");
   }
-  if (args.selectedDate && dateCompare(args.selectedDate, args.projectTargetDate) > 0) {
+  if (
+    args.selectedDate &&
+    dateCompare(args.selectedDate, args.projectTargetDate) > 0
+  ) {
     warnings.push("Esta fecha supera la fecha objetivo del proyecto.");
   }
   if (!args.selectedDate && args.milestone.isCritical) {
@@ -277,9 +351,12 @@ function impactSummary(args: {
 }): string[] {
   const summary: string[] = [];
   if (args.selectedDate && args.savedDate) {
-    const difference = Math.round(dateCompare(args.selectedDate, args.savedDate) / DAY_MS);
+    const difference = Math.round(
+      dateCompare(args.selectedDate, args.savedDate) / DAY_MS,
+    );
     if (difference > 0) summary.push(`Se mueve ${difference} días después.`);
-    if (difference < 0) summary.push(`Se mueve ${Math.abs(difference)} días antes.`);
+    if (difference < 0)
+      summary.push(`Se mueve ${Math.abs(difference)} días antes.`);
     if (difference === 0) summary.push("Mantiene la fecha guardada.");
   } else if (args.selectedDate) {
     summary.push("Agrega una fecha planificada al hito.");
@@ -287,13 +364,24 @@ function impactSummary(args: {
 
   const previousDate = args.previous ? milestoneDate(args.previous) : null;
   const nextDate = args.next ? milestoneDate(args.next) : null;
-  if (args.selectedDate && previousDate && dateCompare(args.selectedDate, previousDate) >= 0) {
+  if (
+    args.selectedDate &&
+    previousDate &&
+    dateCompare(args.selectedDate, previousDate) >= 0
+  ) {
     summary.push("Queda después del hito anterior.");
   }
-  if (args.selectedDate && nextDate && dateCompare(args.selectedDate, nextDate) <= 0) {
+  if (
+    args.selectedDate &&
+    nextDate &&
+    dateCompare(args.selectedDate, nextDate) <= 0
+  ) {
     summary.push("Queda antes del hito siguiente.");
   }
-  if (args.selectedDate && dateCompare(args.selectedDate, args.projectTargetDate) <= 0) {
+  if (
+    args.selectedDate &&
+    dateCompare(args.selectedDate, args.projectTargetDate) <= 0
+  ) {
     summary.push("No supera la fecha objetivo.");
   }
   return summary;
@@ -303,10 +391,21 @@ function selectedDefaults(flows: PlannerFlow[]): Record<string, string> {
   return Object.fromEntries(
     flows.map((flow) => [
       flow.track,
-      (flow.milestones.find((milestone) => milestone.status !== "completed") ??
-        flow.milestones[0])?.id ?? "",
+      (
+        flow.milestones.find((milestone) => milestone.status !== "completed") ??
+        flow.milestones[0]
+      )?.id ?? "",
     ]),
   );
+}
+
+function firstEditableFlow(flows: PlannerFlow[]): string {
+  return flows.find((flow) => flow.milestones.length > 0)?.track ?? "";
+}
+
+function percent(count: number, total: number): number {
+  if (total === 0) return 0;
+  return Math.round((count / total) * 100);
 }
 
 export function FlowDatePlanner({
@@ -315,27 +414,47 @@ export function FlowDatePlanner({
   projectTargetDate,
   action,
 }: FlowDatePlannerProps) {
-  const [selectedByFlow, setSelectedByFlow] = useState<Record<string, string>>(() =>
-    selectedDefaults(flows),
+  const [selectedByFlow, setSelectedByFlow] = useState<Record<string, string>>(
+    () => selectedDefaults(flows),
   );
-  const projectStart = useMemo(() => parseDate(projectStartDate) ?? new Date(), [projectStartDate]);
+  const [activeEditorFlow, setActiveEditorFlow] = useState(() =>
+    firstEditableFlow(flows),
+  );
+  const projectStart = useMemo(
+    () => parseDate(projectStartDate) ?? new Date(),
+    [projectStartDate],
+  );
   const projectTarget = useMemo(
     () => parseDate(projectTargetDate) ?? projectStart,
     [projectStart, projectTargetDate],
   );
-  const maxDays = Math.max(0, Math.round((projectTarget.getTime() - projectStart.getTime()) / DAY_MS));
+  const maxDays = Math.max(
+    0,
+    Math.round((projectTarget.getTime() - projectStart.getTime()) / DAY_MS),
+  );
   const [draftDates, setDraftDates] = useState<Record<string, string>>({});
-  const [quickAdjustment, setQuickAdjustment] = useState<{ days: string; reference: DayOffsetReference }>({
+  const [quickAdjustment, setQuickAdjustment] = useState<{
+    days: string;
+    reference: DayOffsetReference;
+  }>({
     days: "15",
     reference: "previous",
   });
-  const [quickAdjustmentMessages, setQuickAdjustmentMessages] = useState<Record<string, string>>({});
+  const [quickAdjustmentMessages, setQuickAdjustmentMessages] = useState<
+    Record<string, string>
+  >({});
   const [precision, setPrecision] = useState<DatePrecision>("day");
-  const timelineMonths = useMemo(() => buildTimelineMonths(projectStart, projectTarget), [projectStart, projectTarget]);
+  const timelineMonths = useMemo(
+    () => buildTimelineMonths(projectStart, projectTarget),
+    [projectStart, projectTarget],
+  );
 
   return (
     <div className="date-planner-shell">
-      <div className="date-planner-toolbar" aria-label="Precisión del planificador">
+      <div
+        className="date-planner-toolbar"
+        aria-label="Precisión del planificador"
+      >
         <span>Precisión:</span>
         {PRECISION_OPTIONS.map((option) => (
           <button
@@ -349,287 +468,536 @@ export function FlowDatePlanner({
         ))}
       </div>
       <div className="date-planner-grid slider-planner-grid">
-      {flows.map((flow) => {
-        const selectedId = selectedByFlow[flow.track] || flow.milestones[0]?.id || "";
-        const selectedIndex = Math.max(
-          0,
-          flow.milestones.findIndex((milestone) => milestone.id === selectedId),
-        );
-        const selectedMilestone = flow.milestones[selectedIndex];
-        const datedMilestones = flow.milestones.filter((milestone) => milestoneDate(milestone));
-        const undatedMilestones = flow.milestones.filter((milestone) => !milestoneDate(milestone));
-        const progress = flow.milestones.length
-          ? Math.round(
-              (flow.milestones.filter((milestone) => milestone.status === "completed").length /
-                flow.milestones.length) *
-                100,
-            )
-          : 0;
-
-        if (!selectedMilestone) {
-          return (
-            <article key={flow.track} className="date-planner-flow-card slider-planner-flow">
-              <h3>{flow.label}</h3>
-              <p className="muted">No hay hitos para planificar en este flujo.</p>
-            </article>
+        {flows.map((flow) => {
+          const selectedId =
+            selectedByFlow[flow.track] || flow.milestones[0]?.id || "";
+          const selectedIndex = Math.max(
+            0,
+            flow.milestones.findIndex(
+              (milestone) => milestone.id === selectedId,
+            ),
           );
-        }
+          const selectedMilestone = flow.milestones[selectedIndex];
+          const datedMilestones = flow.milestones.filter((milestone) =>
+            milestoneDate(milestone),
+          );
+          const undatedMilestones = flow.milestones.filter(
+            (milestone) => !milestoneDate(milestone),
+          );
+          const executionProgress = percent(
+            flow.milestones.filter(
+              (milestone) => milestone.status === "completed",
+            ).length,
+            flow.milestones.length,
+          );
+          const dateCompleteness = percent(
+            datedMilestones.length,
+            flow.milestones.length,
+          );
+          const isEditorOpen = activeEditorFlow === flow.track;
 
-        const previous = selectedIndex > 0 ? flow.milestones[selectedIndex - 1] : null;
-        const next = selectedIndex < flow.milestones.length - 1 ? flow.milestones[selectedIndex + 1] : null;
-        const suggestion = suggestedDate({
-          milestones: flow.milestones,
-          index: selectedIndex,
-          projectStartDate: projectStart,
-          projectTargetDate: projectTarget,
-        });
-        const savedDate = milestoneDate(selectedMilestone);
-        const suggestedPreviewDate = suggestion ?? savedDate ?? projectStartDate;
-        const selectedDate = draftDates[selectedMilestone.id] ?? savedDate ?? suggestion ?? projectStartDate;
-        const hasPreviewChange = selectedDate !== savedDate;
-        const warnings = warningsFor({
-          selectedDate,
-          previous,
-          next,
-          milestone: selectedMilestone,
-          projectTargetDate,
-        });
-        const impact = impactSummary({ selectedDate, savedDate, previous, next, projectTargetDate });
-        const rangeValue = Math.min(maxDays, Math.max(0, dayOffset(projectStart, selectedDate)));
-        const inputId = `slider-planner-date-${flow.track}-${selectedMilestone.id}`;
-        const selectedPreviewDate = parseDate(selectedDate) ?? projectStart;
-        const previousDate = previous ? milestoneDate(previous) : null;
-        const quickReferences: Array<{ value: DayOffsetReference; label: string; date: string | null }> = [
-          { value: "previous", label: DAY_OFFSET_REFERENCE_LABELS.previous, date: previousDate },
-          { value: "saved", label: DAY_OFFSET_REFERENCE_LABELS.saved, date: savedDate },
-          { value: "start", label: DAY_OFFSET_REFERENCE_LABELS.start, date: projectStartDate },
-          { value: "target", label: DAY_OFFSET_REFERENCE_LABELS.target, date: projectTargetDate },
-        ];
-        const activeQuickReference =
-          quickReferences.find((reference) => reference.value === quickAdjustment.reference && reference.date) ??
-          quickReferences.find((reference) => reference.date);
-        const activeQuickReferenceDate = activeQuickReference?.date ?? projectStartDate;
-        const activeQuickReferenceLabel = activeQuickReference?.label ?? DAY_OFFSET_REFERENCE_LABELS.start;
-        const setPreviewDate = (value: string, quickMessage?: string) => {
-          setDraftDates((current) => ({ ...current, [selectedMilestone.id]: value }));
-          setQuickAdjustmentMessages((current) => {
-            if (quickMessage) return { ...current, [selectedMilestone.id]: quickMessage };
-            const { [selectedMilestone.id]: _removed, ...remaining } = current;
-            return remaining;
-          });
-        };
-        const applyPreviewDate = (value: string) =>
-          setPreviewDate(snapDate(value, precision, projectStart, projectTarget));
-        const setExactPreviewDate = (value: string) => setPreviewDate(value);
-        const applyDayOffset = (daysValue = quickAdjustment.days) => {
-          const parsedDays = Number.parseInt(daysValue, 10);
-          const safeDays = Number.isNaN(parsedDays) ? 0 : Math.min(365, Math.max(0, parsedDays));
-          const referenceDate = parseDate(activeQuickReferenceDate) ?? projectStart;
-          const previewDate = addDays(referenceDate, safeDays);
-          setQuickAdjustment((current) => ({ ...current, days: String(safeDays) }));
-          setPreviewDate(previewDate, `Vista previa: ${safeDays} días después de ${activeQuickReferenceLabel}.`);
-        };
-
-        return (
-          <article key={flow.track} className="date-planner-flow-card slider-planner-flow">
-            <div className="date-planner-flow-header">
-              <div>
+          if (!selectedMilestone) {
+            return (
+              <article
+                key={flow.track}
+                className="date-planner-flow-card slider-planner-flow"
+              >
                 <h3>{flow.label}</h3>
                 <p className="muted">
-                  {datedMilestones.length} con fecha · {undatedMilestones.length} sin fecha
+                  No hay hitos para planificar en este flujo.
                 </p>
-              </div>
-              <span className="date-planner-percent">{progress}%</span>
-            </div>
-            <div className="date-planner-stats" aria-label={`Resumen de fechas de ${flow.label}`}>
-              <span>Total <strong>{flow.milestones.length}</strong></span>
-              <span>Con fecha <strong>{datedMilestones.length}</strong></span>
-              <span>Sin fecha <strong>{undatedMilestones.length}</strong></span>
-            </div>
-            <div className="slider-planner-scroll">
-              <div className="slider-date-rail" aria-label={`Línea de fechas de ${flow.label}`}>
-                <div className="slider-time-scale" aria-hidden="true">
-                  <div className="slider-month-row">
-                    {timelineMonths.map((month) => (
-                      <span
-                        key={month.key}
-                        className="slider-month-label"
-                        style={{ left: `${month.left}%`, width: `${month.width}%` }}
-                      >
-                        {month.label}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="slider-fortnight-row">
-                    {timelineMonths.map((month) => (
-                      <span key={`${month.key}-first`} style={{ left: `${month.firstLeft}%` }}>1ª</span>
-                    ))}
-                    {timelineMonths.map((month) => (
-                      <span key={`${month.key}-second`} style={{ left: `${month.secondLeft}%` }}>2ª</span>
-                    ))}
-                  </div>
+              </article>
+            );
+          }
+
+          const previous =
+            selectedIndex > 0 ? flow.milestones[selectedIndex - 1] : null;
+          const next =
+            selectedIndex < flow.milestones.length - 1
+              ? flow.milestones[selectedIndex + 1]
+              : null;
+          const suggestion = suggestedDate({
+            milestones: flow.milestones,
+            index: selectedIndex,
+            projectStartDate: projectStart,
+            projectTargetDate: projectTarget,
+          });
+          const savedDate = milestoneDate(selectedMilestone);
+          const suggestedPreviewDate =
+            suggestion ?? savedDate ?? projectStartDate;
+          const selectedDate =
+            draftDates[selectedMilestone.id] ??
+            savedDate ??
+            suggestion ??
+            projectStartDate;
+          const hasPreviewChange = selectedDate !== savedDate;
+          const warnings = warningsFor({
+            selectedDate,
+            previous,
+            next,
+            milestone: selectedMilestone,
+            projectTargetDate,
+          });
+          const impact = impactSummary({
+            selectedDate,
+            savedDate,
+            previous,
+            next,
+            projectTargetDate,
+          });
+          const rangeValue = Math.min(
+            maxDays,
+            Math.max(0, dayOffset(projectStart, selectedDate)),
+          );
+          const inputId = `slider-planner-date-${flow.track}-${selectedMilestone.id}`;
+          const selectedPreviewDate = parseDate(selectedDate) ?? projectStart;
+          const previousDate = previous ? milestoneDate(previous) : null;
+          const quickReferences: Array<{
+            value: DayOffsetReference;
+            label: string;
+            date: string | null;
+          }> = [
+            {
+              value: "previous",
+              label: DAY_OFFSET_REFERENCE_LABELS.previous,
+              date: previousDate,
+            },
+            {
+              value: "saved",
+              label: DAY_OFFSET_REFERENCE_LABELS.saved,
+              date: savedDate,
+            },
+            {
+              value: "start",
+              label: DAY_OFFSET_REFERENCE_LABELS.start,
+              date: projectStartDate,
+            },
+            {
+              value: "target",
+              label: DAY_OFFSET_REFERENCE_LABELS.target,
+              date: projectTargetDate,
+            },
+          ];
+          const activeQuickReference =
+            quickReferences.find(
+              (reference) =>
+                reference.value === quickAdjustment.reference && reference.date,
+            ) ?? quickReferences.find((reference) => reference.date);
+          const activeQuickReferenceDate =
+            activeQuickReference?.date ?? projectStartDate;
+          const activeQuickReferenceLabel =
+            activeQuickReference?.label ?? DAY_OFFSET_REFERENCE_LABELS.start;
+          const setPreviewDate = (value: string, quickMessage?: string) => {
+            setDraftDates((current) => ({
+              ...current,
+              [selectedMilestone.id]: value,
+            }));
+            setQuickAdjustmentMessages((current) => {
+              if (quickMessage)
+                return { ...current, [selectedMilestone.id]: quickMessage };
+              const { [selectedMilestone.id]: _removed, ...remaining } =
+                current;
+              return remaining;
+            });
+          };
+          const applyPreviewDate = (value: string) =>
+            setPreviewDate(
+              snapDate(value, precision, projectStart, projectTarget),
+            );
+          const setExactPreviewDate = (value: string) => setPreviewDate(value);
+          const applyDayOffset = (daysValue = quickAdjustment.days) => {
+            const parsedDays = Number.parseInt(daysValue, 10);
+            const safeDays = Number.isNaN(parsedDays)
+              ? 0
+              : Math.min(365, Math.max(0, parsedDays));
+            const referenceDate =
+              parseDate(activeQuickReferenceDate) ?? projectStart;
+            const previewDate = addDays(referenceDate, safeDays);
+            setQuickAdjustment((current) => ({
+              ...current,
+              days: String(safeDays),
+            }));
+            setPreviewDate(
+              previewDate,
+              `Vista previa: ${safeDays} días después de ${activeQuickReferenceLabel}.`,
+            );
+          };
+
+          return (
+            <article
+              key={flow.track}
+              className="date-planner-flow-card slider-planner-flow"
+            >
+              <div className="date-planner-flow-header">
+                <div>
+                  <h3>{flow.label}</h3>
+                  <p className="muted">
+                    {datedMilestones.length} con fecha ·{" "}
+                    {undatedMilestones.length} sin fecha
+                  </p>
                 </div>
-                <span className="slider-date-rail-line" aria-hidden="true" />
-                <span className="slider-date-bound start">{displayDate(projectStartDate)}</span>
-                <span className="slider-date-bound end">{displayDate(projectTargetDate)}</span>
-                {datedMilestones.map((milestone) => {
-                  const value = milestoneDate(milestone);
-                  if (!value) return null;
-                  return (
+                <span className="date-planner-progress-pair">
+                  Avance <strong>{executionProgress}%</strong> · Fechas{" "}
+                  <strong>{dateCompleteness}%</strong>
+                </span>
+              </div>
+              <div
+                className="date-planner-stats"
+                aria-label={`Resumen de fechas de ${flow.label}`}
+              >
+                <span>
+                  Total <strong>{flow.milestones.length}</strong>
+                </span>
+                <span>
+                  Con fecha <strong>{datedMilestones.length}</strong>
+                </span>
+                <span>
+                  Sin fecha <strong>{undatedMilestones.length}</strong>
+                </span>
+              </div>
+              <div className="slider-planner-scroll">
+                <div
+                  className="slider-date-rail"
+                  aria-label={`Línea de fechas de ${flow.label}`}
+                >
+                  <div className="slider-time-scale" aria-hidden="true">
+                    <div className="slider-month-row">
+                      {timelineMonths.map((month) => (
+                        <span
+                          key={month.key}
+                          className="slider-month-label"
+                          style={{
+                            left: `${month.left}%`,
+                            width: `${month.width}%`,
+                          }}
+                        >
+                          {month.label}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="slider-fortnight-row">
+                      {timelineMonths.map((month) => (
+                        <span
+                          key={`${month.key}-first`}
+                          style={{ left: `${month.firstLeft}%` }}
+                        >
+                          1ª
+                        </span>
+                      ))}
+                      {timelineMonths.map((month) => (
+                        <span
+                          key={`${month.key}-second`}
+                          style={{ left: `${month.secondLeft}%` }}
+                        >
+                          2ª
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <span className="slider-date-rail-line" aria-hidden="true" />
+                  <span className="slider-date-bound start">
+                    {displayDate(projectStartDate)}
+                  </span>
+                  <span className="slider-date-bound end">
+                    {displayDate(projectTargetDate)}
+                  </span>
+                  {datedMilestones.map((milestone) => {
+                    const value = milestoneDate(milestone);
+                    if (!value) return null;
+                    return (
+                      <button
+                        key={milestone.id}
+                        type="button"
+                        className={`slider-milestone-handle ${handleClass(milestone)}${milestone.id === selectedMilestone.id ? " selected" : ""}`}
+                        style={{
+                          left: `${datePosition(projectStart, projectTarget, value)}%`,
+                        }}
+                        title={`${milestone.name} guardado · ${displayDate(value)} · ${milestone.statusLabel}`}
+                        aria-label={`Seleccionar ${milestone.name}`}
+                        onClick={() => {
+                          setSelectedByFlow((current) => ({
+                            ...current,
+                            [flow.track]: milestone.id,
+                          }));
+                          setActiveEditorFlow(flow.track);
+                        }}
+                      />
+                    );
+                  })}
+                  {hasPreviewChange ? (
+                    <button
+                      type="button"
+                      className={`slider-milestone-handle preview selected ${handleClass(selectedMilestone)}`}
+                      style={{
+                        left: `${datePosition(projectStart, projectTarget, selectedDate)}%`,
+                      }}
+                      title={`${selectedMilestone.name} en vista previa · ${displayDate(selectedDate)}`}
+                      aria-label={`Vista previa para ${selectedMilestone.name}`}
+                      onClick={() =>
+                        setSelectedByFlow((current) => ({
+                          ...current,
+                          [flow.track]: selectedMilestone.id,
+                        }))
+                      }
+                    />
+                  ) : null}
+                </div>
+              </div>
+              {undatedMilestones.length > 0 ? (
+                <div
+                  className="slider-undated-group"
+                  aria-label={`Hitos sin fecha de ${flow.label}`}
+                >
+                  <strong>Sin fecha</strong>
+                  {undatedMilestones.map((milestone) => (
                     <button
                       key={milestone.id}
                       type="button"
-                      className={`slider-milestone-handle ${handleClass(milestone)}${milestone.id === selectedMilestone.id ? " selected" : ""}`}
-                      style={{ left: `${datePosition(projectStart, projectTarget, value)}%` }}
-                      title={`${milestone.name} guardado · ${displayDate(value)} · ${milestone.statusLabel}`}
-                      aria-label={`Seleccionar ${milestone.name}`}
-                      onClick={() => setSelectedByFlow((current) => ({ ...current, [flow.track]: milestone.id }))}
-                    />
-                  );
-                })}
-                {hasPreviewChange ? (
-                  <button
-                    type="button"
-                    className={`slider-milestone-handle preview selected ${handleClass(selectedMilestone)}`}
-                    style={{ left: `${datePosition(projectStart, projectTarget, selectedDate)}%` }}
-                    title={`${selectedMilestone.name} en vista previa · ${displayDate(selectedDate)}`}
-                    aria-label={`Vista previa para ${selectedMilestone.name}`}
-                    onClick={() => setSelectedByFlow((current) => ({ ...current, [flow.track]: selectedMilestone.id }))}
-                  />
-                ) : null}
-              </div>
-            </div>
-            {undatedMilestones.length > 0 ? (
-              <div className="slider-undated-group" aria-label={`Hitos sin fecha de ${flow.label}`}>
-                <strong>Sin fecha</strong>
-                {undatedMilestones.map((milestone) => (
-                  <button
-                    key={milestone.id}
-                    type="button"
-                    className={`slider-undated-pill ${handleClass(milestone)}${milestone.id === selectedMilestone.id ? " selected" : ""}`}
-                    onClick={() => setSelectedByFlow((current) => ({ ...current, [flow.track]: milestone.id }))}
-                  >
-                    {milestone.name}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-            <form action={action} className="slider-selected-editor">
-              <input type="hidden" name="flowLabel" value={flow.label} />
-              <div className="slider-selected-heading">
-                <div>
-                  <p className="eyebrow">Hito seleccionado</p>
-                  <h4>{selectedMilestone.name}</h4>
-                  <p>
-                    {selectedMilestone.ownerName || "Sin responsable"} · {selectedMilestone.statusLabel}
-                    {selectedMilestone.approvalLabel ? ` · ${selectedMilestone.approvalLabel}` : ""}
-                  </p>
-                </div>
-                <span className={`badge ${handleClass(selectedMilestone)}`}>
-                  {hasPreviewChange ? "Vista previa " : "Guardada "}{displayDate(selectedDate)}
-                </span>
-              </div>
-              <div className="slider-context-grid">
-                <span><strong>Anterior:</strong> {contextLabel(previous)}</span>
-                <span><strong>Actual:</strong> {contextLabel(selectedMilestone)}</span>
-                <span><strong>Siguiente:</strong> {contextLabel(next)}</span>
-              </div>
-              <div className="slider-editor-controls">
-                <label className="field">
-                  <span>Fecha planificada</span>
-                  <input
-                    id={inputId}
-                    type="date"
-                    name={`plannedDate:${selectedMilestone.id}`}
-                    value={selectedDate}
-                    onChange={(event) => applyPreviewDate(event.target.value)}
-                  />
-                </label>
-                <label className="field slider-range-field">
-                  <span>Fecha en el flujo · {displayDate(selectedDate)}</span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={maxDays}
-                    step={1}
-                    value={rangeValue}
-                    data-min-date={projectStartDate}
-                    data-max-date={projectTargetDate}
-                    onChange={(event) => applyPreviewDate(addDays(projectStart, Number(event.target.value)))}
-                  />
-                </label>
-              </div>
-              <p className={`slider-impact-line${warnings.length > 0 ? " warning" : ""}`}>
-                <strong>Impacto:</strong> {[quickAdjustmentMessages[selectedMilestone.id], ...impact].filter(Boolean).slice(0, 3).join(" · ")}
-              </p>
-              {warnings.length > 0 ? (
-                <ul className="date-planner-warnings slider-warnings">
-                  {warnings.map((warning) => <li key={warning}>{warning}</li>)}
-                </ul>
-              ) : null}
-              <div className="slider-day-adjust" aria-label={`Ajuste rápido por días para ${selectedMilestone.name}`}>
-                <strong>Ajuste rápido</strong>
-                <label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={365}
-                    step={1}
-                    value={quickAdjustment.days}
-                    onChange={(event) => setQuickAdjustment((current) => ({ ...current, days: event.target.value }))}
-                  />
-                  días después de
-                </label>
-                <select
-                  value={activeQuickReference?.value ?? quickAdjustment.reference}
-                  onChange={(event) =>
-                    setQuickAdjustment((current) => ({
-                      ...current,
-                      reference: event.target.value as DayOffsetReference,
-                    }))
-                  }
-                >
-                  {quickReferences.map((reference) => (
-                    <option key={reference.value} value={reference.value} disabled={!reference.date}>
-                      {reference.label}{reference.date ? "" : " (no disponible)"}
-                    </option>
-                  ))}
-                </select>
-                <button type="button" onClick={() => applyDayOffset()}>Aplicar</button>
-                <div className="slider-day-chips" aria-label="Atajos de días">
-                  {QUICK_DAY_OFFSETS.map((days) => (
-                    <button key={days} type="button" onClick={() => applyDayOffset(String(days))}>
-                      +{days} días
+                      className={`slider-undated-pill ${handleClass(milestone)}${milestone.id === selectedMilestone.id ? " selected" : ""}`}
+                      onClick={() => {
+                        setSelectedByFlow((current) => ({
+                          ...current,
+                          [flow.track]: milestone.id,
+                        }));
+                        setActiveEditorFlow(flow.track);
+                      }}
+                    >
+                      {milestone.name}
                     </button>
                   ))}
                 </div>
-              </div>
-              <div className="date-planner-actions slider-editor-actions">
-                <div className="slider-quick-actions" aria-label={`Acciones rápidas para ${selectedMilestone.name}`}>
-                  <button className="date-planner-suggestion-button" type="button" onClick={() => setExactPreviewDate(suggestedPreviewDate)}>
-                    Usar sugerida
-                  </button>
-                  <button type="button" onClick={() => setExactPreviewDate(toInputDate(new Date(Date.UTC(selectedPreviewDate.getUTCFullYear(), selectedPreviewDate.getUTCMonth(), 1))))}>
-                    1ª quincena
-                  </button>
-                  <button type="button" onClick={() => setExactPreviewDate(toInputDate(new Date(Date.UTC(selectedPreviewDate.getUTCFullYear(), selectedPreviewDate.getUTCMonth(), 15))))}>
-                    2ª quincena
-                  </button>
-                  <button type="button" onClick={() => setExactPreviewDate(toInputDate(lastDayOfMonth(selectedPreviewDate)))}>
-                    Fin de mes
-                  </button>
-                  <button type="button" onClick={() => setExactPreviewDate(projectTargetDate)}>
-                    Fecha objetivo
+              ) : null}
+              {isEditorOpen ? (
+                <form action={action} className="slider-selected-editor">
+                  <input type="hidden" name="flowLabel" value={flow.label} />
+                  <div className="slider-selected-heading">
+                    <div>
+                      <p className="eyebrow">Hito seleccionado</p>
+                      <h4>{selectedMilestone.name}</h4>
+                      <p>
+                        {selectedMilestone.ownerName || "Sin responsable"} ·{" "}
+                        {selectedMilestone.statusLabel}
+                        {selectedMilestone.approvalLabel
+                          ? ` · ${selectedMilestone.approvalLabel}`
+                          : ""}
+                      </p>
+                    </div>
+                    <span className={`badge ${handleClass(selectedMilestone)}`}>
+                      {hasPreviewChange ? "Vista previa " : "Guardada "}
+                      {displayDate(selectedDate)}
+                    </span>
+                  </div>
+                  <div className="slider-context-grid">
+                    <span>
+                      <strong>Anterior:</strong> {contextLabel(previous)}
+                    </span>
+                    <span>
+                      <strong>Actual:</strong> {contextLabel(selectedMilestone)}
+                    </span>
+                    <span>
+                      <strong>Siguiente:</strong> {contextLabel(next)}
+                    </span>
+                  </div>
+                  <div className="slider-editor-controls">
+                    <label className="field">
+                      <span>Fecha planificada</span>
+                      <input
+                        id={inputId}
+                        type="date"
+                        name={`plannedDate:${selectedMilestone.id}`}
+                        value={selectedDate}
+                        onChange={(event) =>
+                          applyPreviewDate(event.target.value)
+                        }
+                      />
+                    </label>
+                    <label className="field slider-range-field">
+                      <span>
+                        Fecha en el flujo · {displayDate(selectedDate)}
+                      </span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={maxDays}
+                        step={1}
+                        value={rangeValue}
+                        data-min-date={projectStartDate}
+                        data-max-date={projectTargetDate}
+                        onChange={(event) =>
+                          applyPreviewDate(
+                            addDays(projectStart, Number(event.target.value)),
+                          )
+                        }
+                      />
+                    </label>
+                  </div>
+                  <p
+                    className={`slider-impact-line${warnings.length > 0 ? " warning" : ""}`}
+                  >
+                    <strong>Impacto:</strong>{" "}
+                    {[quickAdjustmentMessages[selectedMilestone.id], ...impact]
+                      .filter(Boolean)
+                      .slice(0, 3)
+                      .join(" · ")}
+                  </p>
+                  {warnings.length > 0 ? (
+                    <ul className="date-planner-warnings slider-warnings">
+                      {warnings.map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  <div
+                    className="slider-day-adjust"
+                    aria-label={`Ajuste rápido por días para ${selectedMilestone.name}`}
+                  >
+                    <strong>Ajuste rápido</strong>
+                    <label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={365}
+                        step={1}
+                        value={quickAdjustment.days}
+                        onChange={(event) =>
+                          setQuickAdjustment((current) => ({
+                            ...current,
+                            days: event.target.value,
+                          }))
+                        }
+                      />
+                      días después de
+                    </label>
+                    <select
+                      value={
+                        activeQuickReference?.value ?? quickAdjustment.reference
+                      }
+                      onChange={(event) =>
+                        setQuickAdjustment((current) => ({
+                          ...current,
+                          reference: event.target.value as DayOffsetReference,
+                        }))
+                      }
+                    >
+                      {quickReferences.map((reference) => (
+                        <option
+                          key={reference.value}
+                          value={reference.value}
+                          disabled={!reference.date}
+                        >
+                          {reference.label}
+                          {reference.date ? "" : " (no disponible)"}
+                        </option>
+                      ))}
+                    </select>
+                    <button type="button" onClick={() => applyDayOffset()}>
+                      Previsualizar
+                    </button>
+                    <div
+                      className="slider-day-chips"
+                      aria-label="Atajos de días"
+                    >
+                      {QUICK_DAY_OFFSETS.map((days) => (
+                        <button
+                          key={days}
+                          type="button"
+                          onClick={() => applyDayOffset(String(days))}
+                        >
+                          +{days} días
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="date-planner-actions slider-editor-actions">
+                    <div
+                      className="slider-quick-actions"
+                      aria-label={`Acciones rápidas para ${selectedMilestone.name}`}
+                    >
+                      <button
+                        className="date-planner-suggestion-button"
+                        type="button"
+                        onClick={() =>
+                          setExactPreviewDate(suggestedPreviewDate)
+                        }
+                      >
+                        Usar sugerida
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExactPreviewDate(
+                            toInputDate(
+                              new Date(
+                                Date.UTC(
+                                  selectedPreviewDate.getUTCFullYear(),
+                                  selectedPreviewDate.getUTCMonth(),
+                                  1,
+                                ),
+                              ),
+                            ),
+                          )
+                        }
+                      >
+                        1ª quincena
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExactPreviewDate(
+                            toInputDate(
+                              new Date(
+                                Date.UTC(
+                                  selectedPreviewDate.getUTCFullYear(),
+                                  selectedPreviewDate.getUTCMonth(),
+                                  15,
+                                ),
+                              ),
+                            ),
+                          )
+                        }
+                      >
+                        2ª quincena
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExactPreviewDate(
+                            toInputDate(lastDayOfMonth(selectedPreviewDate)),
+                          )
+                        }
+                      >
+                        Fin de mes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setExactPreviewDate(projectTargetDate)}
+                      >
+                        Fecha objetivo
+                      </button>
+                    </div>
+                    <button className="button primary small" type="submit">
+                      Guardar fecha
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="slider-selected-summary">
+                  <span>
+                    Hito seleccionado: <strong>{selectedMilestone.name}</strong>{" "}
+                    · {displayDate(selectedDate)}
+                  </span>
+                  <button
+                    type="button"
+                    className="button secondary small"
+                    onClick={() => setActiveEditorFlow(flow.track)}
+                  >
+                    Editar fecha
                   </button>
                 </div>
-                <button className="button primary small" type="submit">
-                  Guardar fecha
-                </button>
-              </div>
-            </form>
-          </article>
-        );
-      })}
+              )}
+            </article>
+          );
+        })}
       </div>
     </div>
   );

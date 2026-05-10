@@ -200,10 +200,6 @@ function BulkAssignmentPanel({
   );
 }
 
-function findMilestoneByCode(milestones: Milestone[], code: string) {
-  return milestones.find((milestone) => milestone.milestoneCode === code);
-}
-
 function buildProjectSummary(milestones: Milestone[]) {
   const total = milestones.length;
   const completed = milestones.filter(
@@ -498,7 +494,9 @@ function ProjectFlowRoadmap({ project }: { project: Project }) {
         <div>
           <p className="eyebrow">Roadmap anual {year}</p>
           <h2 id="roadmap-proyecto-title">Roadmap del proyecto</h2>
-          <p className="muted">Flujos Producto / Operaciones y Marketing.</p>
+          <p className="muted">
+            Resumen visual de flujos, fechas e hitos clave.
+          </p>
         </div>
         <span className="badge priority">{flows.length} flujos</span>
       </div>
@@ -564,11 +562,8 @@ function ProjectFlowRoadmap({ project }: { project: Project }) {
                 <div className="project-flow-summary">
                   <div className="project-flow-titleline">
                     <h3>{flow.label}</h3>
-                    <span className="badge slate">{progress}%</span>
+                    <span className="badge slate">Avance {progress}%</span>
                   </div>
-                  <span className="progress-track mini-progress">
-                    <span style={{ width: `${progress}%` }} />
-                  </span>
                   <div className="project-flow-next">
                     {nextMilestone ? (
                       <>
@@ -1539,6 +1534,46 @@ function MilestoneTable({
   );
 }
 
+function OperationalSummaryBand({
+  summary,
+  nextMilestone,
+}: {
+  summary: ReturnType<typeof buildProjectSummary>;
+  nextMilestone: Milestone | null;
+}) {
+  const items = [
+    { label: "Progreso", value: `${summary.progress}%`, accent: true },
+    { label: "total hitos", value: summary.total },
+    { label: "completados", value: summary.completed },
+    { label: "pendientes", value: summary.pending },
+    { label: "bloqueados", value: summary.blocked },
+  ];
+
+  return (
+    <section
+      className="operational-summary-band"
+      aria-label="Resumen operativo de progreso"
+    >
+      {items.map((item) => (
+        <span
+          key={item.label}
+          className={item.accent ? "summary-band-accent" : undefined}
+        >
+          {item.label} <strong>{item.value}</strong>
+        </span>
+      ))}
+      <span className="summary-band-next">
+        Próximo:{" "}
+        <strong>
+          {nextMilestone
+            ? displayMilestoneName(nextMilestone)
+            : "Sin pendientes"}
+        </strong>
+      </span>
+    </section>
+  );
+}
+
 export default async function RoadmapProjectDetailPage({ params }: PageProps) {
   const { id } = await params;
   if (id === "new") notFound();
@@ -1567,14 +1602,6 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
   const insights = buildRoadmapProjectInsights(project.milestones);
   const nextMilestone = insights.nextMilestone;
   const operationalAlerts = buildOperationalAlerts(insights);
-  const santiagoArrival = findMilestoneByCode(
-    project.milestones,
-    "supply_estimated_arrival_santiago",
-  );
-  const campaignActivation = findMilestoneByCode(
-    project.milestones,
-    "marketing_activation_date",
-  );
   const bulkAssignmentCounts = buildBulkAssignmentCounts(project.milestones);
   const activityLogs = await getRoadmapProjectActivity(project.id);
 
@@ -1617,54 +1644,10 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
 
         <DatePlannerSection project={project} action={updatePlannerDates} />
 
-        <section
-          className="executive-summary compact-summary-band"
-          aria-label="Resumen de progreso"
-        >
-          <article className="progress-card">
-            <p className="eyebrow">Progreso general</p>
-            <strong>{summary.progress}%</strong>
-            <span className="progress-track">
-              <span style={{ width: `${summary.progress}%` }} />
-            </span>
-            <p className="muted">
-              {summary.completed} de {summary.total} hitos completados.
-            </p>
-          </article>
-          <SummaryMetricCard label="Total hitos" value={summary.total} />
-          <SummaryMetricCard
-            label="Completados"
-            value={summary.completed}
-            tone="success"
-          />
-          <SummaryMetricCard
-            label="Pendientes"
-            value={summary.pending}
-            tone="warning"
-          />
-          <SummaryMetricCard
-            label="Bloqueados"
-            value={summary.blocked}
-            tone={summary.blocked > 0 ? "danger" : undefined}
-          />
-          <SummaryMetricCard
-            label="Próximo hito"
-            value={
-              nextMilestone
-                ? displayMilestoneName(nextMilestone)
-                : "Sin pendientes"
-            }
-            detail={nextMilestone ? milestoneSummary(nextMilestone) : undefined}
-          />
-          <SummaryMetricCard
-            label="Llegada estimada a Santiago"
-            value={displayPlannedDate(santiagoArrival?.plannedDate)}
-          />
-          <SummaryMetricCard
-            label="Activación de campaña"
-            value={displayPlannedDate(campaignActivation?.plannedDate)}
-          />
-        </section>
+        <OperationalSummaryBand
+          summary={summary}
+          nextMilestone={nextMilestone}
+        />
 
         <section
           className="panel project-control"
@@ -1800,7 +1783,9 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
           <div className="section-title">
             <div>
               <p className="eyebrow">Resumen del proyecto</p>
-              <h2>Contexto ejecutivo</h2>
+              <h2>
+                Contexto ejecutivo{project.description?.trim() ? "" : " —"}
+              </h2>
             </div>
             <div className="actions">
               {project.packagingRequest ? (
@@ -1823,9 +1808,9 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
               ) : null}
             </div>
           </div>
-          <p className="compact-summary-description">
-            {project.description || "Sin comentarios."}
-          </p>
+          {project.description?.trim() ? (
+            <p className="compact-summary-description">{project.description}</p>
+          ) : null}
           <dl className="metadata-grid compact-metadata-grid">
             <div>
               <dt>Responsable</dt>
