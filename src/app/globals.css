@@ -4332,3 +4332,52 @@ textarea {
     white-space: normal;
   }
 }
+
+.checkbox-field {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  align-content: center;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fffdf2;
+}
+.checkbox-field input {
+  width: auto;
+}
+.template-lines-input {
+  min-height: 260px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+.templates-panel {
+  display: grid;
+  gap: 16px;
+}
+.templates-table {
+  min-width: 980px;
+}
+.template-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.template-actions form {
+  margin: 0;
+}
+.danger-button {
+  color: var(--danger);
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+.template-preview code {
+  padding: 2px 5px;
+  border-radius: 6px;
+  background: white;
+  border: 1px solid var(--line-soft);
+  color: var(--black);
+  font-weight: 900;
+}

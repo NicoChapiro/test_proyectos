@@ -1,4 +1,4 @@
-import type { PackagingRequest, Prisma, RoadmapMilestone, RoadmapProject } from "@prisma/client";
+import type { PackagingRequest, Prisma, RoadmapMilestone, RoadmapProject, RoadmapTemplate, RoadmapTemplateFlow, RoadmapTemplateMilestone } from "@prisma/client";
 import type { ROADMAP_APPROVAL_STATUSES, ROADMAP_MILESTONE_STATUSES, ROADMAP_MILESTONE_TRACKS, ROADMAP_PRIORITIES, ROADMAP_PROJECT_TYPES, ROADMAP_STATUSES, ROADMAP_TRAFFIC_LIGHTS } from "./constants";
 
 export type RoadmapPriorityValue = (typeof ROADMAP_PRIORITIES)[number];
@@ -16,6 +16,10 @@ export type RoadmapBulkOwnerAssignmentScope =
   | "upcoming_unassigned";
 
 export type RoadmapProjectWithMilestones = RoadmapProject & { milestones: RoadmapMilestone[]; packagingRequest?: PackagingRequest | null };
+export type RoadmapTemplateWithDetails = RoadmapTemplate & {
+  flows: (RoadmapTemplateFlow & { milestones: RoadmapTemplateMilestone[] })[];
+  _count?: { projects: number; milestones: number; flows: number };
+};
 
 export type RoadmapFilters = {
   year?: number;
@@ -49,6 +53,7 @@ export type RoadmapProjectInput = {
   sharepointUrl?: string | null;
   sharepointFolderUrl?: string | null;
   colorLabel?: string | null;
+  roadmapTemplateId?: string | null;
 };
 
 export type RoadmapProjectUpdateInput = Partial<RoadmapProjectInput>;
@@ -96,4 +101,31 @@ export type RoadmapActivityLogInput = {
   summary: string;
   actorName?: string | null;
   metadata?: Prisma.InputJsonValue | null;
+};
+
+export type RoadmapTemplateFlowInput = {
+  name: string;
+  track: RoadmapMilestoneTrackValue;
+  sortOrder: number;
+};
+
+export type RoadmapTemplateMilestoneInput = {
+  name: string;
+  flowTrack: RoadmapMilestoneTrackValue;
+  sequence: number;
+  suggestedOwner?: string | null;
+  approvalRequired: boolean;
+  isCritical: boolean;
+  suggestedOffsetDays?: number | null;
+  notes?: string | null;
+};
+
+export type RoadmapTemplateInput = {
+  name: string;
+  description?: string | null;
+  projectType?: RoadmapProjectTypeValue | null;
+  isActive: boolean;
+  sortOrder?: number;
+  flows: RoadmapTemplateFlowInput[];
+  milestones: RoadmapTemplateMilestoneInput[];
 };

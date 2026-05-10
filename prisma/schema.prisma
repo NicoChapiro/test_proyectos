@@ -109,6 +109,8 @@ model RoadmapProject {
   updatedAt           DateTime            @updatedAt
   milestones          RoadmapMilestone[]
   activityLogs        RoadmapActivityLog[]
+  roadmapTemplateId   String?
+  roadmapTemplate     RoadmapTemplate?     @relation(fields: [roadmapTemplateId], references: [id], onDelete: SetNull)
   packagingRequest    PackagingRequest?   @relation(fields: [sourcePackagingId], references: [id], onDelete: SetNull)
 
   @@index([startDate, targetDate])
@@ -120,6 +122,60 @@ model RoadmapProject {
   @@index([area])
   @@index([channel])
   @@index([sourcePackagingId])
+  @@index([roadmapTemplateId])
+}
+
+model RoadmapTemplate {
+  id          String                     @id @default(cuid())
+  name        String
+  description String?
+  projectType RoadmapProjectType?
+  isActive    Boolean                    @default(true)
+  sortOrder   Int                        @default(0)
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+  projects    RoadmapProject[]
+  flows       RoadmapTemplateFlow[]
+  milestones  RoadmapTemplateMilestone[]
+
+  @@index([isActive, sortOrder])
+  @@index([projectType])
+}
+
+model RoadmapTemplateFlow {
+  id          String                     @id @default(cuid())
+  templateId  String
+  name        String
+  track       RoadmapMilestoneTrack
+  sortOrder   Int                        @default(0)
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+  template    RoadmapTemplate            @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  milestones  RoadmapTemplateMilestone[]
+
+  @@unique([templateId, track])
+  @@index([templateId, sortOrder])
+}
+
+model RoadmapTemplateMilestone {
+  id                  String                @id @default(cuid())
+  templateId          String
+  flowId              String
+  name                String
+  sequence            Int                   @default(0)
+  suggestedOwner      String?
+  approvalRequired    Boolean               @default(false)
+  isCritical          Boolean               @default(false)
+  suggestedOffsetDays Int?
+  notes               String?
+  sortOrder           Int                   @default(0)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  template            RoadmapTemplate       @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  flow                RoadmapTemplateFlow   @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  @@index([templateId, sortOrder])
+  @@index([flowId, sequence])
 }
 
 model RoadmapMilestone {

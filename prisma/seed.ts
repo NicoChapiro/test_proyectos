@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { ROADMAP_STANDARD_MILESTONE_TEMPLATES } from "../src/modules/roadmap/constants";
+import { ROADMAP_PROJECT_TYPE_LABELS, ROADMAP_PROJECT_TYPE_MILESTONE_TEMPLATES, ROADMAP_STANDARD_MILESTONE_TEMPLATES } from "../src/modules/roadmap/constants";
 
 const prisma = new PrismaClient();
 
@@ -17,6 +17,41 @@ const samples = [
 ] as const;
 
 async function main() {
+  for (const [projectType, templates] of Object.entries(ROADMAP_PROJECT_TYPE_MILESTONE_TEMPLATES)) {
+    const existing = await prisma.roadmapTemplate.findFirst({ where: { projectType: projectType as never } });
+    if (existing) continue;
+    await prisma.roadmapTemplate.create({
+      data: {
+        name: `Plantilla ${ROADMAP_PROJECT_TYPE_LABELS[projectType as keyof typeof ROADMAP_PROJECT_TYPE_LABELS]}`,
+        description: "Plantilla inicial migrada desde la configuración estándar del roadmap.",
+        projectType: projectType as never,
+        isActive: true,
+        sortOrder: Object.keys(ROADMAP_PROJECT_TYPE_MILESTONE_TEMPLATES).indexOf(projectType),
+        flows: {
+          create: ["supply", "marketing"].flatMap((track, flowIndex) => {
+            const milestones = templates.filter((template) => template.track === track);
+            if (milestones.length === 0) return [];
+            return [{
+              name: track === "supply" ? "Operaciones / Proveedor" : "Marketing / Campaña",
+              track: track as never,
+              sortOrder: flowIndex + 1,
+              milestones: {
+                create: milestones.map((template, index) => ({
+                  name: template.name,
+                  sequence: template.sequence,
+                  sortOrder: index + 1,
+                  approvalRequired: "approvalStatus" in template,
+                  isCritical: index === milestones.length - 1,
+                  notes: "notes" in template ? template.notes : null,
+                })),
+              },
+            }];
+          }),
+        },
+      },
+    });
+  }
+
   for (const [code, title, requesterName, brand, category, desiredLaunchDate] of packagingSamples) {
     await prisma.packagingRequest.upsert({
       where: { code },

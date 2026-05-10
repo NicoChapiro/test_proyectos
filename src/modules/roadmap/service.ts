@@ -15,12 +15,18 @@ import {
   createRoadmapActivityLog,
   createRoadmapMilestone,
   createRoadmapProject,
+  createRoadmapTemplate,
+  deleteRoadmapTemplate,
   getRoadmapMilestone,
   getRoadmapProject,
+  getRoadmapTemplate,
   listRoadmapActivityLogs,
   listRoadmapProjects,
+  listRoadmapTemplates,
+  setRoadmapTemplateActive,
   updateRoadmapMilestone,
   updateRoadmapProject,
+  updateRoadmapTemplate,
 } from "./repository";
 import type {
   RoadmapActivityLogInput,
@@ -31,6 +37,7 @@ import type {
   RoadmapPlannerDateInput,
   RoadmapProjectInput,
   RoadmapProjectUpdateInput,
+  RoadmapTemplateInput,
 } from "./types";
 import { displayDate } from "./ui/date";
 import { displayMilestoneName, displayMilestoneStatus } from "./ui/labels";
@@ -286,6 +293,72 @@ export async function findRoadmapProject(id: string) {
 
 export async function getRoadmapProjectActivity(projectId: string, limit = 30) {
   return listRoadmapActivityLogs(projectId, limit);
+}
+
+export async function searchRoadmapTemplates(includeInactive = true) {
+  return listRoadmapTemplates(includeInactive);
+}
+
+export async function searchActiveRoadmapTemplates() {
+  return listRoadmapTemplates(false);
+}
+
+export async function findRoadmapTemplate(id: string) {
+  const template = await getRoadmapTemplate(id);
+  if (!template) throw new RoadmapNotFoundError();
+  return template;
+}
+
+export async function addRoadmapTemplate(input: RoadmapTemplateInput) {
+  return createRoadmapTemplate(input);
+}
+
+export async function editRoadmapTemplate(id: string, input: RoadmapTemplateInput) {
+  try {
+    return await prisma.$transaction((tx) => updateRoadmapTemplate(id, input, tx));
+  } catch (error) {
+    mapPrismaNotFound(error);
+  }
+}
+
+export async function duplicateRoadmapTemplate(id: string) {
+  const template = await findRoadmapTemplate(id);
+  return createRoadmapTemplate({
+    name: `${template.name} (copia)`,
+    description: template.description,
+    projectType: template.projectType,
+    isActive: false,
+    sortOrder: template.sortOrder + 1,
+    flows: template.flows.map((flow) => ({ name: flow.name, track: flow.track, sortOrder: flow.sortOrder })),
+    milestones: template.flows.flatMap((flow) =>
+      flow.milestones.map((milestone) => ({
+        name: milestone.name,
+        flowTrack: flow.track,
+        sequence: milestone.sequence,
+        suggestedOwner: milestone.suggestedOwner,
+        approvalRequired: milestone.approvalRequired,
+        isCritical: milestone.isCritical,
+        suggestedOffsetDays: milestone.suggestedOffsetDays,
+        notes: milestone.notes,
+      })),
+    ),
+  });
+}
+
+export async function deactivateRoadmapTemplate(id: string) {
+  try {
+    return await setRoadmapTemplateActive(id, false);
+  } catch (error) {
+    mapPrismaNotFound(error);
+  }
+}
+
+export async function removeRoadmapTemplate(id: string) {
+  try {
+    return await deleteRoadmapTemplate(id);
+  } catch (error) {
+    mapPrismaNotFound(error);
+  }
 }
 
 export async function addRoadmapProject(input: RoadmapProjectInput & { actorName?: string | null }) {

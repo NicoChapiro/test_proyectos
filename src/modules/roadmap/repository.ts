@@ -11,6 +11,8 @@ import type {
   RoadmapMilestoneUpdateInput,
   RoadmapProjectInput,
   RoadmapProjectUpdateInput,
+  RoadmapTemplateInput,
+  RoadmapTemplateWithDetails,
 } from "./types";
 
 type RoadmapDatabase = typeof prisma | Prisma.TransactionClient;
@@ -130,6 +132,58 @@ function defaultMilestonesForProject(project: RoadmapProjectInput): Prisma.Roadm
   });
 }
 
+function plannedDateFromOffset(project: RoadmapProjectInput, suggestedOffsetDays: number | null): Date | null {
+  if (suggestedOffsetDays === null) return null;
+  const plannedDate = new Date(project.startDate);
+  plannedDate.setUTCDate(plannedDate.getUTCDate() + suggestedOffsetDays);
+  return plannedDate;
+}
+
+function milestonesFromRoadmapTemplate(
+  project: RoadmapProjectInput,
+  template: RoadmapTemplateWithDetails,
+): Prisma.RoadmapMilestoneCreateWithoutProjectInput[] {
+  const milestones = template.flows.flatMap((flow) =>
+    flow.milestones.map((milestone, index) => {
+      const plannedDate = plannedDateFromOffset(project, milestone.suggestedOffsetDays) ?? interpolatePlannedDate(project.startDate, project.targetDate, index, flow.milestones.length);
+      return {
+        name: milestone.name,
+        track: flow.track,
+        sequence: milestone.sequence,
+        sortOrder: milestone.sortOrder,
+        status: "not_started" as const,
+        ownerName: milestone.suggestedOwner || (index === 0 ? project.ownerName : null),
+        plannedDate,
+        dueDate: plannedDate,
+        approvalStatus: milestone.approvalRequired ? "pending" as const : null,
+        notes: milestone.notes,
+        isCritical: milestone.isCritical,
+      };
+    }),
+  );
+
+  return milestones.length > 0 ? milestones : defaultMilestonesForProject(project);
+}
+
+const templateInclude = {
+  flows: {
+    include: { milestones: { orderBy: [{ sequence: "asc" as const }, { sortOrder: "asc" as const }] } },
+    orderBy: [{ sortOrder: "asc" as const }, { name: "asc" as const }],
+  },
+  _count: { select: { projects: true, milestones: true, flows: true } },
+};
+
+async function selectedTemplateForProject(project: RoadmapProjectInput, db: RoadmapDatabase): Promise<RoadmapTemplateWithDetails | null> {
+  if (project.roadmapTemplateId) {
+    return db.roadmapTemplate.findFirst({ where: { id: project.roadmapTemplateId, isActive: true }, include: templateInclude });
+  }
+  return db.roadmapTemplate.findFirst({
+    where: { isActive: true, OR: [{ projectType: project.projectType }, { projectType: null }] },
+    include: templateInclude,
+    orderBy: [{ projectType: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
+  });
+}
+
 export async function listRoadmapProjects(filters: RoadmapFilters) {
   return prisma.roadmapProject.findMany({
     where: buildWhere(filters),
@@ -147,14 +201,109 @@ export async function getRoadmapProject(id: string, db: RoadmapDatabase = prisma
 
 export async function createRoadmapProject(input: RoadmapProjectInput & { code: string }, db: RoadmapDatabase = prisma) {
   const { code, ...projectInput } = input;
+  const template = await selectedTemplateForProject(projectInput, db);
   return db.roadmapProject.create({
     data: {
       ...projectInput,
+      roadmapTemplateId: template?.id ?? null,
       code,
-      milestones: { create: defaultMilestonesForProject(projectInput) },
+      milestones: { create: template ? milestonesFromRoadmapTemplate(projectInput, template) : defaultMilestonesForProject(projectInput) },
     },
     include: { milestones: { orderBy: milestoneOrder }, packagingRequest: true },
   });
+}
+
+export async function listRoadmapTemplates(includeInactive = true) {
+  return prisma.roadmapTemplate.findMany({
+    where: includeInactive ? undefined : { isActive: true },
+    include: templateInclude,
+    orderBy: [{ isActive: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
+  });
+}
+
+export async function getRoadmapTemplate(id: string, db: RoadmapDatabase = prisma) {
+  return db.roadmapTemplate.findUnique({ where: { id }, include: templateInclude });
+}
+
+export async function createRoadmapTemplate(input: RoadmapTemplateInput, db: RoadmapDatabase = prisma) {
+  return db.roadmapTemplate.create({
+    data: {
+      name: input.name,
+      description: input.description,
+      projectType: input.projectType,
+      isActive: input.isActive,
+      sortOrder: input.sortOrder ?? 0,
+      flows: {
+        create: input.flows.map((flow) => ({
+          name: flow.name,
+          track: flow.track,
+          sortOrder: flow.sortOrder,
+          milestones: {
+            create: input.milestones
+              .filter((milestone) => milestone.flowTrack === flow.track)
+              .map((milestone, index) => ({
+                name: milestone.name,
+                sequence: milestone.sequence,
+                sortOrder: index + 1,
+                suggestedOwner: milestone.suggestedOwner,
+                approvalRequired: milestone.approvalRequired,
+                isCritical: milestone.isCritical,
+                suggestedOffsetDays: milestone.suggestedOffsetDays,
+                notes: milestone.notes,
+              })),
+          },
+        })),
+      },
+    },
+    include: templateInclude,
+  });
+}
+
+export async function updateRoadmapTemplate(id: string, input: RoadmapTemplateInput, db: RoadmapDatabase = prisma) {
+  await db.roadmapTemplateMilestone.deleteMany({ where: { templateId: id } });
+  await db.roadmapTemplateFlow.deleteMany({ where: { templateId: id } });
+  return db.roadmapTemplate.update({
+    where: { id },
+    data: {
+      name: input.name,
+      description: input.description,
+      projectType: input.projectType,
+      isActive: input.isActive,
+      sortOrder: input.sortOrder ?? 0,
+      flows: {
+        create: input.flows.map((flow) => ({
+          name: flow.name,
+          track: flow.track,
+          sortOrder: flow.sortOrder,
+          milestones: {
+            create: input.milestones
+              .filter((milestone) => milestone.flowTrack === flow.track)
+              .map((milestone, index) => ({
+                name: milestone.name,
+                sequence: milestone.sequence,
+                sortOrder: index + 1,
+                suggestedOwner: milestone.suggestedOwner,
+                approvalRequired: milestone.approvalRequired,
+                isCritical: milestone.isCritical,
+                suggestedOffsetDays: milestone.suggestedOffsetDays,
+                notes: milestone.notes,
+              })),
+          },
+        })),
+      },
+    },
+    include: templateInclude,
+  });
+}
+
+export async function setRoadmapTemplateActive(id: string, isActive: boolean, db: RoadmapDatabase = prisma) {
+  return db.roadmapTemplate.update({ where: { id }, data: { isActive }, include: templateInclude });
+}
+
+export async function deleteRoadmapTemplate(id: string, db: RoadmapDatabase = prisma) {
+  const usageCount = await db.roadmapProject.count({ where: { roadmapTemplateId: id } });
+  if (usageCount > 0) throw new Error("La plantilla está en uso; desactívala en lugar de eliminarla.");
+  return db.roadmapTemplate.delete({ where: { id } });
 }
 
 export async function updateRoadmapProject(id: string, input: RoadmapProjectUpdateInput, db: RoadmapDatabase = prisma) {

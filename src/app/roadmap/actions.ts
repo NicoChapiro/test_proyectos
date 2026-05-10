@@ -8,6 +8,7 @@ import {
   validateRoadmapPlannerDateInput,
   validateRoadmapProjectInput,
   validateRoadmapProjectUpdateInput,
+  validateRoadmapTemplateInput,
 } from "@/modules/roadmap/validators";
 
 
@@ -87,4 +88,34 @@ export async function updateMilestonePlannerDatesAction(
     validateRoadmapPlannerDateInput(formData),
   );
   redirect(`/roadmap/${projectId}`);
+}
+
+export async function createRoadmapTemplateAction(formData: FormData) {
+  const { addRoadmapTemplate } = await import("@/modules/roadmap/service");
+  const template = await addRoadmapTemplate(validateRoadmapTemplateInput(formToObject(formData)));
+  redirect(`/roadmap/settings/templates/${template.id}/edit`);
+}
+
+export async function updateRoadmapTemplateAction(id: string, formData: FormData) {
+  const { editRoadmapTemplate } = await import("@/modules/roadmap/service");
+  await editRoadmapTemplate(id, validateRoadmapTemplateInput(formToObject(formData)));
+  redirect("/roadmap/settings/templates");
+}
+
+export async function duplicateRoadmapTemplateAction(id: string) {
+  const { duplicateRoadmapTemplate } = await import("@/modules/roadmap/service");
+  const template = await duplicateRoadmapTemplate(id);
+  redirect(`/roadmap/settings/templates/${template.id}/edit`);
+}
+
+export async function deactivateRoadmapTemplateAction(id: string) {
+  const { deactivateRoadmapTemplate } = await import("@/modules/roadmap/service");
+  await deactivateRoadmapTemplate(id);
+  redirect("/roadmap/settings/templates");
+}
+
+export async function deleteRoadmapTemplateAction(id: string) {
+  const { removeRoadmapTemplate } = await import("@/modules/roadmap/service");
+  await removeRoadmapTemplate(id);
+  redirect("/roadmap/settings/templates");
 }

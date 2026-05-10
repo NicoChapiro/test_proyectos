@@ -1,6 +1,6 @@
 import { ROADMAP_APPROVAL_STATUSES, ROADMAP_MILESTONE_STATUSES, ROADMAP_MILESTONE_TRACKS, ROADMAP_PRIORITIES, ROADMAP_PROJECT_TYPES, ROADMAP_STATUSES, ROADMAP_TRAFFIC_LIGHTS } from "./constants";
 import { RoadmapError } from "./errors";
-import type { RoadmapApprovalStatusValue, RoadmapBulkOwnerAssignmentInput, RoadmapBulkOwnerAssignmentScope, RoadmapFilters, RoadmapMilestoneInput, RoadmapMilestoneStatusValue, RoadmapMilestoneTrackValue, RoadmapMilestoneUpdateInput, RoadmapPlannerDateInput, RoadmapPriorityValue, RoadmapProjectInput, RoadmapProjectTypeValue, RoadmapProjectUpdateInput, RoadmapStatusValue, RoadmapTrafficLightValue } from "./types";
+import type { RoadmapApprovalStatusValue, RoadmapBulkOwnerAssignmentInput, RoadmapBulkOwnerAssignmentScope, RoadmapFilters, RoadmapMilestoneInput, RoadmapMilestoneStatusValue, RoadmapMilestoneTrackValue, RoadmapMilestoneUpdateInput, RoadmapPlannerDateInput, RoadmapPriorityValue, RoadmapProjectInput, RoadmapProjectTypeValue, RoadmapProjectUpdateInput, RoadmapStatusValue, RoadmapTemplateInput, RoadmapTrafficLightValue } from "./types";
 
 const ROADMAP_BULK_OWNER_ASSIGNMENT_SCOPES = [
   "all_unassigned",
@@ -118,6 +118,7 @@ export function validateRoadmapProjectInput(payload: unknown): RoadmapProjectInp
     sharepointUrl,
     sharepointFolderUrl: sharepointUrl,
     colorLabel: optionalString(data.colorLabel) ?? null,
+    roadmapTemplateId: optionalString(data.roadmapTemplateId) ?? null,
   };
   validateRange(input.startDate, input.targetDate);
   return input;
@@ -148,6 +149,7 @@ export function validateRoadmapProjectUpdateInput(payload: unknown): RoadmapProj
     input.sharepointFolderUrl = sharepointUrl;
   }
   if (data.colorLabel !== undefined) input.colorLabel = optionalString(data.colorLabel) ?? null;
+  if (data.roadmapTemplateId !== undefined) input.roadmapTemplateId = optionalString(data.roadmapTemplateId) ?? null;
   validateRange(input.startDate, input.targetDate);
   return input;
 }
@@ -242,4 +244,57 @@ export function validateRoadmapPlannerDateInput(
     throw new RoadmapError("No hay fechas para actualizar");
   }
   return { flowLabel, dates };
+}
+
+function booleanFromForm(value: unknown): boolean {
+  return value === true || value === "true" || value === "on" || value === "1";
+}
+
+function parseTemplateMilestoneLines(value: unknown): RoadmapTemplateInput["milestones"] {
+  const text = requiredString(value, "Hitos de plantilla");
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line, index) => {
+      const [flowTrackRaw, nameRaw, ownerRaw, approvalRaw, criticalRaw, offsetRaw, notesRaw] = line.split("|").map((part) => part.trim());
+      const flowTrack = enumValue(flowTrackRaw, ROADMAP_MILESTONE_TRACKS, `Flujo línea ${index + 1}`) as RoadmapMilestoneTrackValue;
+      const offsetText = optionalString(offsetRaw);
+      const suggestedOffsetDays = offsetText === undefined || offsetText === null ? null : numberOrDefault(offsetText, Number.NaN);
+      if (suggestedOffsetDays !== null && !Number.isFinite(suggestedOffsetDays)) {
+        throw new RoadmapError(`Offset línea ${index + 1} debe ser numérico`);
+      }
+      return {
+        name: requiredString(nameRaw, `Nombre de hito línea ${index + 1}`),
+        flowTrack,
+        sequence: index + 1,
+        suggestedOwner: optionalString(ownerRaw) ?? null,
+        approvalRequired: booleanFromForm(approvalRaw),
+        isCritical: booleanFromForm(criticalRaw),
+        suggestedOffsetDays,
+        notes: optionalString(notesRaw) ?? null,
+      };
+    });
+}
+
+export function validateRoadmapTemplateInput(payload: unknown): RoadmapTemplateInput {
+  const data = asRecord(payload);
+  const flowDefinitions = [
+    { name: requiredString(data.supplyFlowName || "Operaciones / Proveedor", "Flujo supply"), track: "supply" as const, sortOrder: numberOrDefault(data.supplyFlowOrder, 1) },
+    { name: requiredString(data.marketingFlowName || "Marketing / Campaña", "Flujo marketing"), track: "marketing" as const, sortOrder: numberOrDefault(data.marketingFlowOrder, 2) },
+  ].sort((first, second) => first.sortOrder - second.sortOrder);
+  const milestones = parseTemplateMilestoneLines(data.milestonesText);
+  const usedTracks = new Set(milestones.map((milestone) => milestone.flowTrack));
+  const flows = flowDefinitions.filter((flow) => usedTracks.has(flow.track));
+  if (flows.length === 0) throw new RoadmapError("La plantilla debe tener al menos un flujo con hitos");
+
+  return {
+    name: requiredString(data.name, "Nombre de plantilla"),
+    description: optionalString(data.description) ?? null,
+    projectType: (optionalEnumValue(data.projectType, ROADMAP_PROJECT_TYPES, "Tipo sugerido") ?? null) as RoadmapProjectTypeValue | null,
+    isActive: data.isActive === undefined ? false : booleanFromForm(data.isActive),
+    sortOrder: numberOrDefault(data.sortOrder, 0),
+    flows,
+    milestones,
+  };
 }
