@@ -45,7 +45,7 @@ type QuickFilterKey =
   | "approvals";
 
 const FLOW_LABELS = {
-  supply: "Producto / Operaciones",
+  supply: "Producto / Ops",
   marketing: "Marketing",
 } as const;
 const FLOW_ORDER = ["supply", "marketing"] as const;
@@ -219,15 +219,31 @@ function flowMilestoneTooltip(milestones: ProjectMilestone[]): string {
     .join("\n");
 }
 
-function nextMilestoneSummary(milestone: ProjectMilestone | null | undefined) {
+function nextMilestoneSummary(
+  milestone:
+    | { name: string; milestoneCode?: string | null; plannedDate?: Date | null }
+    | null
+    | undefined,
+) {
   if (!milestone) return "Sin acciones pendientes";
   return `${displayMilestoneName(milestone)} · ${displayPlannedDate(
-    milestoneTimelineDate(milestone),
+    milestone.plannedDate,
   )}`;
 }
 
-function operationalChip(label: string, count: number) {
-  return count > 0 ? { label, count } : null;
+function projectTooltipSummary(
+  project: Project,
+  insights: ReturnType<typeof buildRoadmapProjectInsights>,
+): string {
+  return [
+    `${project.code} · ${project.name}`,
+    `Responsable: ${project.ownerName || "Sin responsable"}`,
+    `Tipo: ${ROADMAP_PROJECT_TYPE_LABELS[project.projectType]}`,
+    `Área: ${project.area || "Sin área"}`,
+    `Avance: ${insights.progressPercentage}%`,
+    `Próximo hito: ${nextMilestoneSummary(insights.nextMilestone)}`,
+    `Fecha objetivo: ${displayDate(project.targetDate)}`,
+  ].join("\n");
 }
 
 function projectOverlapsQuarter(
@@ -584,35 +600,19 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
           ) : null}
           {projects.map((project) => {
             const insights = buildRoadmapProjectInsights(project.milestones);
-            const nextMilestone = insights.nextMilestone;
             const flowOverviews = buildProjectFlowOverviews(project, year);
-            const hasAnyDatedMilestones = flowOverviews.some(
-              (flow) => flow.datedMilestones.length > 0,
-            );
-            const operationalChips = [
-              operationalChip("Vencidos", insights.overdueMilestones.length),
-              operationalChip("Bloqueados", insights.blockedMilestones.length),
-              operationalChip("Aprobaciones", insights.pendingApprovalCount),
-            ].filter((chip): chip is { label: string; count: number } =>
-              Boolean(chip),
-            );
+            const tooltip = projectTooltipSummary(project, insights);
             return (
               <article
                 className="timeline-project-row annual-flow-row"
                 key={project.id}
+                title={tooltip}
+                aria-label={tooltip}
               >
                 <div className="project-summary annual-project-summary">
-                  <p className="muted project-code">{project.code}</p>
                   <h3>
                     <Link href={`/roadmap/${project.id}`}>{project.name}</Link>
                   </h3>
-                  <div className="project-meta-line compact-meta-line">
-                    <span>{project.ownerName || "Sin responsable"}</span>
-                    <span>
-                      {ROADMAP_PROJECT_TYPE_LABELS[project.projectType]}
-                    </span>
-                    <span>{project.area || "Sin área"}</span>
-                  </div>
                   <div className="badges compact-badges">
                     <span className={`badge status-${project.status}`}>
                       {ROADMAP_STATUS_LABELS[project.status]}
@@ -624,28 +624,11 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
                         {insights.severityLabel}
                       </span>
                     ) : null}
-                    {operationalChips.map((chip) => (
-                      <span key={chip.label} className="badge alert-chip">
-                        {chip.label}: {chip.count}
-                      </span>
-                    ))}
                   </div>
-                  <dl className="annual-project-facts">
-                    <div>
-                      <dt>Avance</dt>
-                      <dd>{insights.progressPercentage}%</dd>
-                    </div>
-                    <div>
-                      <dt>Próximo</dt>
-                      <dd title={nextMilestoneSummary(nextMilestone)}>
-                        {nextMilestoneSummary(nextMilestone)}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Fecha objetivo</dt>
-                      <dd>{displayDate(project.targetDate)}</dd>
-                    </div>
-                  </dl>
+                  <p className="project-meta-line compact-meta-line">
+                    <span>{project.ownerName || "Sin responsable"}</span>
+                    <span>{project.area || "Sin área"}</span>
+                  </p>
                 </div>
                 <div className="timeline-content annual-flow-content">
                   <div className="annual-flow-lanes">
@@ -656,11 +639,11 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
                       <div className="annual-flow-lane" key={flow.track}>
                         <div className="annual-flow-lane-label">
                           <span>{flow.label}</span>
-                          <small>{flow.milestones.length} hitos</small>
+                          <small>{flow.milestones.length}</small>
                         </div>
                         {flow.datedMilestones.length === 0 ? (
                           <p className="annual-no-dates">
-                            Sin fechas suficientes
+                            Sin fechas
                           </p>
                         ) : (
                           <div
@@ -719,29 +702,18 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
                             ))}
                             {flow.hiddenMilestoneCount > 0 ? (
                               <span className="annual-hidden-milestones">
-                                + {flow.hiddenMilestoneCount} hitos
+                                +{flow.hiddenMilestoneCount}
                               </span>
                             ) : null}
                           </div>
                         )}
                       </div>
                     ))}
-                    {flowOverviews.length === 1 &&
-                    flowOverviews[0].track === "marketing" ? (
-                      <p className="annual-subtle-empty">
-                        Producto / Operaciones: sin hitos
-                      </p>
-                    ) : null}
-                    {flowOverviews.length > 0 && !hasAnyDatedMilestones ? (
-                      <p className="annual-subtle-empty">
-                        Sin fechas suficientes
-                      </p>
-                    ) : null}
                   </div>
                 </div>
                 <div className="row-actions annual-row-actions">
                   <Link
-                    className="button small"
+                    className="annual-detail-link"
                     href={`/roadmap/${project.id}`}
                   >
                     Ver detalle

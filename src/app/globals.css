@@ -3867,176 +3867,213 @@ textarea {
 }
 
 .compact-legend {
-  padding: 10px 14px;
+  padding: 8px 12px;
 }
 .compact-legend p {
-  margin: 8px 0 0;
-  font-size: 0.84rem;
+  margin: 6px 0 0;
+  font-size: 0.8rem;
   font-weight: 800;
 }
 .compact-legend-grid {
-  margin-top: 8px;
-  font-size: 0.76rem;
+  margin-top: 6px;
+  font-size: 0.72rem;
+}
+.roadmap-board-content {
+  gap: 8px;
+  min-width: 1040px;
 }
 .roadmap-board .timeline-scale {
   position: sticky;
   top: 8px;
   z-index: 5;
+  grid-template-columns: minmax(210px, 260px) minmax(700px, 1fr) 64px;
+  gap: 10px;
+}
+.roadmap-board .scale-spacer {
+  min-width: 64px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 0.66rem;
+}
+.roadmap-board .scale-grid {
+  border-radius: 12px;
+}
+.roadmap-board .quarter-header div {
+  padding: 7px 8px;
+}
+.roadmap-board .quarter-header span {
+  font-size: 0.68rem;
+}
+.roadmap-board .month-header span {
+  padding: 5px 2px;
+  font-size: 0.66rem;
 }
 .annual-flow-row {
-  grid-template-columns:
-    minmax(250px, 310px) minmax(680px, 1fr) minmax(92px, auto);
-  gap: 14px;
-  padding: 12px 14px;
+  grid-template-columns: minmax(210px, 260px) minmax(700px, 1fr) 64px;
+  gap: 10px;
+  align-items: center;
+  min-height: 84px;
+  padding: 8px 10px;
   border-left-width: 4px;
+  border-radius: 14px;
+}
+.annual-project-summary {
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  min-width: 0;
 }
 .annual-project-summary h3 {
-  margin-bottom: 7px;
-  font-size: 1rem;
-  line-height: 1.18;
+  margin: 0;
+  overflow: hidden;
+  font-size: 0.92rem;
+  line-height: 1.16;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.annual-project-summary h3 a {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .compact-meta-line {
   gap: 5px;
-  margin-bottom: 8px;
-  font-size: 0.76rem;
+  margin: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+.compact-meta-line span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .compact-meta-line span:not(:last-child)::after {
   margin-left: 5px;
 }
 .compact-badges {
-  gap: 5px;
+  gap: 4px;
 }
 .compact-badges .badge {
-  padding: 4px 8px;
-  font-size: 0.68rem;
-}
-.annual-project-facts {
-  display: grid;
-  gap: 5px;
-  margin: 10px 0 0;
-}
-.annual-project-facts div {
-  display: grid;
-  grid-template-columns: 74px minmax(0, 1fr);
-  gap: 8px;
-  align-items: baseline;
-}
-.annual-project-facts dt {
-  color: var(--muted);
-  font-size: 0.66rem;
-  font-weight: 900;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-.annual-project-facts dd {
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
-  color: var(--black);
-  font-size: 0.76rem;
-  font-weight: 900;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  padding: 2px 7px;
+  font-size: 0.62rem;
+  line-height: 1.35;
 }
 .annual-flow-content {
-  gap: 6px;
+  gap: 0;
 }
 .annual-flow-lanes {
   display: grid;
-  gap: 8px;
+  gap: 5px;
   min-width: 0;
 }
 .annual-flow-lane {
   display: grid;
-  grid-template-columns: 148px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 8px;
   align-items: center;
   min-width: 0;
 }
 .annual-flow-lane-label {
-  display: grid;
-  gap: 2px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5px;
   min-width: 0;
 }
 .annual-flow-lane-label span {
   overflow: hidden;
   color: #0f172a;
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   font-weight: 950;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .annual-flow-lane-label small {
-  color: var(--muted);
-  font-size: 0.68rem;
-  font-weight: 900;
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--brand-yellow-soft);
+  color: var(--black);
+  font-size: 0.62rem;
+  font-weight: 950;
 }
 .annual-flow-timeline {
   position: relative;
-  min-height: 38px;
+  min-height: 26px;
   overflow: hidden;
   border: 1px solid var(--line-soft);
-  border-radius: 12px;
+  border-radius: 9px;
   background: #f8fafc;
 }
 .annual-flow-bar {
   position: absolute;
   z-index: 1;
-  top: 14px;
-  height: 8px;
-  min-width: 10px;
+  top: 10px;
+  height: 6px;
+  min-width: 8px;
   border-radius: 999px;
   background: #cbd5e1;
   box-shadow: inset 0 0 0 1px rgba(100, 116, 139, 0.18);
 }
 .annual-flow-timeline .milestone-dot {
-  top: 11px;
-  width: 14px;
-  height: 14px;
+  top: 8px;
+  width: 10px;
+  height: 10px;
   display: grid;
   place-items: center;
+  border-width: 1px;
   color: white;
-  font-size: 0.58rem;
+  font-size: 0.54rem;
   font-weight: 900;
   line-height: 1;
 }
 .annual-flow-timeline .milestone-cluster {
-  width: 18px;
-  height: 18px;
-  top: 9px;
+  top: 6px;
+  width: 14px;
+  height: 14px;
 }
 .annual-hidden-milestones {
   position: absolute;
-  right: 8px;
-  bottom: 3px;
+  right: 5px;
+  bottom: 2px;
   z-index: 2;
   border-radius: 999px;
-  padding: 1px 6px;
+  padding: 0 5px;
   background: rgba(255, 255, 255, 0.9);
   color: var(--muted-strong);
-  font-size: 0.62rem;
+  font-size: 0.56rem;
   font-weight: 900;
 }
-.annual-no-dates,
-.annual-subtle-empty {
+.annual-no-dates {
   margin: 0;
   border: 1px dashed var(--line);
-  border-radius: 12px;
-  padding: 8px 10px;
+  border-radius: 9px;
+  padding: 5px 8px;
   background: #f8fafc;
   color: var(--muted);
-  font-size: 0.74rem;
+  font-size: 0.68rem;
   font-weight: 900;
-}
-.annual-subtle-empty {
-  border: 0;
-  padding: 0 0 0 158px;
-  background: transparent;
-  font-size: 0.7rem;
+  line-height: 1.1;
 }
 .annual-row-actions {
   align-items: center;
   justify-content: flex-end;
+}
+.annual-detail-link {
+  color: var(--black);
+  font-size: 0.68rem;
+  font-weight: 950;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.annual-detail-link:hover {
+  color: #8a6a00;
+  text-decoration: underline;
 }
 
 @media (max-width: 760px) {
@@ -4054,12 +4091,9 @@ textarea {
     min-width: 760px;
   }
   .annual-flow-lane {
-    grid-template-columns: 132px minmax(0, 1fr);
-  }
-  .annual-subtle-empty {
-    padding-left: 142px;
+    grid-template-columns: 90px minmax(0, 1fr);
   }
   .annual-row-actions {
-    justify-content: stretch;
+    justify-content: flex-start;
   }
 }
