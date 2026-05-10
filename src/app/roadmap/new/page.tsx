@@ -6,7 +6,9 @@ import { AppShell, PageHeader } from "@/modules/roadmap/ui/shell";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default function NewRoadmapProjectPage() {
+export default async function NewRoadmapProjectPage() {
+  const { searchActiveRoadmapTemplates } = await import("@/modules/roadmap/service");
+  const templates = await searchActiveRoadmapTemplates();
   return (
     <AppShell active="roadmap">
       <PageHeader
@@ -15,7 +17,7 @@ export default function NewRoadmapProjectPage() {
         subtitle="Crea la cabecera del proyecto. Los hitos estándar se generarán automáticamente."
         actions={<Link className="button secondary" href="/roadmap">Volver</Link>}
       />
-      <ProjectForm action={createRoadmapProjectAction} submitLabel="Crear proyecto" />
+      <ProjectForm action={createRoadmapProjectAction} submitLabel="Crear proyecto" templates={templates} />
     </AppShell>
   );
 }

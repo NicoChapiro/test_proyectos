@@ -9,7 +9,7 @@ const navItems = [
   { label: "Solicitudes Packaging", href: "/packaging", key: "packaging" },
   { label: "Calendario", href: "/roadmap/calendar", key: "calendar" },
   { label: "Reportes", href: "/roadmap/weekly", key: "reports" },
-  { label: "Configuración", href: "/roadmap", key: "settings" },
+  { label: "Configuración", href: "/roadmap/settings/templates", key: "settings" },
 ] as const;
 
 export function AppShell({ children, active = "roadmap" }: { children: ReactNode; active?: NavKey }) {

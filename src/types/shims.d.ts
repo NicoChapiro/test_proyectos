@@ -95,6 +95,44 @@ declare module "@prisma/client" {
     sharepointUrl: string | null;
     sharepointFolderUrl: string | null;
     colorLabel: string | null;
+    roadmapTemplateId: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+
+  export type RoadmapTemplate = {
+    id: string;
+    name: string;
+    description: string | null;
+    projectType: RoadmapProjectType | null;
+    isActive: boolean;
+    sortOrder: number;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+
+  export type RoadmapTemplateFlow = {
+    id: string;
+    templateId: string;
+    name: string;
+    track: RoadmapMilestoneTrack;
+    sortOrder: number;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+
+  export type RoadmapTemplateMilestone = {
+    id: string;
+    templateId: string;
+    flowId: string;
+    name: string;
+    sequence: number;
+    suggestedOwner: string | null;
+    approvalRequired: boolean;
+    isCritical: boolean;
+    suggestedOffsetDays: number | null;
+    notes: string | null;
+    sortOrder: number;
     createdAt: Date;
     updatedAt: Date;
   };
@@ -141,6 +179,7 @@ declare module "@prisma/client" {
       code?: StringFilter;
       name?: StringFilter;
       description?: StringFilter;
+      roadmapTemplateId?: string | null;
       OR?: RoadmapProjectWhereInput[];
     };
     export type RoadmapMilestoneCreateWithoutProjectInput = Record<string, unknown>;
@@ -162,6 +201,8 @@ declare module "@prisma/client" {
   }
 
   type ProjectWithMilestones = RoadmapProject & { milestones: RoadmapMilestone[]; packagingRequest?: PackagingRequest | null };
+  type TemplateFlowWithMilestones = RoadmapTemplateFlow & { milestones: RoadmapTemplateMilestone[] };
+  type TemplateWithDetails = RoadmapTemplate & { flows: TemplateFlowWithMilestones[]; _count?: { projects: number; milestones: number; flows: number } };
   type PackagingWithRoadmapProjects = PackagingRequest & { roadmapProjects: ProjectWithMilestones[] };
   type ActivityLogWithMilestone = RoadmapActivityLog & { milestone?: RoadmapMilestone | null };
   type OrderBy = Record<string, "asc" | "desc">;
@@ -181,6 +222,20 @@ declare module "@prisma/client" {
       update(args: { where: { id: string }; data: unknown; include?: unknown }): Promise<ProjectWithMilestones>;
       upsert(args: { where: { code: string }; update: unknown; create: unknown }): Promise<RoadmapProject>;
       count(args?: { where?: Prisma.RoadmapProjectWhereInput }): Promise<number>;
+    };
+    roadmapTemplate: {
+      findMany(args?: { where?: unknown; include?: unknown; orderBy?: OrderBy[] }): Promise<TemplateWithDetails[]>;
+      findFirst(args?: { where?: unknown; include?: unknown; orderBy?: OrderBy[] }): Promise<TemplateWithDetails | null>;
+      findUnique(args: { where: { id: string }; include?: unknown }): Promise<TemplateWithDetails | null>;
+      create(args: { data: unknown; include?: unknown }): Promise<TemplateWithDetails>;
+      update(args: { where: { id: string }; data: unknown; include?: unknown }): Promise<TemplateWithDetails>;
+      delete(args: { where: { id: string } }): Promise<RoadmapTemplate>;
+    };
+    roadmapTemplateFlow: {
+      deleteMany(args: { where?: unknown }): Promise<{ count: number }>;
+    };
+    roadmapTemplateMilestone: {
+      deleteMany(args: { where?: unknown }): Promise<{ count: number }>;
     };
     roadmapMilestone: {
       create(args: { data: unknown }): Promise<RoadmapMilestone>;
