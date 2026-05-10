@@ -1408,6 +1408,80 @@ textarea {
   justify-content: flex-end;
   padding: 6px 0;
 }
+
+.template-preview {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fffdf2 0%, #f8fbff 100%);
+}
+.template-preview-heading {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.template-preview-heading div {
+  display: grid;
+  gap: 2px;
+}
+.template-preview-heading span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.template-preview-heading strong {
+  color: var(--text);
+  font-size: 0.98rem;
+}
+.template-preview-heading p,
+.template-preview-empty {
+  max-width: 560px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+.template-preview-flows {
+  display: grid;
+  gap: 10px;
+}
+.template-preview-flow {
+  display: grid;
+  gap: 7px;
+}
+.template-preview-badge {
+  border-color: #fde68a;
+  color: #7c2d12;
+  background: var(--brand-yellow-soft);
+}
+.template-preview-milestones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.template-preview-milestones li {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: #475569;
+  background: rgba(255, 255, 255, 0.76);
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+@media (max-width: 860px) {
+  .template-preview-heading {
+    display: grid;
+  }
+}
 .add-milestone-card .grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
