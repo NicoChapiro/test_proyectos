@@ -1615,33 +1615,22 @@ function OperationalSummaryBand({
   nextMilestone: Milestone | null;
   alerts: string[];
 }) {
-  const summaryItems = [
-    {
-      label: "Estado",
-      value: ROADMAP_STATUS_LABELS[project.status],
-    },
-    { label: "Avance", value: `${summary.progress}%` },
-    {
-      label: "Próximo hito",
-      value: nextMilestone ? displayMilestoneName(nextMilestone) : "Sin pendientes",
-    },
-    {
-      label: "Fecha próximo hito",
-      value: nextMilestone
-        ? displayPlannedDate(milestoneTimelineDate(nextMilestone))
-        : "—",
-    },
-    {
-      label: "Responsable próximo hito",
-      value: nextMilestone?.ownerName || "Sin responsable",
-      warning: Boolean(nextMilestone && !nextMilestone.ownerName?.trim()),
-    },
-    { label: "Fecha objetivo", value: displayDate(project.targetDate) },
-    { label: "Riesgo", value: insights.severityLabel },
-  ];
+  const nextMilestoneName = nextMilestone
+    ? displayMilestoneName(nextMilestone)
+    : "Sin pendientes";
+  const nextMilestoneDate = nextMilestone
+    ? displayPlannedDate(milestoneTimelineDate(nextMilestone))
+    : "—";
+  const nextMilestoneOwner = nextMilestone?.ownerName || "Sin responsable";
+  const nextMilestoneNeedsOwner = Boolean(
+    nextMilestone && !nextMilestone.ownerName?.trim(),
+  );
 
   return (
-    <section className="panel operational-overview" aria-labelledby="resumen-operativo-title">
+    <section
+      className="panel operational-overview"
+      aria-labelledby="resumen-operativo-title"
+    >
       <div className="operational-overview-header">
         <div>
           <p className="eyebrow">Resumen operativo</p>
@@ -1651,15 +1640,33 @@ function OperationalSummaryBand({
           {insights.severityLabel}
         </span>
       </div>
-      <dl className="operational-summary-strip">
-        {summaryItems.map((item) => (
-          <div className={item.warning ? "needs-attention" : undefined} key={item.label}>
-            <dt>{item.label}</dt>
-            <dd>{item.value}</dd>
-          </div>
-        ))}
-      </dl>
-      <div className="primary-detail-actions" aria-label="Acciones principales del proyecto">
+      <div
+        className="operational-summary-lines"
+        aria-label="Resumen operativo compacto"
+      >
+        <p>
+          <strong>Estado:</strong> {ROADMAP_STATUS_LABELS[project.status]}
+          <span aria-hidden="true"> · </span>
+          <strong>Avance</strong> {summary.progress}%
+          <span aria-hidden="true"> · </span>
+          <strong>Riesgo:</strong> {insights.severityLabel}
+        </p>
+        <p
+          className={nextMilestoneNeedsOwner ? "needs-attention" : undefined}
+        >
+          <strong>Próximo:</strong> {nextMilestoneName}
+          <span aria-hidden="true"> · </span>
+          {nextMilestoneDate}
+          <span aria-hidden="true"> · </span>
+          <strong>Responsable:</strong> {nextMilestoneOwner}
+          <span aria-hidden="true"> · </span>
+          <strong>Objetivo:</strong> {displayDate(project.targetDate)}
+        </p>
+      </div>
+      <div
+        className="primary-detail-actions"
+        aria-label="Acciones principales del proyecto"
+      >
         <ProjectDetailActionButton targetId="planificador-fechas">
           Editar fechas
         </ProjectDetailActionButton>
@@ -1757,15 +1764,6 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
 
         <ProjectFlowRoadmap project={project} />
 
-        <nav className="section-tabs" aria-label="Secciones del proyecto">
-          <a href="#roadmap-proyecto">Roadmap</a>
-          <a href="#planificador-fechas">Editar fechas</a>
-          <a href="#control-operativo">Control operativo</a>
-          <a href="#detalle-operativo">Detalle operativo</a>
-          <a href="#administracion">Administración</a>
-          <a href="#historial">Historial</a>
-        </nav>
-
         <details className="panel collapsible-panel" id="planificador-fechas">
           <summary className="collapsible-summary">
             <span>
@@ -1777,7 +1775,10 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
           <DatePlannerSection project={project} action={updatePlannerDates} />
         </details>
 
-        <details className="panel collapsible-panel project-control" id="control-operativo">
+        <details
+          className="panel collapsible-panel project-control"
+          id="control-operativo"
+        >
           <summary className="collapsible-summary">
             <span>
               <strong>Control operativo</strong>
