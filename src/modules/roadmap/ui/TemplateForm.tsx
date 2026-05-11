@@ -1,6 +1,7 @@
 import { ROADMAP_PROJECT_TYPE_LABELS, ROADMAP_PROJECT_TYPES, ROADMAP_TRACK_LABELS } from "../constants";
 import type { RoadmapTemplateWithDetails } from "../types";
 import { FormSectionCard } from "./shell";
+import { TemplateMilestoneEditor } from "./TemplateMilestoneEditor";
 
 type Props = {
   template?: RoadmapTemplateWithDetails;
@@ -58,14 +59,8 @@ export function TemplateForm({ template, action, submitLabel }: Props) {
         <label className="field"><span>Orden marketing</span><input type="number" name="marketingFlowOrder" defaultValue={marketingFlow?.sortOrder ?? 2} /></label>
       </FormSectionCard>
 
-      <FormSectionCard title="Hitos" description="Una línea por hito: flujo | nombre | responsable sugerido | aprobación | crítico | offset días | notas.">
-        <label className="field full">
-          <span>Hitos de plantilla <em>*</em></span>
-          <textarea className="template-lines-input" name="milestonesText" required defaultValue={templateLines(template)} />
-        </label>
-        <aside className="template-preview full">
-          <div className="template-preview-heading"><div><span>Formato compacto</span><strong>Reordenar hitos</strong></div><p>Reordena las líneas para cambiar la secuencia. Usa <code>supply</code> o <code>marketing</code>, y <code>true</code>/<code>false</code> para aprobación y crítico.</p></div>
-        </aside>
+      <FormSectionCard title="Hitos de plantilla" description="Configura los hitos que se crearán automáticamente al usar esta plantilla.">
+        <TemplateMilestoneEditor initialMilestonesText={templateLines(template)} />
       </FormSectionCard>
 
       <div className="form-footer"><button className="button primary large" type="submit">{submitLabel}</button></div>
