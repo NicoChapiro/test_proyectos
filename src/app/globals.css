@@ -4381,3 +4381,187 @@ textarea {
   color: var(--black);
   font-weight: 900;
 }
+
+.template-milestone-editor {
+  display: grid;
+  gap: 14px;
+}
+.template-milestone-hidden-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.template-milestone-alert {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+  background: var(--warning-soft);
+  color: #92400e;
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+.template-milestone-flows {
+  display: grid;
+  gap: 14px;
+}
+.template-milestone-flow {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fffdf2 0%, #ffffff 58%, #f8fafc 100%);
+}
+.template-milestone-flow-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.template-milestone-flow-header div {
+  display: grid;
+  gap: 3px;
+}
+.template-milestone-flow-header span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.template-milestone-flow-header strong {
+  color: var(--black);
+  font-size: 1rem;
+}
+.template-milestone-list {
+  display: grid;
+  gap: 10px;
+}
+.template-milestone-empty {
+  margin: 0;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.76);
+}
+.template-milestone-row {
+  display: grid;
+  grid-template-columns: 34px minmax(180px, 1.25fr) minmax(150px, 0.9fr) minmax(112px, 0.48fr) minmax(136px, 0.58fr) minmax(108px, 0.48fr) minmax(160px, 0.9fr) auto;
+  gap: 9px;
+  align-items: end;
+  padding: 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 8px 20px rgba(17, 24, 39, 0.04);
+}
+.template-milestone-order {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  align-self: center;
+  border: 2px solid var(--black);
+  border-radius: 999px;
+  background: var(--brand-yellow);
+  color: var(--black);
+  font-size: 0.82rem;
+  font-weight: 950;
+}
+.template-milestone-row .field {
+  gap: 5px;
+}
+.template-milestone-row .field span,
+.template-milestone-check span {
+  font-size: 0.75rem;
+}
+.template-milestone-row input {
+  min-height: 38px;
+  padding: 8px 10px;
+}
+.template-milestone-check {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 8px 9px;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  background: #fffdf2;
+  color: #334155;
+  font-weight: 900;
+}
+.template-milestone-check input {
+  width: auto;
+  min-height: 0;
+}
+.template-milestone-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: center;
+  flex-wrap: nowrap;
+}
+.template-milestone-actions .button[disabled] {
+  cursor: not-allowed;
+  opacity: 0.46;
+  transform: none;
+  box-shadow: none;
+}
+.template-milestone-advanced {
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  background: #f9fafb;
+}
+.template-milestone-advanced summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--muted-strong);
+  font-weight: 950;
+}
+.template-milestone-advanced .field {
+  margin-top: 12px;
+}
+
+@media (max-width: 1280px) {
+  .template-milestone-row {
+    grid-template-columns: 34px repeat(6, minmax(0, 1fr));
+  }
+  .template-milestone-actions {
+    grid-column: 2 / -1;
+  }
+  .template-milestone-name,
+  .template-milestone-notes {
+    grid-column: span 2;
+  }
+}
+@media (max-width: 760px) {
+  .template-milestone-flow-header,
+  .template-milestone-row {
+    display: grid;
+  }
+  .template-milestone-row {
+    grid-template-columns: 34px 1fr;
+  }
+  .template-milestone-row .field,
+  .template-milestone-check,
+  .template-milestone-actions,
+  .template-milestone-name,
+  .template-milestone-notes {
+    grid-column: 1 / -1;
+  }
+  .template-milestone-order {
+    grid-column: 1 / 2;
+  }
+}
