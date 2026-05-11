@@ -222,15 +222,30 @@ function flowDotClass(milestones: ProjectMilestone[]): string {
   return "milestone-not_started";
 }
 
+function milestoneSequenceLabel(milestone: ProjectMilestone): string {
+  return `#${milestone.sequence ?? milestone.sortOrder ?? "—"}`;
+}
+
+function displayMilestoneTimelineDate(milestone: ProjectMilestone): string {
+  if (milestone.dateMode !== "range") {
+    return displayPlannedDate(milestoneTimelineDate(milestone));
+  }
+
+  return `${displayPlannedDate(
+    milestoneTimelineStartDate(milestone),
+  )} → ${displayPlannedDate(milestoneTimelineEndDate(milestone))}`;
+}
+
 function flowMilestoneTooltip(milestones: ProjectMilestone[]): string {
   return milestones
     .map((milestone) => {
       const lines = [
+        milestoneSequenceLabel(milestone),
         displayMilestoneName(milestone),
-        `Fecha: ${displayPlannedDate(milestoneTimelineDate(milestone))}`,
+        `Fecha: ${displayMilestoneTimelineDate(milestone)}`,
+        `Responsable: ${milestone.ownerName || "Sin responsable"}`,
         `Estado: ${displayMilestoneStatus(milestone.status)}`,
       ];
-      if (milestone.ownerName) lines.push(`Responsable: ${milestone.ownerName}`);
       if (milestone.approvalStatus) {
         lines.push(`Aprobación: ${displayApprovalStatus(milestone.approvalStatus)}`);
       }
@@ -825,30 +840,35 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
                                 />
                               );
                             })}
-                            {flow.visibleClusters.map((cluster) => (
-                              <span
-                                key={cluster.id}
-                                className={`milestone-dot ${flowDotClass(
-                                  cluster.milestones.map(
-                                    ({ milestone }) => milestone,
-                                  ),
-                                )}${
-                                  cluster.milestones.length > 1
-                                    ? " milestone-cluster"
-                                    : ""
-                                }`}
-                                style={{ left: `${cluster.left}%` }}
-                                title={flowMilestoneTooltip(
-                                  cluster.milestones.map(
-                                    ({ milestone }) => milestone,
-                                  ),
-                                )}
-                              >
-                                {cluster.milestones.length > 1
-                                  ? cluster.milestones.length
-                                  : null}
-                              </span>
-                            ))}
+                            {flow.visibleClusters.map((cluster) => {
+                              const clusterMilestones = cluster.milestones.map(
+                                ({ milestone }) => milestone,
+                              );
+                              const tooltip = flowMilestoneTooltip(
+                                clusterMilestones,
+                              );
+
+                              return (
+                                <span
+                                  key={cluster.id}
+                                  className={`milestone-dot ${flowDotClass(
+                                    clusterMilestones,
+                                  )}${
+                                    cluster.milestones.length > 1
+                                      ? " milestone-cluster"
+                                      : ""
+                                  }`}
+                                  style={{ left: `${cluster.left}%` }}
+                                  title={tooltip}
+                                  aria-label={tooltip}
+                                  tabIndex={0}
+                                >
+                                  {cluster.milestones.length > 1
+                                    ? cluster.milestones.length
+                                    : null}
+                                </span>
+                              );
+                            })}
                             {flow.hiddenMilestoneCount > 0 ? (
                               <span className="annual-hidden-milestones">
                                 +{flow.hiddenMilestoneCount}

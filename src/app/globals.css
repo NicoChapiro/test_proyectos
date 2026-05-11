@@ -1156,6 +1156,7 @@ textarea {
 }
 .project-flow-timeline {
   min-height: 76px;
+  overflow: visible;
   background: #f8fafc;
 }
 .project-flow-bar {
@@ -1167,9 +1168,76 @@ textarea {
 .project-flow-timeline .milestone-dot {
   top: 40px;
 }
-.project-flow-timeline .milestone-label {
-  top: 56px;
-  max-width: 104px;
+.project-flow-timeline .milestone-dot {
+  cursor: help;
+  outline: none;
+}
+.project-flow-timeline .milestone-dot:focus-visible {
+  box-shadow:
+    0 0 0 3px rgba(255, 214, 10, 0.55),
+    0 2px 8px rgba(15, 23, 42, 0.25);
+}
+.project-flow-timeline .milestone-dot::after {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 7px);
+  z-index: 10;
+  width: max-content;
+  max-width: min(280px, 44vw);
+  padding: 6px 8px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.94);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
+  color: white;
+  content: attr(data-tooltip);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.25;
+  opacity: 0;
+  pointer-events: none;
+  text-align: left;
+  transform: translate(-50%, 4px);
+  transition: opacity 120ms ease, transform 120ms ease;
+  white-space: pre-line;
+}
+.project-flow-timeline .milestone-dot::before {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 2px);
+  z-index: 11;
+  width: 8px;
+  height: 8px;
+  background: rgba(15, 23, 42, 0.94);
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px) rotate(45deg);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+.project-flow-timeline .milestone-dot:hover::after,
+.project-flow-timeline .milestone-dot:hover::before,
+.project-flow-timeline .milestone-dot:focus-visible::after,
+.project-flow-timeline .milestone-dot:focus-visible::before {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.project-flow-timeline .milestone-dot.tooltip-align-start::after {
+  left: 0;
+  transform: translate(0, 4px);
+}
+.project-flow-timeline .milestone-dot.tooltip-align-start:hover::after,
+.project-flow-timeline .milestone-dot.tooltip-align-start:focus-visible::after {
+  transform: translate(0, 0);
+}
+.project-flow-timeline .milestone-dot.tooltip-align-end::after {
+  right: 0;
+  left: auto;
+  transform: translate(0, 4px);
+}
+.project-flow-timeline .milestone-dot.tooltip-align-end:hover::after,
+.project-flow-timeline .milestone-dot.tooltip-align-end:focus-visible::after {
+  transform: translate(0, 0);
 }
 .project-flow-timeline .milestone-cluster {
   display: grid;
@@ -3583,10 +3651,6 @@ textarea {
 .roadmap-detail-compact .project-flow-timeline .milestone-dot {
   top: 32px;
 }
-.roadmap-detail-compact .project-flow-timeline .milestone-label {
-  top: 45px;
-  font-size: 0.64rem;
-}
 .roadmap-detail-compact .date-planner {
   display: grid;
   gap: 8px;
@@ -3906,12 +3970,7 @@ textarea {
 .roadmap-detail-compact .project-flow-timeline,
 .roadmap-detail-compact .project-flow-no-dates,
 .roadmap-detail-compact .project-flow-empty {
-  min-height: 50px;
-}
-.roadmap-detail-compact .project-flow-timeline .milestone-label {
-  top: 40px;
-  max-width: 90px;
-  opacity: 0.78;
+  min-height: 60px;
 }
 .roadmap-detail-compact .date-planner-progress-pair {
   padding: 6px 8px;

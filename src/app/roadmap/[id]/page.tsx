@@ -233,8 +233,6 @@ const FLOW_LABELS: Partial<Record<RoadmapMilestoneTrackValue, string>> = {
   marketing: "Marketing",
 };
 const KNOWN_FLOW_ORDER: RoadmapMilestoneTrackValue[] = ["supply", "marketing"];
-const FLOW_LABEL_LIMIT = 2;
-const FLOW_LABEL_MIN_GAP = 8;
 const FLOW_CLUSTER_GAP = 2;
 
 type FlowMilestoneCluster = {
@@ -242,11 +240,6 @@ type FlowMilestoneCluster = {
   milestones: DatedFlowMilestone[];
   left: number;
   date: Date;
-};
-
-type FlowLabelCandidate = FlowMilestoneCluster & {
-  label: string;
-  priority: number;
 };
 
 function flowLabel(track: RoadmapMilestoneTrackValue): string {
@@ -404,107 +397,30 @@ function flowDotClass(milestones: Milestone[]): string {
   return "milestone-not_started";
 }
 
+function milestoneSequenceLabel(milestone: Milestone): string {
+  return `#${milestone.sequence ?? milestone.sortOrder ?? "—"}`;
+}
+
 function flowMilestoneTooltip(milestones: Milestone[]): string {
   return milestones
-    .map((milestone) => {
-      const lines = [
+    .map((milestone) =>
+      [
+        milestoneSequenceLabel(milestone),
         displayMilestoneName(milestone),
         milestone.dateMode === "range"
-          ? `Planificada: ${displayMilestonePlannedRange(milestone)}`
-          : `Planificada: ${displayPlannedDate(milestoneTimelineDate(milestone))}`,
-      ];
-      const actualDate = milestone.actualDate ?? milestone.completedAt;
-      if (actualDate) lines.push(`Real: ${displayDate(actualDate)}`);
-      lines.push(`Estado: ${displayMilestoneStatus(milestone.status)}`);
-      if (milestone.approvalStatus) {
-        lines.push(
-          `Aprobación: ${displayApprovalStatus(milestone.approvalStatus)}`,
-        );
-      }
-      return lines.join(" · ");
-    })
+          ? displayMilestonePlannedRange(milestone)
+          : displayPlannedDate(milestoneTimelineDate(milestone)),
+        milestone.ownerName || "Sin responsable",
+        displayMilestoneStatus(milestone.status),
+      ].join(" · "),
+    )
     .join("\n");
 }
 
-function clusterLabelPriority(
-  cluster: FlowMilestoneCluster,
-  context: { nextMilestone?: Milestone | null; finalMilestoneId?: string },
-): number {
-  const milestones = cluster.milestones.map(({ milestone }) => milestone);
-  if (
-    milestones.some((milestone) => context.nextMilestone?.id === milestone.id)
-  ) {
-    return 0;
-  }
-  if (
-    milestones.some(
-      (milestone) => milestone.status === "blocked" || milestone.isCritical,
-    )
-  ) {
-    return 1;
-  }
-  if (milestones.some((milestone) => milestone.approvalStatus === "pending")) {
-    return 2;
-  }
-  if (
-    milestones.some((milestone) => context.finalMilestoneId === milestone.id)
-  ) {
-    return 3;
-  }
-  return Number.POSITIVE_INFINITY;
-}
-
-function clusterLabel(cluster: FlowMilestoneCluster, priority: number): string {
-  if (cluster.milestones.length > 1) {
-    return `${cluster.milestones.length} hitos`;
-  }
-
-  const milestone = cluster.milestones[0].milestone;
-  if (priority === 3) return "Hito final";
-  return displayMilestoneName(milestone);
-}
-
-function timelineLabelClass(left: number) {
-  if (left < 8) return "milestone-label align-start";
-  if (left > 92) return "milestone-label align-end";
-  return "milestone-label";
-}
-
-function visibleFlowLabels(
-  clusters: FlowMilestoneCluster[],
-  nextMilestone?: Milestone | null,
-): FlowLabelCandidate[] {
-  const finalMilestoneId = clusters.at(-1)?.milestones.at(-1)?.milestone.id;
-  const candidates = clusters
-    .map((cluster) => ({
-      ...cluster,
-      priority: clusterLabelPriority(cluster, {
-        nextMilestone,
-        finalMilestoneId,
-      }),
-    }))
-    .filter((item) => Number.isFinite(item.priority))
-    .sort(
-      (a, b) =>
-        a.priority - b.priority ||
-        a.date.getTime() - b.date.getTime() ||
-        a.left - b.left,
-    );
-
-  return candidates
-    .reduce<FlowLabelCandidate[]>((selected, item) => {
-      if (selected.length >= FLOW_LABEL_LIMIT) return selected;
-      const collides = selected.some(
-        (selectedItem) =>
-          Math.abs(selectedItem.left - item.left) < FLOW_LABEL_MIN_GAP,
-      );
-      if (collides) return selected;
-      return [
-        ...selected,
-        { ...item, label: clusterLabel(item, item.priority) },
-      ];
-    }, [])
-    .sort((a, b) => a.left - b.left);
+function timelineTooltipClass(left: number) {
+  if (left < 12) return " tooltip-align-start";
+  if (left > 88) return " tooltip-align-end";
+  return "";
 }
 
 function ProjectFlowRoadmap({ project }: { project: Project }) {
@@ -575,36 +491,27 @@ function ProjectFlowRoadmap({ project }: { project: Project }) {
             const right = lastMilestone?.left ?? left;
             const width = Math.max(1.5, right - left);
             const clusters = buildFlowMilestoneClusters(datedMilestones);
-            const labels = visibleFlowLabels(clusters, nextMilestone);
-            const labeledMilestoneCount = labels.reduce(
-              (total, label) => total + label.milestones.length,
-              0,
-            );
-            const hiddenLabelCount = Math.max(
-              0,
-              flow.milestones.length - labeledMilestoneCount,
-            );
-
             return (
               <article className="project-flow-row" key={flow.track}>
                 <div className="project-flow-summary">
                   <div className="project-flow-titleline">
-                    <h3>{flow.label}</h3>
-                    <span className="badge slate">Avance {progress}%</span>
+                    <h3>{flow.label} · {progress}%</h3>
+                    <span className="badge slate">
+                      {flow.milestones.length} hitos
+                    </span>
                   </div>
                   <div className="project-flow-next">
                     {nextMilestone ? (
                       <>
                         <p>
                           Próximo:{" "}
-                          <strong>{displayMilestoneName(nextMilestone)}</strong>{" "}
-                          ·{" "}
-                          {displayPlannedDate(
-                            milestoneTimelineDate(nextMilestone),
-                          )}
+                          <strong>{displayMilestoneName(nextMilestone)}</strong>
                         </p>
                         <p>
-                          Responsable:{" "}
+                          {displayPlannedDate(
+                            milestoneTimelineDate(nextMilestone),
+                          )}{" "}
+                          · Responsable:{" "}
                           {nextMilestone.ownerName || "Sin responsable"}
                         </p>
                       </>
@@ -662,44 +569,39 @@ function ProjectFlowRoadmap({ project }: { project: Project }) {
                           />
                         );
                       })}
-                      {clusters.map((cluster) => (
-                        <span
-                          key={cluster.id}
-                          className={`milestone-dot ${flowDotClass(
-                            cluster.milestones.map(
-                              ({ milestone }) => milestone,
-                            ),
-                          )}${
-                            cluster.milestones.length > 1
-                              ? " milestone-cluster"
-                              : ""
-                          }`}
-                          style={{ left: `${cluster.left}%` }}
-                          title={flowMilestoneTooltip(
-                            cluster.milestones.map(
-                              ({ milestone }) => milestone,
-                            ),
-                          )}
-                        >
-                          {cluster.milestones.length > 1
-                            ? cluster.milestones.length
-                            : null}
-                        </span>
-                      ))}
-                      {labels.map((label) => (
-                        <span
-                          key={`${label.id}-flow-label`}
-                          className={timelineLabelClass(label.left)}
-                          style={{ left: `${label.left}%` }}
-                        >
-                          {label.label}
-                        </span>
-                      ))}
+                      {clusters.map((cluster) => {
+                        const clusterMilestones = cluster.milestones.map(
+                          ({ milestone }) => milestone,
+                        );
+                        const tooltip = flowMilestoneTooltip(clusterMilestones);
+
+                        return (
+                          <span
+                            key={cluster.id}
+                            className={`milestone-dot ${flowDotClass(
+                              clusterMilestones,
+                            )}${
+                              cluster.milestones.length > 1
+                                ? " milestone-cluster"
+                                : ""
+                            }${timelineTooltipClass(cluster.left)}`}
+                            style={{ left: `${cluster.left}%` }}
+                            title={tooltip}
+                            aria-label={tooltip}
+                            data-tooltip={tooltip}
+                            tabIndex={0}
+                          >
+                            {cluster.milestones.length > 1
+                              ? cluster.milestones.length
+                              : null}
+                          </span>
+                        );
+                      })}
                     </div>
                   )}
-                  {hiddenLabelCount > 0 ? (
+                  {flow.milestones.length > 0 ? (
                     <p className="muted compact-milestone-summary">
-                      + {hiddenLabelCount} hitos
+                      + {flow.milestones.length} hitos
                     </p>
                   ) : null}
                 </div>
