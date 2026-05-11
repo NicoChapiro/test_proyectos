@@ -239,80 +239,108 @@ export async function getRoadmapTemplate(id: string, db: RoadmapDatabase = prism
   return db.roadmapTemplate.findUnique({ where: { id }, include: templateInclude });
 }
 
-export async function createRoadmapTemplate(input: RoadmapTemplateInput, db: RoadmapDatabase = prisma) {
-  return db.roadmapTemplate.create({
-    data: {
-      name: input.name,
-      description: input.description,
-      projectType: input.projectType,
-      isActive: input.isActive,
-      sortOrder: input.sortOrder ?? 0,
-      flows: {
-        create: input.flows.map((flow) => ({
-          name: flow.name,
-          track: flow.track,
-          sortOrder: flow.sortOrder,
-          milestones: {
-            create: input.milestones
-              .filter((milestone) => milestone.flowTrack === flow.track)
-              .map((milestone, index) => ({
-                name: milestone.name,
-                sequence: milestone.sequence,
-                sortOrder: index + 1,
-                suggestedOwner: milestone.suggestedOwner,
-                approvalRequired: milestone.approvalRequired,
-                isCritical: milestone.isCritical,
-                suggestedOffsetDays: milestone.suggestedOffsetDays,
-                dateMode: milestone.dateMode,
-                suggestedStartOffsetDays: milestone.suggestedStartOffsetDays,
-                suggestedEndOffsetDays: milestone.suggestedEndOffsetDays,
-                notes: milestone.notes,
-              })),
-          },
-        })),
+async function getWrittenRoadmapTemplate(id: string, db: RoadmapDatabase): Promise<RoadmapTemplateWithDetails> {
+  const template = await getRoadmapTemplate(id, db);
+  if (!template) throw new Error("No se pudo cargar la plantilla guardada");
+  return template;
+}
+
+function canRunRoadmapTransaction(db: RoadmapDatabase): db is typeof prisma {
+  return "$transaction" in db;
+}
+
+async function runRoadmapTransaction<T>(
+  db: RoadmapDatabase,
+  operation: (tx: Prisma.TransactionClient) => Promise<T>,
+): Promise<T> {
+  if (canRunRoadmapTransaction(db)) {
+    return db.$transaction((tx) => operation(tx));
+  }
+
+  return operation(db);
+}
+
+async function createTemplateFlowsAndMilestones(templateId: string, input: RoadmapTemplateInput, tx: Prisma.TransactionClient) {
+  const flowIdsByTrack = new Map<string, string>();
+
+  for (const flow of input.flows) {
+    const createdFlow = await tx.roadmapTemplateFlow.create({
+      data: {
+        templateId,
+        name: flow.name,
+        track: flow.track,
+        sortOrder: flow.sortOrder,
       },
-    },
-    include: templateInclude,
+      select: { id: true, track: true },
+    });
+
+    flowIdsByTrack.set(createdFlow.track, createdFlow.id);
+  }
+
+  const milestoneData = input.flows.flatMap((flow) => {
+    const flowId = flowIdsByTrack.get(flow.track);
+    if (!flowId) throw new Error(`No se pudo crear el flujo ${flow.track} para la plantilla`);
+
+    return input.milestones
+      .filter((milestone) => milestone.flowTrack === flow.track)
+      .map((milestone, index) => ({
+        templateId,
+        flowId,
+        name: milestone.name,
+        sequence: milestone.sequence,
+        sortOrder: index + 1,
+        suggestedOwner: milestone.suggestedOwner,
+        approvalRequired: milestone.approvalRequired,
+        isCritical: milestone.isCritical,
+        suggestedOffsetDays: milestone.suggestedOffsetDays,
+        dateMode: milestone.dateMode,
+        suggestedStartOffsetDays: milestone.suggestedStartOffsetDays,
+        suggestedEndOffsetDays: milestone.suggestedEndOffsetDays,
+        notes: milestone.notes,
+      }));
+  });
+
+  if (milestoneData.length > 0) {
+    await tx.roadmapTemplateMilestone.createMany({ data: milestoneData });
+  }
+}
+
+export async function createRoadmapTemplate(input: RoadmapTemplateInput, db: RoadmapDatabase = prisma) {
+  return runRoadmapTransaction(db, async (tx) => {
+    const template = await tx.roadmapTemplate.create({
+      data: {
+        name: input.name,
+        description: input.description,
+        projectType: input.projectType,
+        isActive: input.isActive,
+        sortOrder: input.sortOrder ?? 0,
+      },
+    });
+
+    await createTemplateFlowsAndMilestones(template.id, input, tx);
+
+    return getWrittenRoadmapTemplate(template.id, tx);
   });
 }
 
 export async function updateRoadmapTemplate(id: string, input: RoadmapTemplateInput, db: RoadmapDatabase = prisma) {
-  await db.roadmapTemplateMilestone.deleteMany({ where: { templateId: id } });
-  await db.roadmapTemplateFlow.deleteMany({ where: { templateId: id } });
-  return db.roadmapTemplate.update({
-    where: { id },
-    data: {
-      name: input.name,
-      description: input.description,
-      projectType: input.projectType,
-      isActive: input.isActive,
-      sortOrder: input.sortOrder ?? 0,
-      flows: {
-        create: input.flows.map((flow) => ({
-          name: flow.name,
-          track: flow.track,
-          sortOrder: flow.sortOrder,
-          milestones: {
-            create: input.milestones
-              .filter((milestone) => milestone.flowTrack === flow.track)
-              .map((milestone, index) => ({
-                name: milestone.name,
-                sequence: milestone.sequence,
-                sortOrder: index + 1,
-                suggestedOwner: milestone.suggestedOwner,
-                approvalRequired: milestone.approvalRequired,
-                isCritical: milestone.isCritical,
-                suggestedOffsetDays: milestone.suggestedOffsetDays,
-                dateMode: milestone.dateMode,
-                suggestedStartOffsetDays: milestone.suggestedStartOffsetDays,
-                suggestedEndOffsetDays: milestone.suggestedEndOffsetDays,
-                notes: milestone.notes,
-              })),
-          },
-        })),
+  return runRoadmapTransaction(db, async (tx) => {
+    await tx.roadmapTemplateMilestone.deleteMany({ where: { templateId: id } });
+    await tx.roadmapTemplateFlow.deleteMany({ where: { templateId: id } });
+    await tx.roadmapTemplate.update({
+      where: { id },
+      data: {
+        name: input.name,
+        description: input.description,
+        projectType: input.projectType,
+        isActive: input.isActive,
+        sortOrder: input.sortOrder ?? 0,
       },
-    },
-    include: templateInclude,
+    });
+
+    await createTemplateFlowsAndMilestones(id, input, tx);
+
+    return getWrittenRoadmapTemplate(id, tx);
   });
 }
 
