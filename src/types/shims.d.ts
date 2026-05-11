@@ -40,6 +40,7 @@ declare module "@prisma/client" {
   export type RoadmapTrafficLight = "verde" | "amarillo" | "rojo" | "gris";
   export type RoadmapMilestoneStatus = "not_started" | "in_progress" | "completed" | "blocked";
   export type RoadmapMilestoneTrack = "supply" | "marketing";
+  export type RoadmapMilestoneDateMode = "point" | "range";
   export type RoadmapApprovalStatus = "pending" | "approved" | "rejected";
   export type RoadmapProjectType = "packaging" | "product_launch" | "campaign" | "trade_marketing" | "ecommerce" | "content_design" | "event" | "innovation" | "regulatory_compliance" | "internal_process" | "other";
 
@@ -131,6 +132,9 @@ declare module "@prisma/client" {
     approvalRequired: boolean;
     isCritical: boolean;
     suggestedOffsetDays: number | null;
+    dateMode: RoadmapMilestoneDateMode;
+    suggestedStartOffsetDays: number | null;
+    suggestedEndOffsetDays: number | null;
     notes: string | null;
     sortOrder: number;
     createdAt: Date;
@@ -151,6 +155,11 @@ declare module "@prisma/client" {
     plannedDate: Date | null;
     actualDate: Date | null;
     completedAt: Date | null;
+    dateMode: RoadmapMilestoneDateMode;
+    plannedStartDate: Date | null;
+    plannedEndDate: Date | null;
+    actualStartDate: Date | null;
+    actualEndDate: Date | null;
     approvalStatus: RoadmapApprovalStatus | null;
     linkUrl: string | null;
     documentUrl: string | null;

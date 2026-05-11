@@ -42,6 +42,11 @@ enum RoadmapMilestoneTrack {
   marketing
 }
 
+enum RoadmapMilestoneDateMode {
+  point
+  range
+}
+
 enum RoadmapApprovalStatus {
   pending
   approved
@@ -167,6 +172,9 @@ model RoadmapTemplateMilestone {
   approvalRequired    Boolean               @default(false)
   isCritical          Boolean               @default(false)
   suggestedOffsetDays Int?
+  dateMode            RoadmapMilestoneDateMode @default(point)
+  suggestedStartOffsetDays Int?
+  suggestedEndOffsetDays   Int?
   notes               String?
   sortOrder           Int                   @default(0)
   createdAt           DateTime              @default(now())
@@ -192,6 +200,11 @@ model RoadmapMilestone {
   plannedDate    DateTime?
   actualDate     DateTime?
   completedAt    DateTime?
+  dateMode       RoadmapMilestoneDateMode @default(point)
+  plannedStartDate DateTime?
+  plannedEndDate   DateTime?
+  actualStartDate  DateTime?
+  actualEndDate    DateTime?
   approvalStatus RoadmapApprovalStatus?
   linkUrl        String?
   documentUrl    String?
@@ -207,6 +220,7 @@ model RoadmapMilestone {
   @@index([projectId])
   @@index([dueDate])
   @@index([plannedDate])
+  @@index([plannedStartDate, plannedEndDate])
   @@index([status])
   @@index([track, sequence])
 }

@@ -11,6 +11,9 @@ type EditableMilestone = {
   approvalRequired: boolean;
   isCritical: boolean;
   suggestedOffsetDays: string;
+  dateMode: "point" | "range";
+  suggestedStartOffsetDays: string;
+  suggestedEndOffsetDays: string;
   notes: string;
 };
 
@@ -37,6 +40,9 @@ function createEmptyMilestone(flowTrack: RoadmapMilestoneTrackValue): EditableMi
     approvalRequired: false,
     isCritical: false,
     suggestedOffsetDays: "",
+    dateMode: "point",
+    suggestedStartOffsetDays: "",
+    suggestedEndOffsetDays: "",
     notes: "",
   };
 }
@@ -56,6 +62,9 @@ function serializeMilestones(milestones: EditableMilestone[]): string {
         milestone.isCritical ? "true" : "false",
         sanitizePipeField(milestone.suggestedOffsetDays),
         sanitizePipeField(milestone.notes),
+        milestone.dateMode,
+        sanitizePipeField(milestone.suggestedStartOffsetDays),
+        sanitizePipeField(milestone.suggestedEndOffsetDays),
       ].join(" | "),
     )
     .join("\n");
@@ -67,7 +76,7 @@ function parseMilestones(lines: string): EditableMilestone[] {
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line, index) => {
-      const [flowTrackRaw, nameRaw, ownerRaw, approvalRaw, criticalRaw, offsetRaw, notesRaw] = line
+      const [flowTrackRaw, nameRaw, ownerRaw, approvalRaw, criticalRaw, offsetRaw, notesRaw, dateModeRaw, startOffsetRaw, endOffsetRaw] = line
         .split("|")
         .map((part) => part.trim());
       const flowTrack = flowTrackRaw === "marketing" ? "marketing" : "supply";
@@ -80,6 +89,9 @@ function parseMilestones(lines: string): EditableMilestone[] {
         approvalRequired: approvalRaw === "true" || approvalRaw === "1" || approvalRaw === "on",
         isCritical: criticalRaw === "true" || criticalRaw === "1" || criticalRaw === "on",
         suggestedOffsetDays: offsetRaw ?? "",
+        dateMode: dateModeRaw === "range" ? "range" : "point",
+        suggestedStartOffsetDays: startOffsetRaw ?? "",
+        suggestedEndOffsetDays: endOffsetRaw ?? "",
         notes: notesRaw ?? "",
       };
     });
@@ -90,10 +102,19 @@ function milestoneValidationMessage(milestones: EditableMilestone[]): string {
   const missingNameIndex = milestones.findIndex((milestone) => milestone.name.trim().length === 0);
   if (missingNameIndex >= 0) return `Completa el nombre del hito ${missingNameIndex + 1}.`;
   const invalidOffsetIndex = milestones.findIndex((milestone) => {
-    const offset = milestone.suggestedOffsetDays.trim();
-    return offset.length > 0 && !Number.isFinite(Number(offset));
+    const offsets = milestone.dateMode === "range"
+      ? [milestone.suggestedStartOffsetDays, milestone.suggestedEndOffsetDays]
+      : [milestone.suggestedOffsetDays];
+    return offsets.some((offset) => offset.trim().length > 0 && !Number.isFinite(Number(offset)));
   });
-  if (invalidOffsetIndex >= 0) return `Los días desde inicio del hito ${invalidOffsetIndex + 1} deben ser numéricos o quedar en blanco.`;
+  if (invalidOffsetIndex >= 0) return `Los días del hito ${invalidOffsetIndex + 1} deben ser numéricos o quedar en blanco.`;
+  const invalidRangeIndex = milestones.findIndex((milestone) => {
+    if (milestone.dateMode !== "range") return false;
+    const start = milestone.suggestedStartOffsetDays.trim();
+    const end = milestone.suggestedEndOffsetDays.trim();
+    return start.length > 0 && end.length > 0 && Number(end) < Number(start);
+  });
+  if (invalidRangeIndex >= 0) return `El término del hito ${invalidRangeIndex + 1} debe ser mayor o igual al inicio.`;
   return "";
 }
 
@@ -194,15 +215,51 @@ export function TemplateMilestoneEditor({ initialMilestonesText }: Props) {
                           onChange={(event) => updateMilestone(milestone.id, { suggestedOwner: event.target.value })}
                         />
                       </label>
-                      <label className="field template-milestone-offset">
-                        <span>Días desde inicio</span>
-                        <input
-                          inputMode="numeric"
-                          type="number"
-                          value={milestone.suggestedOffsetDays}
-                          onChange={(event) => updateMilestone(milestone.id, { suggestedOffsetDays: event.target.value })}
-                        />
+                      <label className="field template-milestone-date-mode">
+                        <span>Tipo de hito</span>
+                        <select
+                          value={milestone.dateMode}
+                          onChange={(event) => updateMilestone(milestone.id, { dateMode: event.target.value as "point" | "range" })}
+                        >
+                          <option value="point">Puntual · una fecha clave</option>
+                          <option value="range">Con duración · actividad con inicio y término</option>
+                        </select>
                       </label>
+                      {milestone.dateMode === "point" ? (
+                        <label className="field template-milestone-offset">
+                          <span>Día desde inicio</span>
+                          <input
+                            inputMode="numeric"
+                            type="number"
+                            value={milestone.suggestedOffsetDays}
+                            onChange={(event) => updateMilestone(milestone.id, { suggestedOffsetDays: event.target.value })}
+                          />
+                        </label>
+                      ) : (
+                        <div className="template-milestone-range-fields">
+                          <label className="field template-milestone-offset">
+                            <span>Inicio: día</span>
+                            <input
+                              inputMode="numeric"
+                              type="number"
+                              value={milestone.suggestedStartOffsetDays}
+                              onChange={(event) => updateMilestone(milestone.id, { suggestedStartOffsetDays: event.target.value })}
+                            />
+                          </label>
+                          <label className="field template-milestone-offset">
+                            <span>Término: día</span>
+                            <input
+                              inputMode="numeric"
+                              type="number"
+                              value={milestone.suggestedEndOffsetDays}
+                              onChange={(event) => updateMilestone(milestone.id, { suggestedEndOffsetDays: event.target.value })}
+                            />
+                          </label>
+                          <span className="template-milestone-duration">
+                            Duración: {Number.isFinite(Number(milestone.suggestedStartOffsetDays)) && Number.isFinite(Number(milestone.suggestedEndOffsetDays)) && milestone.suggestedStartOffsetDays !== "" && milestone.suggestedEndOffsetDays !== "" ? Math.max(0, Number(milestone.suggestedEndOffsetDays) - Number(milestone.suggestedStartOffsetDays) + 1) : "—"} días
+                          </span>
+                        </div>
+                      )}
                       <label className="template-milestone-check">
                         <input
                           checked={milestone.approvalRequired}

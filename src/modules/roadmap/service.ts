@@ -76,6 +76,11 @@ const MILESTONE_ACTIVITY_FIELDS = [
   "plannedDate",
   "actualDate",
   "completedAt",
+  "dateMode",
+  "plannedStartDate",
+  "plannedEndDate",
+  "actualStartDate",
+  "actualEndDate",
   "approvalStatus",
   "linkUrl",
   "documentUrl",
@@ -228,6 +233,11 @@ const MILESTONE_FIELD_DEFINITIONS: Record<MilestoneActivityField, ActivityFieldD
   plannedDate: { label: "Fecha planificada", summaryLabel: "Fecha planificada", valueLabel: dateValue },
   actualDate: { label: "Fecha real", summaryLabel: "Fecha real", valueLabel: dateValue },
   completedAt: { label: "Fecha completado", summaryLabel: "Fecha de completado", valueLabel: dateValue },
+  dateMode: { label: "Tipo de hito", summaryLabel: "Tipo de hito" },
+  plannedStartDate: { label: "Inicio planificado", summaryLabel: "Inicio planificado", valueLabel: dateValue },
+  plannedEndDate: { label: "Término planificado", summaryLabel: "Término planificado", valueLabel: dateValue },
+  actualStartDate: { label: "Inicio real", summaryLabel: "Inicio real", valueLabel: dateValue },
+  actualEndDate: { label: "Término real", summaryLabel: "Término real", valueLabel: dateValue },
   approvalStatus: { label: "Aprobación", summaryLabel: "Aprobación", valueLabel: approvalValue },
   linkUrl: { label: "Enlace", summaryLabel: "Enlace del hito" },
   documentUrl: { label: "Documento", summaryLabel: "Documento del hito" },
@@ -339,6 +349,9 @@ export async function duplicateRoadmapTemplate(id: string) {
         approvalRequired: milestone.approvalRequired,
         isCritical: milestone.isCritical,
         suggestedOffsetDays: milestone.suggestedOffsetDays,
+        dateMode: milestone.dateMode,
+        suggestedStartOffsetDays: milestone.suggestedStartOffsetDays,
+        suggestedEndOffsetDays: milestone.suggestedEndOffsetDays,
         notes: milestone.notes,
       })),
     ),
@@ -472,19 +485,35 @@ export async function updateRoadmapMilestonePlannerDates(
       const milestonesById = new Map(
         project.milestones.map((milestone) => [milestone.id, milestone]),
       );
-      const changes = plannerInput.dates.filter(({ milestoneId, plannedDate }) => {
+      const changes = plannerInput.dates.filter(({ milestoneId, plannedDate, plannedStartDate, plannedEndDate }) => {
         const milestone = milestonesById.get(milestoneId);
         if (!milestone) return false;
-        return !isSameActivityValue(milestone.plannedDate, plannedDate);
+        return (
+          !isSameActivityValue(milestone.plannedDate, plannedDate) ||
+          !isSameActivityValue(milestone.plannedStartDate, plannedStartDate) ||
+          !isSameActivityValue(milestone.plannedEndDate, plannedEndDate)
+        );
       });
 
       for (const change of changes) {
+        const milestone = milestonesById.get(change.milestoneId);
+        const isRange = milestone?.dateMode === "range" || change.plannedStartDate !== undefined || change.plannedEndDate !== undefined;
+        const compatibilityDate = isRange
+          ? change.plannedEndDate ?? change.plannedStartDate ?? change.plannedDate
+          : change.plannedDate;
         await updateRoadmapMilestone(
           projectId,
           change.milestoneId,
           {
-            plannedDate: change.plannedDate,
-            ...(change.plannedDate ? { dueDate: change.plannedDate } : {}),
+            plannedDate: compatibilityDate ?? null,
+            ...(compatibilityDate ? { dueDate: compatibilityDate } : {}),
+            ...(isRange
+              ? {
+                  dateMode: "range",
+                  plannedStartDate: change.plannedStartDate ?? null,
+                  plannedEndDate: change.plannedEndDate ?? null,
+                }
+              : {}),
           },
           tx,
         );

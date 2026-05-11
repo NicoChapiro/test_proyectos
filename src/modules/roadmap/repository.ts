@@ -125,6 +125,7 @@ function defaultMilestonesForProject(project: RoadmapProjectInput): Prisma.Roadm
       ownerName: isFirstTrackMilestone ? project.ownerName : null,
       plannedDate,
       dueDate: plannedDate,
+      dateMode: "point",
       approvalStatus: "approvalStatus" in template ? template.approvalStatus : null,
       notes: "notes" in template ? template.notes : null,
       isCritical: isFinalTrackMilestone,
@@ -132,8 +133,8 @@ function defaultMilestonesForProject(project: RoadmapProjectInput): Prisma.Roadm
   });
 }
 
-function plannedDateFromOffset(project: RoadmapProjectInput, suggestedOffsetDays: number | null): Date | null {
-  if (suggestedOffsetDays === null) return null;
+function plannedDateFromOffset(project: RoadmapProjectInput, suggestedOffsetDays: number | null | undefined): Date | null {
+  if (suggestedOffsetDays === null || suggestedOffsetDays === undefined) return null;
   const plannedDate = new Date(project.startDate);
   plannedDate.setUTCDate(plannedDate.getUTCDate() + suggestedOffsetDays);
   return plannedDate;
@@ -145,7 +146,17 @@ function milestonesFromRoadmapTemplate(
 ): Prisma.RoadmapMilestoneCreateWithoutProjectInput[] {
   const milestones = template.flows.flatMap((flow) =>
     flow.milestones.map((milestone, index) => {
-      const plannedDate = plannedDateFromOffset(project, milestone.suggestedOffsetDays) ?? interpolatePlannedDate(project.startDate, project.targetDate, index, flow.milestones.length);
+      const isRange = milestone.dateMode === "range";
+      const fallbackDate = interpolatePlannedDate(project.startDate, project.targetDate, index, flow.milestones.length);
+      const plannedStartDate = isRange
+        ? plannedDateFromOffset(project, milestone.suggestedStartOffsetDays ?? milestone.suggestedOffsetDays) ?? fallbackDate
+        : null;
+      const plannedEndDate = isRange
+        ? plannedDateFromOffset(project, milestone.suggestedEndOffsetDays ?? milestone.suggestedOffsetDays) ?? plannedStartDate ?? fallbackDate
+        : null;
+      const plannedDate = isRange
+        ? plannedEndDate ?? plannedStartDate ?? fallbackDate
+        : plannedDateFromOffset(project, milestone.suggestedOffsetDays) ?? fallbackDate;
       return {
         name: milestone.name,
         track: flow.track,
@@ -153,8 +164,11 @@ function milestonesFromRoadmapTemplate(
         sortOrder: milestone.sortOrder,
         status: "not_started" as const,
         ownerName: milestone.suggestedOwner || (index === 0 ? project.ownerName : null),
+        dateMode: milestone.dateMode,
         plannedDate,
         dueDate: plannedDate,
+        plannedStartDate,
+        plannedEndDate,
         approvalStatus: milestone.approvalRequired ? "pending" as const : null,
         notes: milestone.notes,
         isCritical: milestone.isCritical,
@@ -249,6 +263,9 @@ export async function createRoadmapTemplate(input: RoadmapTemplateInput, db: Roa
                 approvalRequired: milestone.approvalRequired,
                 isCritical: milestone.isCritical,
                 suggestedOffsetDays: milestone.suggestedOffsetDays,
+                dateMode: milestone.dateMode,
+                suggestedStartOffsetDays: milestone.suggestedStartOffsetDays,
+                suggestedEndOffsetDays: milestone.suggestedEndOffsetDays,
                 notes: milestone.notes,
               })),
           },
@@ -286,6 +303,9 @@ export async function updateRoadmapTemplate(id: string, input: RoadmapTemplateIn
                 approvalRequired: milestone.approvalRequired,
                 isCritical: milestone.isCritical,
                 suggestedOffsetDays: milestone.suggestedOffsetDays,
+                dateMode: milestone.dateMode,
+                suggestedStartOffsetDays: milestone.suggestedStartOffsetDays,
+                suggestedEndOffsetDays: milestone.suggestedEndOffsetDays,
                 notes: milestone.notes,
               })),
           },
