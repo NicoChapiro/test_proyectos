@@ -257,8 +257,33 @@ function milestoneWorkflowValue(milestone: Milestone): number {
 }
 
 function milestoneTimelineDate(milestone: Milestone): Date | null {
-  const value = milestone.plannedDate ?? milestone.dueDate;
+  const value = milestone.dateMode === "range"
+    ? milestone.plannedEndDate ?? milestone.plannedStartDate ?? milestone.plannedDate ?? milestone.dueDate
+    : milestone.plannedDate ?? milestone.dueDate;
   return value ? new Date(value) : null;
+}
+
+function milestoneTimelineStartDate(milestone: Milestone): Date | null {
+  const value = milestone.dateMode === "range" ? milestone.plannedStartDate ?? milestone.plannedDate ?? milestone.dueDate : milestone.plannedDate ?? milestone.dueDate;
+  return value ? new Date(value) : null;
+}
+
+function milestoneTimelineEndDate(milestone: Milestone): Date | null {
+  const value = milestone.dateMode === "range" ? milestone.plannedEndDate ?? milestone.plannedDate ?? milestone.dueDate : milestone.plannedDate ?? milestone.dueDate;
+  return value ? new Date(value) : null;
+}
+
+function milestoneDurationDays(milestone: Milestone): number | null {
+  const start = milestoneTimelineStartDate(milestone);
+  const end = milestoneTimelineEndDate(milestone);
+  if (!start || !end) return null;
+  return Math.max(0, Math.round((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1);
+}
+
+function displayMilestonePlannedRange(milestone: Milestone): string {
+  if (milestone.dateMode !== "range") return displayPlannedDate(milestoneTimelineDate(milestone));
+  const duration = milestoneDurationDays(milestone);
+  return `${displayPlannedDate(milestoneTimelineStartDate(milestone))} → ${displayPlannedDate(milestoneTimelineEndDate(milestone))}${duration ? ` · ${duration} días` : ""}`;
 }
 
 function buildProjectFlows(milestones: Milestone[]): ProjectFlow[] {
@@ -383,7 +408,9 @@ function flowMilestoneTooltip(milestones: Milestone[]): string {
     .map((milestone) => {
       const lines = [
         displayMilestoneName(milestone),
-        `Planificada: ${displayPlannedDate(milestoneTimelineDate(milestone))}`,
+        milestone.dateMode === "range"
+          ? `Planificada: ${displayMilestonePlannedRange(milestone)}`
+          : `Planificada: ${displayPlannedDate(milestoneTimelineDate(milestone))}`,
       ];
       const actualDate = milestone.actualDate ?? milestone.completedAt;
       if (actualDate) lines.push(`Real: ${displayDate(actualDate)}`);
@@ -618,6 +645,22 @@ function ProjectFlowRoadmap({ project }: { project: Project }) {
                         style={{ left: `${left}%`, width: `${width}%` }}
                         title={`${displayDate(firstMilestone?.date)} → ${displayDate(lastMilestone?.date)}`}
                       />
+                      {datedMilestones.map(({ milestone }) => {
+                        if (milestone.dateMode !== "range") return null;
+                        const start = milestoneTimelineStartDate(milestone);
+                        const end = milestoneTimelineEndDate(milestone);
+                        if (!start || !end) return null;
+                        const startLeft = clampYearPercent(start, year);
+                        const endLeft = clampYearPercent(end, year);
+                        return (
+                          <span
+                            key={`${milestone.id}-range`}
+                            className={`milestone-range-bar ${flowDotClass([milestone])}`}
+                            style={{ left: `${Math.min(startLeft, endLeft)}%`, width: `${Math.max(2, Math.abs(endLeft - startLeft))}%` }}
+                            title={flowMilestoneTooltip([milestone])}
+                          />
+                        );
+                      })}
                       {clusters.map((cluster) => (
                         <span
                           key={cluster.id}
@@ -1037,8 +1080,11 @@ function buildPlannerFlows(project: Project): PlannerFlow[] {
       approvalLabel: milestone.approvalStatus
         ? displayApprovalStatus(milestone.approvalStatus)
         : null,
+      dateMode: milestone.dateMode,
       plannedDate: toPlannerDate(milestone.plannedDate),
       dueDate: toPlannerDate(milestone.dueDate),
+      plannedStartDate: toPlannerDate(milestone.plannedStartDate),
+      plannedEndDate: toPlannerDate(milestone.plannedEndDate),
       actualDate: toPlannerDate(milestone.actualDate ?? milestone.completedAt),
       isCritical: milestone.isCritical,
       sequence: milestone.sequence ?? 0,
@@ -1318,7 +1364,7 @@ function MilestoneTable({
                       <span className="muted">Sin responsable</span>
                     )}
                   </td>
-                  <td>{displayPlannedDate(milestone.plannedDate)}</td>
+                  <td>{displayMilestonePlannedRange(milestone)}</td>
                   <td>
                     {displayDate(milestone.actualDate ?? milestone.completedAt)}
                   </td>
@@ -1446,16 +1492,30 @@ function MilestoneTable({
                             placeholder="Ej: Mario, Rodolfo"
                           />
                         </label>
-                        <label className="field">
-                          <span>Fecha planificada</span>
-                          <input
-                            type="date"
-                            name="plannedDate"
-                            defaultValue={inputDate(
-                              milestone.plannedDate ?? milestone.dueDate,
-                            )}
-                          />
-                        </label>
+                        <input type="hidden" name="dateMode" value={milestone.dateMode} />
+                        {milestone.dateMode === "range" ? (
+                          <>
+                            <label className="field">
+                              <span>Inicio planificado</span>
+                              <input type="date" name="plannedStartDate" defaultValue={inputDate(milestone.plannedStartDate ?? milestone.plannedDate ?? milestone.dueDate)} />
+                            </label>
+                            <label className="field">
+                              <span>Término planificado</span>
+                              <input type="date" name="plannedEndDate" defaultValue={inputDate(milestone.plannedEndDate ?? milestone.plannedDate ?? milestone.dueDate)} />
+                            </label>
+                          </>
+                        ) : (
+                          <label className="field">
+                            <span>Fecha planificada</span>
+                            <input
+                              type="date"
+                              name="plannedDate"
+                              defaultValue={inputDate(
+                                milestone.plannedDate ?? milestone.dueDate,
+                              )}
+                            />
+                          </label>
+                        )}
                         <label className="field">
                           <span>Fecha real</span>
                           <input
@@ -1925,10 +1985,23 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
                   <input name="ownerName" placeholder="Ej: Mario, Rodolfo" />
                 </label>
                 <label className="field">
-                  <span>
-                    Fecha planificada <em>*</em>
-                  </span>
+                  <span>Tipo de hito</span>
+                  <select name="dateMode" defaultValue="point">
+                    <option value="point">Puntual</option>
+                    <option value="range">Con duración</option>
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Fecha planificada / término <em>*</em></span>
                   <input type="date" name="plannedDate" required />
+                </label>
+                <label className="field">
+                  <span>Inicio (si tiene duración)</span>
+                  <input type="date" name="plannedStartDate" />
+                </label>
+                <label className="field">
+                  <span>Término (si tiene duración)</span>
+                  <input type="date" name="plannedEndDate" />
                 </label>
                 <label className="field">
                   <span>Estado</span>

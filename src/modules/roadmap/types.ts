@@ -6,6 +6,7 @@ export type RoadmapStatusValue = (typeof ROADMAP_STATUSES)[number];
 export type RoadmapTrafficLightValue = (typeof ROADMAP_TRAFFIC_LIGHTS)[number];
 export type RoadmapMilestoneStatusValue = (typeof ROADMAP_MILESTONE_STATUSES)[number];
 export type RoadmapMilestoneTrackValue = (typeof ROADMAP_MILESTONE_TRACKS)[number];
+export type RoadmapMilestoneDateModeValue = "point" | "range";
 export type RoadmapApprovalStatusValue = (typeof ROADMAP_APPROVAL_STATUSES)[number];
 export type RoadmapProjectTypeValue = (typeof ROADMAP_PROJECT_TYPES)[number];
 export type RoadmapBulkOwnerAssignmentScope =
@@ -70,6 +71,11 @@ export type RoadmapMilestoneInput = {
   plannedDate?: Date | null;
   actualDate?: Date | null;
   completedAt?: Date | null;
+  dateMode?: RoadmapMilestoneDateModeValue;
+  plannedStartDate?: Date | null;
+  plannedEndDate?: Date | null;
+  actualStartDate?: Date | null;
+  actualEndDate?: Date | null;
   approvalStatus?: RoadmapApprovalStatusValue | null;
   linkUrl?: string | null;
   documentUrl?: string | null;
@@ -87,7 +93,7 @@ export type RoadmapBulkOwnerAssignmentInput = {
 
 export type RoadmapPlannerDateInput = {
   flowLabel: string;
-  dates: Array<{ milestoneId: string; plannedDate: Date | null }>;
+  dates: Array<{ milestoneId: string; plannedDate: Date | null; plannedStartDate?: Date | null; plannedEndDate?: Date | null }>;
 };
 
 export type RoadmapActivityLogInput = {
@@ -117,6 +123,9 @@ export type RoadmapTemplateMilestoneInput = {
   approvalRequired: boolean;
   isCritical: boolean;
   suggestedOffsetDays?: number | null;
+  dateMode: RoadmapMilestoneDateModeValue;
+  suggestedStartOffsetDays?: number | null;
+  suggestedEndOffsetDays?: number | null;
   notes?: string | null;
 };
 

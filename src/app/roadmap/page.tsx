@@ -65,7 +65,19 @@ function milestoneWorkflowValue(milestone: ProjectMilestone): number {
 }
 
 function milestoneTimelineDate(milestone: ProjectMilestone): Date | null {
-  const value = milestone.plannedDate ?? milestone.dueDate;
+  const value = milestone.dateMode === "range"
+    ? milestone.plannedEndDate ?? milestone.plannedStartDate ?? milestone.plannedDate ?? milestone.dueDate
+    : milestone.plannedDate ?? milestone.dueDate;
+  return value ? new Date(value) : null;
+}
+
+function milestoneTimelineStartDate(milestone: ProjectMilestone): Date | null {
+  const value = milestone.dateMode === "range" ? milestone.plannedStartDate ?? milestone.plannedDate ?? milestone.dueDate : milestone.plannedDate ?? milestone.dueDate;
+  return value ? new Date(value) : null;
+}
+
+function milestoneTimelineEndDate(milestone: ProjectMilestone): Date | null {
+  const value = milestone.dateMode === "range" ? milestone.plannedEndDate ?? milestone.plannedDate ?? milestone.dueDate : milestone.plannedDate ?? milestone.dueDate;
   return value ? new Date(value) : null;
 }
 
@@ -797,6 +809,22 @@ export default async function RoadmapPage({ searchParams }: PageProps) {
                               }}
                               title={`${displayDate(flow.datedMilestones[0]?.date)} → ${displayDate(flow.datedMilestones.at(-1)?.date)}`}
                             />
+                            {flow.datedMilestones.map(({ milestone }) => {
+                              if (milestone.dateMode !== "range") return null;
+                              const start = milestoneTimelineStartDate(milestone);
+                              const end = milestoneTimelineEndDate(milestone);
+                              if (!start || !end) return null;
+                              const startLeft = clampYearPercent(start, year);
+                              const endLeft = clampYearPercent(end, year);
+                              return (
+                                <span
+                                  key={`${milestone.id}-range`}
+                                  className={`milestone-range-bar annual-milestone-range ${flowDotClass([milestone])}`}
+                                  style={{ left: `${Math.min(startLeft, endLeft)}%`, width: `${Math.max(2, Math.abs(endLeft - startLeft))}%` }}
+                                  title={flowMilestoneTooltip([milestone])}
+                                />
+                              );
+                            })}
                             {flow.visibleClusters.map((cluster) => (
                               <span
                                 key={cluster.id}

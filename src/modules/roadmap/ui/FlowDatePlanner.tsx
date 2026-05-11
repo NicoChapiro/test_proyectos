@@ -16,8 +16,11 @@ export type PlannerMilestone = {
   statusLabel: string;
   approvalStatus: string | null;
   approvalLabel: string | null;
+  dateMode: "point" | "range";
   plannedDate: string | null;
   dueDate: string | null;
+  plannedStartDate: string | null;
+  plannedEndDate: string | null;
   actualDate: string | null;
   isCritical: boolean;
   sequence: number;
@@ -95,7 +98,32 @@ function displayDate(value: string | null): string {
 }
 
 function milestoneDate(milestone: PlannerMilestone): string | null {
-  return milestone.plannedDate ?? milestone.dueDate;
+  return milestone.dateMode === "range"
+    ? milestone.plannedEndDate ?? milestone.plannedStartDate ?? milestone.plannedDate ?? milestone.dueDate
+    : milestone.plannedDate ?? milestone.dueDate;
+}
+
+function milestoneStartDate(milestone: PlannerMilestone): string | null {
+  return milestone.dateMode === "range" ? milestone.plannedStartDate ?? milestone.plannedDate ?? milestone.dueDate : milestoneDate(milestone);
+}
+
+function milestoneEndDate(milestone: PlannerMilestone): string | null {
+  return milestone.dateMode === "range" ? milestone.plannedEndDate ?? milestone.plannedDate ?? milestone.dueDate : milestoneDate(milestone);
+}
+
+function inclusiveDuration(start: string | null, end: string | null): number | null {
+  const startDate = parseDate(start);
+  const endDate = parseDate(end);
+  if (!startDate || !endDate) return null;
+  return Math.max(0, Math.round((endDate.getTime() - startDate.getTime()) / DAY_MS) + 1);
+}
+
+function rangeLabel(milestone: PlannerMilestone): string {
+  if (milestone.dateMode !== "range") return displayDate(milestoneDate(milestone));
+  const start = milestoneStartDate(milestone);
+  const end = milestoneEndDate(milestone);
+  const duration = inclusiveDuration(start, end);
+  return `${displayDate(start)} → ${displayDate(end)}${duration ? ` · ${duration} días` : ""}`;
 }
 
 function dayOffset(startDate: Date, value: string | null): number {
@@ -295,7 +323,7 @@ function handleClass(milestone: PlannerMilestone): string {
 
 function contextLabel(milestone: PlannerMilestone | null): string {
   if (!milestone) return "Sin hito";
-  return `${milestone.name} · ${displayDate(milestoneDate(milestone))}`;
+  return `${milestone.name} · ${rangeLabel(milestone)}`;
 }
 
 function dateCompare(a: string | null, b: string | null): number {
@@ -433,6 +461,7 @@ export function FlowDatePlanner({
     Math.round((projectTarget.getTime() - projectStart.getTime()) / DAY_MS),
   );
   const [draftDates, setDraftDates] = useState<Record<string, string>>({});
+  const [draftRangeDates, setDraftRangeDates] = useState<Record<string, { start: string; end: string }>>({});
   const [quickAdjustment, setQuickAdjustment] = useState<{
     days: string;
     reference: DayOffsetReference;
@@ -523,6 +552,13 @@ export function FlowDatePlanner({
             projectTargetDate: projectTarget,
           });
           const savedDate = milestoneDate(selectedMilestone);
+          const savedStartDate = milestoneStartDate(selectedMilestone);
+          const savedEndDate = milestoneEndDate(selectedMilestone);
+          const draftRange = draftRangeDates[selectedMilestone.id];
+          const selectedStartDate = selectedMilestone.dateMode === "range" ? draftRange?.start ?? savedStartDate ?? projectStartDate : null;
+          const selectedEndDate = selectedMilestone.dateMode === "range" ? draftRange?.end ?? savedEndDate ?? selectedStartDate ?? projectStartDate : null;
+          const rangeDuration = inclusiveDuration(selectedStartDate, selectedEndDate);
+          const rangeHasError = Boolean(selectedMilestone.dateMode === "range" && selectedStartDate && selectedEndDate && dateCompare(selectedEndDate, selectedStartDate) < 0);
           const suggestedPreviewDate =
             suggestion ?? savedDate ?? projectStartDate;
           const selectedDate =
@@ -530,7 +566,9 @@ export function FlowDatePlanner({
             savedDate ??
             suggestion ??
             projectStartDate;
-          const hasPreviewChange = selectedDate !== savedDate;
+          const hasPreviewChange = selectedMilestone.dateMode === "range"
+            ? selectedStartDate !== savedStartDate || selectedEndDate !== savedEndDate
+            : selectedDate !== savedDate;
           const warnings = warningsFor({
             selectedDate,
             previous,
@@ -702,6 +740,27 @@ export function FlowDatePlanner({
                     {displayDate(projectTargetDate)}
                   </span>
                   {datedMilestones.map((milestone) => {
+                    if (milestone.dateMode === "range") {
+                      const start = milestoneStartDate(milestone);
+                      const end = milestoneEndDate(milestone);
+                      if (!start || !end) return null;
+                      const left = datePosition(projectStart, projectTarget, start);
+                      const right = datePosition(projectStart, projectTarget, end);
+                      return (
+                        <button
+                          key={milestone.id}
+                          type="button"
+                          className={`slider-milestone-range ${handleClass(milestone)}${milestone.id === selectedMilestone.id ? " selected" : ""}`}
+                          style={{ left: `${Math.min(left, right)}%`, width: `${Math.max(2, Math.abs(right - left))}%` }}
+                          title={`${milestone.name} guardado · ${rangeLabel(milestone)} · ${milestone.statusLabel}`}
+                          aria-label={`Seleccionar ${milestone.name}`}
+                          onClick={() => {
+                            setSelectedByFlow((current) => ({ ...current, [flow.track]: milestone.id }));
+                            setActiveEditorFlow(flow.track);
+                          }}
+                        />
+                      );
+                    }
                     const value = milestoneDate(milestone);
                     if (!value) return null;
                     return (
@@ -784,7 +843,7 @@ export function FlowDatePlanner({
                     </div>
                     <span className={`badge ${handleClass(selectedMilestone)}`}>
                       {hasPreviewChange ? "Vista previa " : "Guardada "}
-                      {displayDate(selectedDate)}
+                      {selectedMilestone.dateMode === "range" ? rangeLabel({ ...selectedMilestone, plannedStartDate: selectedStartDate, plannedEndDate: selectedEndDate }) : displayDate(selectedDate)}
                     </span>
                   </div>
                   <div className="slider-context-grid">
@@ -799,18 +858,53 @@ export function FlowDatePlanner({
                     </span>
                   </div>
                   <div className="slider-editor-controls">
-                    <label className="field">
-                      <span>Fecha planificada</span>
-                      <input
-                        id={inputId}
-                        type="date"
-                        name={`plannedDate:${selectedMilestone.id}`}
-                        value={selectedDate}
-                        onChange={(event) =>
-                          applyPreviewDate(event.target.value)
-                        }
-                      />
-                    </label>
+                    {selectedMilestone.dateMode === "range" ? (
+                      <>
+                        <input type="hidden" name={`plannedDate:${selectedMilestone.id}`} value={selectedEndDate ?? ""} />
+                        <label className="field">
+                          <span>Inicio</span>
+                          <input
+                            id={`${inputId}-start`}
+                            type="date"
+                            name={`plannedStartDate:${selectedMilestone.id}`}
+                            value={selectedStartDate ?? ""}
+                            onChange={(event) => setDraftRangeDates((current) => ({
+                              ...current,
+                              [selectedMilestone.id]: { start: event.target.value, end: selectedEndDate ?? event.target.value },
+                            }))}
+                          />
+                        </label>
+                        <label className="field">
+                          <span>Término</span>
+                          <input
+                            id={`${inputId}-end`}
+                            type="date"
+                            name={`plannedEndDate:${selectedMilestone.id}`}
+                            value={selectedEndDate ?? ""}
+                            onChange={(event) => setDraftRangeDates((current) => ({
+                              ...current,
+                              [selectedMilestone.id]: { start: selectedStartDate ?? event.target.value, end: event.target.value },
+                            }))}
+                          />
+                        </label>
+                        <p className={`date-planner-duration${rangeHasError ? " warning" : ""}`}>
+                          <strong>Duración:</strong> {rangeDuration ?? "—"} días{rangeHasError ? " · El término debe ser posterior o igual al inicio" : ""}
+                        </p>
+                      </>
+                    ) : (
+                      <label className="field">
+                        <span>Fecha planificada</span>
+                        <input
+                          id={inputId}
+                          type="date"
+                          name={`plannedDate:${selectedMilestone.id}`}
+                          value={selectedDate}
+                          onChange={(event) =>
+                            applyPreviewDate(event.target.value)
+                          }
+                        />
+                      </label>
+                    )}
                     <label className="field slider-range-field">
                       <span>
                         Fecha en el flujo · {displayDate(selectedDate)}
@@ -975,7 +1069,7 @@ export function FlowDatePlanner({
                         Fecha objetivo
                       </button>
                     </div>
-                    <button className="button primary small" type="submit">
+                    <button className="button primary small" type="submit" disabled={rangeHasError}>
                       Guardar fecha
                     </button>
                   </div>

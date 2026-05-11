@@ -4565,3 +4565,65 @@ textarea {
     grid-column: 1 / 2;
   }
 }
+
+.template-milestone-date-mode {
+  min-width: 180px;
+}
+.template-milestone-range-fields {
+  display: grid;
+  grid-template-columns: minmax(96px, 1fr) minmax(96px, 1fr);
+  gap: 8px;
+  align-items: end;
+}
+.template-milestone-duration,
+.date-planner-duration {
+  color: var(--muted-strong);
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+.date-planner-duration.warning {
+  color: var(--danger);
+}
+.milestone-range-bar,
+.slider-milestone-range {
+  position: absolute;
+  z-index: 2;
+  top: 42px;
+  height: 8px;
+  min-width: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.5);
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.14);
+}
+.milestone-range-bar.milestone-completed,
+.slider-milestone-range.milestone-completed {
+  background: rgba(34, 197, 94, 0.52);
+}
+.milestone-range-bar.milestone-in_progress,
+.slider-milestone-range.milestone-in_progress {
+  background: rgba(234, 179, 8, 0.52);
+}
+.milestone-range-bar.milestone-blocked,
+.slider-milestone-range.milestone-blocked {
+  background: rgba(239, 68, 68, 0.5);
+}
+.project-flow-timeline .milestone-range-bar {
+  top: 44px;
+  height: 7px;
+}
+.annual-flow-timeline .annual-milestone-range {
+  top: 17px;
+  height: 4px;
+  min-width: 5px;
+  opacity: 0.88;
+}
+.slider-milestone-range {
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+.slider-milestone-range.selected {
+  outline: 2px solid var(--black);
+  outline-offset: 2px;
+}

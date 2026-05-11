@@ -32,6 +32,9 @@ function templateLines(template?: RoadmapTemplateWithDetails): string {
           milestone.isCritical ? "true" : "false",
           milestone.suggestedOffsetDays ?? "",
           milestone.notes ?? "",
+          milestone.dateMode ?? "point",
+          milestone.suggestedStartOffsetDays ?? "",
+          milestone.suggestedEndOffsetDays ?? "",
         ].join(" | "),
       ),
     )

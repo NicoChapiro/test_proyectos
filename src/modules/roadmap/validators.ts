@@ -1,6 +1,6 @@
 import { ROADMAP_APPROVAL_STATUSES, ROADMAP_MILESTONE_STATUSES, ROADMAP_MILESTONE_TRACKS, ROADMAP_PRIORITIES, ROADMAP_PROJECT_TYPES, ROADMAP_STATUSES, ROADMAP_TRAFFIC_LIGHTS } from "./constants";
 import { RoadmapError } from "./errors";
-import type { RoadmapApprovalStatusValue, RoadmapBulkOwnerAssignmentInput, RoadmapBulkOwnerAssignmentScope, RoadmapFilters, RoadmapMilestoneInput, RoadmapMilestoneStatusValue, RoadmapMilestoneTrackValue, RoadmapMilestoneUpdateInput, RoadmapPlannerDateInput, RoadmapPriorityValue, RoadmapProjectInput, RoadmapProjectTypeValue, RoadmapProjectUpdateInput, RoadmapStatusValue, RoadmapTemplateInput, RoadmapTrafficLightValue } from "./types";
+import type { RoadmapApprovalStatusValue, RoadmapBulkOwnerAssignmentInput, RoadmapBulkOwnerAssignmentScope, RoadmapFilters, RoadmapMilestoneDateModeValue, RoadmapMilestoneInput, RoadmapMilestoneStatusValue, RoadmapMilestoneTrackValue, RoadmapMilestoneUpdateInput, RoadmapPlannerDateInput, RoadmapPriorityValue, RoadmapProjectInput, RoadmapProjectTypeValue, RoadmapProjectUpdateInput, RoadmapStatusValue, RoadmapTemplateInput, RoadmapTrafficLightValue } from "./types";
 
 const ROADMAP_BULK_OWNER_ASSIGNMENT_SCOPES = [
   "all_unassigned",
@@ -9,6 +9,8 @@ const ROADMAP_BULK_OWNER_ASSIGNMENT_SCOPES = [
   "pending_approvals_unassigned",
   "upcoming_unassigned",
 ] as const satisfies readonly RoadmapBulkOwnerAssignmentScope[];
+
+const ROADMAP_MILESTONE_DATE_MODES = ["point", "range"] as const;
 
 function asRecord(payload: unknown): Record<string, unknown> {
   if (!payload || typeof payload !== "object") throw new RoadmapError("Payload inválido");
@@ -67,6 +69,12 @@ function optionalEnumValue<T extends readonly string[]>(value: unknown, values: 
 function validateRange(startDate?: Date, targetDate?: Date): void {
   if (startDate && targetDate && targetDate.getTime() < startDate.getTime()) {
     throw new RoadmapError("targetDate no puede ser anterior a startDate");
+  }
+}
+
+function validateMilestoneDateRange(startDate?: Date | null, endDate?: Date | null): void {
+  if (startDate && endDate && endDate.getTime() < startDate.getTime()) {
+    throw new RoadmapError("La fecha de término no puede ser anterior al inicio");
   }
 }
 
@@ -156,9 +164,17 @@ export function validateRoadmapProjectUpdateInput(payload: unknown): RoadmapProj
 
 export function validateMilestoneInput(payload: unknown): RoadmapMilestoneInput {
   const data = asRecord(payload);
+  const dateMode = (optionalEnumValue(data.dateMode, ROADMAP_MILESTONE_DATE_MODES, "Tipo de hito") ?? "point") as RoadmapMilestoneDateModeValue;
   const plannedDate = optionalDate(data.plannedDate ?? data.dueDate, "milestone plannedDate");
   const actualDate = optionalDate(data.actualDate ?? data.completedAt, "milestone actualDate");
+  const plannedStartDate = optionalDate(data.plannedStartDate, "Inicio planificado") ?? null;
+  const plannedEndDate = optionalDate(data.plannedEndDate, "Término planificado") ?? null;
+  const actualStartDate = optionalDate(data.actualStartDate, "Inicio real") ?? null;
+  const actualEndDate = optionalDate(data.actualEndDate, "Término real") ?? null;
+  validateMilestoneDateRange(plannedStartDate, plannedEndDate);
+  validateMilestoneDateRange(actualStartDate, actualEndDate);
   const sequence = numberOrDefault(data.sequence ?? data.sortOrder, 0);
+  const compatibilityDate = dateMode === "range" ? plannedEndDate ?? plannedStartDate ?? plannedDate : plannedDate;
   return {
     name: requiredString(data.name, "milestone name"),
     description: optionalString(data.description) ?? null,
@@ -167,10 +183,15 @@ export function validateMilestoneInput(payload: unknown): RoadmapMilestoneInput 
     sequence,
     ownerName: optionalString(data.ownerName) ?? null,
     status: (optionalEnumValue(data.status, ROADMAP_MILESTONE_STATUSES, "milestone status") ?? "not_started") as RoadmapMilestoneStatusValue,
-    dueDate: plannedDate ?? parseDate(data.dueDate, "milestone dueDate"),
-    plannedDate: plannedDate ?? null,
-    actualDate: actualDate ?? null,
-    completedAt: actualDate ?? null,
+    dueDate: compatibilityDate ?? parseDate(data.dueDate, "milestone dueDate"),
+    plannedDate: compatibilityDate ?? null,
+    actualDate: dateMode === "range" ? actualEndDate ?? actualStartDate ?? actualDate ?? null : actualDate ?? null,
+    completedAt: dateMode === "range" ? actualEndDate ?? actualStartDate ?? actualDate ?? null : actualDate ?? null,
+    dateMode,
+    plannedStartDate: dateMode === "range" ? plannedStartDate : null,
+    plannedEndDate: dateMode === "range" ? plannedEndDate : null,
+    actualStartDate: dateMode === "range" ? actualStartDate : null,
+    actualEndDate: dateMode === "range" ? actualEndDate : null,
     approvalStatus: (optionalEnumValue(data.approvalStatus, ROADMAP_APPROVAL_STATUSES, "approval status") ?? null) as RoadmapApprovalStatusValue | null,
     linkUrl: optionalUrl(data.linkUrl, "linkUrl") ?? null,
     documentUrl: optionalUrl(data.documentUrl, "documentUrl") ?? null,
@@ -194,15 +215,39 @@ export function validateMilestoneUpdateInput(payload: unknown): RoadmapMilestone
   }
   if (data.ownerName !== undefined) input.ownerName = optionalString(data.ownerName) ?? null;
   if (data.status !== undefined) input.status = enumValue(data.status, ROADMAP_MILESTONE_STATUSES, "milestone status") as RoadmapMilestoneStatusValue;
+  if (data.dateMode !== undefined) input.dateMode = enumValue(data.dateMode, ROADMAP_MILESTONE_DATE_MODES, "Tipo de hito") as RoadmapMilestoneDateModeValue;
   if (data.dueDate !== undefined || data.plannedDate !== undefined) {
     const plannedDate = optionalDate(data.plannedDate ?? data.dueDate, "milestone plannedDate") ?? null;
     input.plannedDate = plannedDate;
     if (plannedDate) input.dueDate = plannedDate;
   }
+  if (data.plannedStartDate !== undefined || data.plannedEndDate !== undefined) {
+    const plannedStartDate = optionalDate(data.plannedStartDate, "Inicio planificado") ?? null;
+    const plannedEndDate = optionalDate(data.plannedEndDate, "Término planificado") ?? null;
+    validateMilestoneDateRange(plannedStartDate, plannedEndDate);
+    input.dateMode = "range";
+    input.plannedStartDate = plannedStartDate;
+    input.plannedEndDate = plannedEndDate;
+    const compatibilityDate = plannedEndDate ?? plannedStartDate;
+    if (compatibilityDate) {
+      input.plannedDate = compatibilityDate;
+      input.dueDate = compatibilityDate;
+    }
+  }
   if (data.actualDate !== undefined || data.completedAt !== undefined) {
     const actualDate = optionalDate(data.actualDate ?? data.completedAt, "milestone actualDate") ?? null;
     input.actualDate = actualDate;
     input.completedAt = actualDate;
+  }
+  if (data.actualStartDate !== undefined || data.actualEndDate !== undefined) {
+    const actualStartDate = optionalDate(data.actualStartDate, "Inicio real") ?? null;
+    const actualEndDate = optionalDate(data.actualEndDate, "Término real") ?? null;
+    validateMilestoneDateRange(actualStartDate, actualEndDate);
+    input.actualStartDate = actualStartDate;
+    input.actualEndDate = actualEndDate;
+    const compatibilityDate = actualEndDate ?? actualStartDate;
+    input.actualDate = compatibilityDate ?? input.actualDate ?? null;
+    input.completedAt = compatibilityDate ?? input.completedAt ?? null;
   }
   if (data.approvalStatus !== undefined) input.approvalStatus = (optionalEnumValue(data.approvalStatus, ROADMAP_APPROVAL_STATUSES, "approval status") ?? null) as RoadmapApprovalStatusValue | null;
   if (data.linkUrl !== undefined) input.linkUrl = optionalUrl(data.linkUrl, "linkUrl") ?? null;
@@ -238,8 +283,20 @@ export function validateRoadmapPlannerDateInput(
     dates.push({
       milestoneId,
       plannedDate: optionalDate(value, "Fecha planificada") ?? null,
+      plannedStartDate: optionalDate(formData.get(`plannedStartDate:${milestoneId}`), "Inicio") ?? undefined,
+      plannedEndDate: optionalDate(formData.get(`plannedEndDate:${milestoneId}`), "Término") ?? undefined,
     });
   });
+  formData.forEach((_, key) => {
+    if (!key.startsWith("plannedStartDate:")) return;
+    const milestoneId = key.slice("plannedStartDate:".length).trim();
+    if (!milestoneId || dates.some((date) => date.milestoneId === milestoneId)) return;
+    const plannedStartDate = optionalDate(formData.get(`plannedStartDate:${milestoneId}`), "Inicio") ?? null;
+    const plannedEndDate = optionalDate(formData.get(`plannedEndDate:${milestoneId}`), "Término") ?? null;
+    validateMilestoneDateRange(plannedStartDate, plannedEndDate);
+    dates.push({ milestoneId, plannedDate: plannedEndDate ?? plannedStartDate, plannedStartDate, plannedEndDate });
+  });
+  for (const date of dates) validateMilestoneDateRange(date.plannedStartDate, date.plannedEndDate);
   if (dates.length === 0) {
     throw new RoadmapError("No hay fechas para actualizar");
   }
@@ -257,12 +314,20 @@ function parseTemplateMilestoneLines(value: unknown): RoadmapTemplateInput["mile
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line, index) => {
-      const [flowTrackRaw, nameRaw, ownerRaw, approvalRaw, criticalRaw, offsetRaw, notesRaw] = line.split("|").map((part) => part.trim());
+      const [flowTrackRaw, nameRaw, ownerRaw, approvalRaw, criticalRaw, offsetRaw, notesRaw, dateModeRaw, startOffsetRaw, endOffsetRaw] = line.split("|").map((part) => part.trim());
       const flowTrack = enumValue(flowTrackRaw, ROADMAP_MILESTONE_TRACKS, `Flujo línea ${index + 1}`) as RoadmapMilestoneTrackValue;
-      const offsetText = optionalString(offsetRaw);
-      const suggestedOffsetDays = offsetText === undefined || offsetText === null ? null : numberOrDefault(offsetText, Number.NaN);
-      if (suggestedOffsetDays !== null && !Number.isFinite(suggestedOffsetDays)) {
-        throw new RoadmapError(`Offset línea ${index + 1} debe ser numérico`);
+      const dateMode = (optionalEnumValue(dateModeRaw, ROADMAP_MILESTONE_DATE_MODES, `Tipo línea ${index + 1}`) ?? "point") as RoadmapMilestoneDateModeValue;
+      const numericOffset = (raw: unknown, label: string) => {
+        const text = optionalString(raw);
+        const value = text === undefined || text === null ? null : numberOrDefault(text, Number.NaN);
+        if (value !== null && !Number.isFinite(value)) throw new RoadmapError(`${label} debe ser numérico`);
+        return value;
+      };
+      const suggestedOffsetDays = numericOffset(offsetRaw, `Offset línea ${index + 1}`);
+      const suggestedStartOffsetDays = numericOffset(startOffsetRaw, `Inicio línea ${index + 1}`);
+      const suggestedEndOffsetDays = numericOffset(endOffsetRaw, `Término línea ${index + 1}`);
+      if (dateMode === "range" && suggestedStartOffsetDays !== null && suggestedEndOffsetDays !== null && suggestedEndOffsetDays < suggestedStartOffsetDays) {
+        throw new RoadmapError(`Término línea ${index + 1} debe ser mayor o igual al inicio`);
       }
       return {
         name: requiredString(nameRaw, `Nombre de hito línea ${index + 1}`),
@@ -271,7 +336,10 @@ function parseTemplateMilestoneLines(value: unknown): RoadmapTemplateInput["mile
         suggestedOwner: optionalString(ownerRaw) ?? null,
         approvalRequired: booleanFromForm(approvalRaw),
         isCritical: booleanFromForm(criticalRaw),
-        suggestedOffsetDays,
+        suggestedOffsetDays: dateMode === "point" ? suggestedOffsetDays : suggestedEndOffsetDays ?? suggestedOffsetDays,
+        dateMode,
+        suggestedStartOffsetDays: dateMode === "range" ? suggestedStartOffsetDays : null,
+        suggestedEndOffsetDays: dateMode === "range" ? suggestedEndOffsetDays : null,
         notes: optionalString(notesRaw) ?? null,
       };
     });
