@@ -241,9 +241,12 @@ declare module "@prisma/client" {
       delete(args: { where: { id: string } }): Promise<RoadmapTemplate>;
     };
     roadmapTemplateFlow: {
+      create(args: { data: unknown; select?: unknown; include?: unknown }): Promise<RoadmapTemplateFlow>;
       deleteMany(args: { where?: unknown }): Promise<{ count: number }>;
     };
     roadmapTemplateMilestone: {
+      create(args: { data: unknown; select?: unknown; include?: unknown }): Promise<RoadmapTemplateMilestone>;
+      createMany(args: { data: unknown[] }): Promise<{ count: number }>;
       deleteMany(args: { where?: unknown }): Promise<{ count: number }>;
     };
     roadmapMilestone: {
