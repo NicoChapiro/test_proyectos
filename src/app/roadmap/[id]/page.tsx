@@ -30,6 +30,7 @@ import {
   FlowDatePlanner,
   type PlannerFlow,
 } from "@/modules/roadmap/ui/FlowDatePlanner";
+import { ProjectDetailActionButton } from "@/modules/roadmap/ui/ProjectDetailActions";
 import { ProjectForm } from "@/modules/roadmap/ui/ProjectForm";
 import {
   displayApprovalStatus,
@@ -795,7 +796,10 @@ function ActivityHistory({ activityLogs }: { activityLogs: ActivityLog[] }) {
       id="historial"
     >
       <summary className="collapsible-summary">
-        <span>Historial de cambios · {activityLogs.length} eventos</span>
+        <span>
+          <strong>Historial</strong>
+          <small>Ver cambios recientes · {activityLogs.length} eventos</small>
+        </span>
         <span className="badge slate">Abrir</span>
       </summary>
       <div className="section-title compact collapsible-content-title">
@@ -1102,7 +1106,7 @@ function DatePlannerSection({
 }) {
   const flows = buildPlannerFlows(project);
   return (
-    <section className="panel date-planner" id="planificador-fechas">
+    <section className="date-planner">
       <div className="section-title compact">
         <div>
           <p className="eyebrow">Planificación</p>
@@ -1252,6 +1256,10 @@ function buildOperationalAlerts(insights: RoadmapProjectInsights<Milestone>) {
     alerts.push(
       `Hay ${insights.blockedMilestones.length} ${pluralize(insights.blockedMilestones.length, "hito bloqueado", "hitos bloqueados")}.`,
     );
+  }
+
+  if (insights.severity === "critical") {
+    alerts.push("Severidad crítica: requiere revisión operativa.");
   }
 
   return alerts;
@@ -1595,41 +1603,80 @@ function MilestoneTable({
 }
 
 function OperationalSummaryBand({
+  project,
   summary,
+  insights,
   nextMilestone,
+  alerts,
 }: {
+  project: Project;
   summary: ReturnType<typeof buildProjectSummary>;
+  insights: RoadmapProjectInsights<Milestone>;
   nextMilestone: Milestone | null;
+  alerts: string[];
 }) {
-  const items = [
-    { label: "Progreso", value: `${summary.progress}%`, accent: true },
-    { label: "total hitos", value: summary.total },
-    { label: "completados", value: summary.completed },
-    { label: "pendientes", value: summary.pending },
-    { label: "bloqueados", value: summary.blocked },
+  const summaryItems = [
+    {
+      label: "Estado",
+      value: ROADMAP_STATUS_LABELS[project.status],
+    },
+    { label: "Avance", value: `${summary.progress}%` },
+    {
+      label: "Próximo hito",
+      value: nextMilestone ? displayMilestoneName(nextMilestone) : "Sin pendientes",
+    },
+    {
+      label: "Fecha próximo hito",
+      value: nextMilestone
+        ? displayPlannedDate(milestoneTimelineDate(nextMilestone))
+        : "—",
+    },
+    {
+      label: "Responsable próximo hito",
+      value: nextMilestone?.ownerName || "Sin responsable",
+      warning: Boolean(nextMilestone && !nextMilestone.ownerName?.trim()),
+    },
+    { label: "Fecha objetivo", value: displayDate(project.targetDate) },
+    { label: "Riesgo", value: insights.severityLabel },
   ];
 
   return (
-    <section
-      className="operational-summary-band"
-      aria-label="Resumen operativo de progreso"
-    >
-      {items.map((item) => (
-        <span
-          key={item.label}
-          className={item.accent ? "summary-band-accent" : undefined}
-        >
-          {item.label} <strong>{item.value}</strong>
+    <section className="panel operational-overview" aria-labelledby="resumen-operativo-title">
+      <div className="operational-overview-header">
+        <div>
+          <p className="eyebrow">Resumen operativo</p>
+          <h2 id="resumen-operativo-title">Estado y próxima acción</h2>
+        </div>
+        <span className={`badge severity-${insights.severity}`}>
+          {insights.severityLabel}
         </span>
-      ))}
-      <span className="summary-band-next">
-        Próximo:{" "}
-        <strong>
-          {nextMilestone
-            ? displayMilestoneName(nextMilestone)
-            : "Sin pendientes"}
-        </strong>
-      </span>
+      </div>
+      <dl className="operational-summary-strip">
+        {summaryItems.map((item) => (
+          <div className={item.warning ? "needs-attention" : undefined} key={item.label}>
+            <dt>{item.label}</dt>
+            <dd>{item.value}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="primary-detail-actions" aria-label="Acciones principales del proyecto">
+        <ProjectDetailActionButton targetId="planificador-fechas">
+          Editar fechas
+        </ProjectDetailActionButton>
+        <ProjectDetailActionButton targetId="asignacion-rapida">
+          Asignar responsable
+        </ProjectDetailActionButton>
+        <ProjectDetailActionButton targetId="administracion">
+          Administración
+        </ProjectDetailActionButton>
+      </div>
+      <div className={`compact-alert-strip ${insights.severity}`}>
+        {alerts.length === 0 ? (
+          <span className="muted">Sin alertas operativas.</span>
+        ) : (
+          alerts.map((alert) => <span key={alert}>{alert}</span>)
+        )}
+      </div>
     </section>
   );
 }
@@ -1673,9 +1720,9 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
             <Link className="back-link" href="/roadmap">
               ← Volver al roadmap
             </Link>
-            <Link className="button secondary" href="#administracion">
+            <ProjectDetailActionButton targetId="administracion">
               Administración
-            </Link>
+            </ProjectDetailActionButton>
           </div>
           <p className="eyebrow">{project.code}</p>
           <h1>{project.name}</h1>
@@ -1700,28 +1747,46 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
           </div>
         </header>
 
-        <ProjectFlowRoadmap project={project} />
-
-        <DatePlannerSection project={project} action={updatePlannerDates} />
-
         <OperationalSummaryBand
+          project={project}
           summary={summary}
+          insights={insights}
           nextMilestone={nextMilestone}
+          alerts={operationalAlerts}
         />
 
-        <section
-          className="panel project-control"
-          aria-labelledby="control-proyecto-title"
-        >
-          <div className="section-title">
-            <div>
-              <p className="eyebrow">Control operativo</p>
-              <h2 id="control-proyecto-title">Control del proyecto</h2>
-            </div>
+        <ProjectFlowRoadmap project={project} />
+
+        <nav className="section-tabs" aria-label="Secciones del proyecto">
+          <a href="#roadmap-proyecto">Roadmap</a>
+          <a href="#planificador-fechas">Editar fechas</a>
+          <a href="#control-operativo">Control operativo</a>
+          <a href="#detalle-operativo">Detalle operativo</a>
+          <a href="#administracion">Administración</a>
+          <a href="#historial">Historial</a>
+        </nav>
+
+        <details className="panel collapsible-panel" id="planificador-fechas">
+          <summary className="collapsible-summary">
+            <span>
+              <strong>Planificador de fechas</strong>
+              <small>Ajusta fechas de hitos y flujos</small>
+            </span>
+            <span className="badge slate">Editar fechas</span>
+          </summary>
+          <DatePlannerSection project={project} action={updatePlannerDates} />
+        </details>
+
+        <details className="panel collapsible-panel project-control" id="control-operativo">
+          <summary className="collapsible-summary">
+            <span>
+              <strong>Control operativo</strong>
+              <small>Ver alertas, bloqueos y responsables</small>
+            </span>
             <span className={`badge severity-${insights.severity}`}>
               {insights.severityLabel}
             </span>
-          </div>
+          </summary>
           <div className="control-grid">
             <SummaryMetricCard
               label="Fase actual"
@@ -1741,7 +1806,7 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
               }
               detail={
                 nextMilestone
-                  ? displayPlannedDate(nextMilestone.plannedDate)
+                  ? displayPlannedDate(milestoneTimelineDate(nextMilestone))
                   : undefined
               }
             />
@@ -1812,106 +1877,93 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
               tone={insights.pendingApprovalCount > 0 ? "warning" : undefined}
             />
           </div>
-          <div className={`operational-alert-list ${insights.severity}`}>
-            <strong>Alertas operativas</strong>
-            {operationalAlerts.length === 0 ? (
-              <p className="muted">Sin alertas operativas.</p>
-            ) : (
-              <ul>
-                {operationalAlerts.map((alert) => (
-                  <li key={alert}>{alert}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
+        </details>
 
-        <nav className="section-tabs" aria-label="Secciones del proyecto">
-          <a href="#roadmap-proyecto">Roadmap del proyecto</a>
-          <a href="#planificador-fechas">Planificador de fechas</a>
-          <a href="#control-proyecto-title">Control del proyecto</a>
-          <a href="#detalle-operativo">Detalle operativo</a>
-          <a href="#administracion">Administración</a>
-          <a href="#resumen-proyecto">Resumen del proyecto</a>
-          <a href="#historial">Historial</a>
-        </nav>
-
-        <section
-          className="panel compact-project-summary"
-          id="resumen-proyecto"
-        >
-          <div className="section-title">
-            <div>
-              <p className="eyebrow">Resumen del proyecto</p>
-              <h2>
-                Contexto ejecutivo{project.description?.trim() ? "" : " —"}
-              </h2>
+        <details className="panel collapsible-panel" id="resumen-proyecto">
+          <summary className="collapsible-summary">
+            <span>
+              <strong>Resumen completo</strong>
+              <small>Ver contexto ejecutivo y metadatos</small>
+            </span>
+            <span className="badge slate">Contexto</span>
+          </summary>
+          <section className="compact-project-summary">
+            <div className="section-title compact">
+              <div>
+                <p className="eyebrow">Resumen del proyecto</p>
+                <h2>
+                  Contexto ejecutivo{project.description?.trim() ? "" : " —"}
+                </h2>
+              </div>
+              <div className="actions">
+                {project.packagingRequest ? (
+                  <Link
+                    className="button secondary"
+                    href={`/packaging/${project.packagingRequest.id}`}
+                  >
+                    Solicitud packaging {project.packagingRequest.code}
+                  </Link>
+                ) : null}
+                {sharepointUrl ? (
+                  <a
+                    className="button secondary"
+                    href={sharepointUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Abrir SharePoint
+                  </a>
+                ) : null}
+              </div>
             </div>
-            <div className="actions">
-              {project.packagingRequest ? (
-                <Link
-                  className="button secondary"
-                  href={`/packaging/${project.packagingRequest.id}`}
-                >
-                  Solicitud packaging {project.packagingRequest.code}
-                </Link>
-              ) : null}
-              {sharepointUrl ? (
-                <a
-                  className="button secondary"
-                  href={sharepointUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Abrir SharePoint
-                </a>
-              ) : null}
-            </div>
-          </div>
-          {project.description?.trim() ? (
-            <p className="compact-summary-description">{project.description}</p>
-          ) : null}
-          <dl className="metadata-grid compact-metadata-grid">
-            <div>
-              <dt>Responsable</dt>
-              <dd>{project.ownerName}</dd>
-            </div>
-            <div>
-              <dt>Área</dt>
-              <dd>{project.area || "—"}</dd>
-            </div>
-            <div>
-              <dt>Canal</dt>
-              <dd>{project.channel || "—"}</dd>
-            </div>
-            <div>
-              <dt>Marca</dt>
-              <dd>{project.brand || "—"}</dd>
-            </div>
-            <div>
-              <dt>Categoría</dt>
-              <dd>{project.category || "—"}</dd>
-            </div>
-            <div>
-              <dt>Fase actual</dt>
-              <dd>{insights.currentPhase.label}</dd>
-            </div>
-            <div>
-              <dt>Inicio</dt>
-              <dd>{displayDate(project.startDate)}</dd>
-            </div>
-            <div>
-              <dt>Fecha objetivo</dt>
-              <dd>{displayDate(project.targetDate)}</dd>
-            </div>
-          </dl>
-        </section>
+            {project.description?.trim() ? (
+              <p className="compact-summary-description">{project.description}</p>
+            ) : null}
+            <dl className="metadata-grid compact-metadata-grid">
+              <div>
+                <dt>Responsable</dt>
+                <dd>{project.ownerName}</dd>
+              </div>
+              <div>
+                <dt>Área</dt>
+                <dd>{project.area || "—"}</dd>
+              </div>
+              <div>
+                <dt>Canal</dt>
+                <dd>{project.channel || "—"}</dd>
+              </div>
+              <div>
+                <dt>Marca</dt>
+                <dd>{project.brand || "—"}</dd>
+              </div>
+              <div>
+                <dt>Categoría</dt>
+                <dd>{project.category || "—"}</dd>
+              </div>
+              <div>
+                <dt>Fase actual</dt>
+                <dd>{insights.currentPhase.label}</dd>
+              </div>
+              <div>
+                <dt>Inicio</dt>
+                <dd>{displayDate(project.startDate)}</dd>
+              </div>
+              <div>
+                <dt>Fecha objetivo</dt>
+                <dd>{displayDate(project.targetDate)}</dd>
+              </div>
+            </dl>
+          </section>
+        </details>
 
         <ActivityHistory activityLogs={activityLogs} />
 
         <details className="panel collapsible-panel" id="detalle-operativo">
           <summary className="collapsible-summary">
-            <span>Detalle operativo</span>
+            <span>
+              <strong>Detalle operativo</strong>
+              <small>Ver y editar hitos</small>
+            </span>
             <span className="badge slate">
               {project.milestones.length} hitos
             </span>
@@ -1933,7 +1985,10 @@ export default async function RoadmapProjectDetailPage({ params }: PageProps) {
           id="administracion"
         >
           <summary className="collapsible-summary">
-            <span>Administración</span>
+            <span>
+              <strong>Administración</strong>
+              <small>Editar datos del proyecto</small>
+            </span>
             <span className="badge slate">Editar / crear</span>
           </summary>
           <BulkAssignmentPanel
